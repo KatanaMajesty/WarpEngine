@@ -19,6 +19,12 @@ namespace Warp::Logging
 
 #ifdef WARP_DEBUG
 #define WARP_LOG_INFO(message, ...) (spdlog::info(message, ##__VA_ARGS__))
+#define WARP_LOG_WARN(message, ...) (spdlog::warn(message, ##__VA_ARGS__))
+#define WARP_LOG_ERROR(message, ...) (spdlog::error(message, ##__VA_ARGS__))
+#define WARP_LOG_FATAL(message, ...) (spdlog::critical(message, ##__VA_ARGS__))
 #else
 #define WARP_LOG_INFO(message, ...)
+#define WARP_LOG_WARN(message, ...)
+#define WARP_LOG_ERROR(message, ...)
+#define WARP_LOG_FATAL(message, ...)
 #endif
