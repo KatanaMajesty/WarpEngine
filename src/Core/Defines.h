@@ -23,8 +23,11 @@
 #define WARP_ATTR_FALLTHROUGH [[fallthrough]]
 
 // indicates that the use of the name or entity declared with this attribute is allowed, but discouraged for some reason
-#define WARP_ATTR_NODISCARD [[nodiscard]
+#define WARP_ATTR_NODISCARD [[nodiscard]]
 #define WARP_DEPRECATED [[deprecated]]
+
+// To suppress unused warnings
+#define WARP_MAYBE_UNUSED [[maybe_unused]]
 
 #else
 
@@ -33,5 +36,6 @@
 #define WARP_ATTR_FALLTHROUGH
 #define WARP_ATTR_NODISCARD
 #define WARP_DEPRECATED
+#define WARP_MAYBE_UNUSED
 
 #endif

@@ -24,6 +24,10 @@ namespace Warp
 		// Calling this function when there was no application created using Application::Create() is considered undefined behavior
 		static Application& GetInstance();
 
+		// Initialize (or reinitialize) the Application. Returns true if no errors occured during initialization of all it's components
+		bool Init();
+		bool AllocateAllComponents();
+
 		void Tick();
 		void Update();
 		void Render();

@@ -84,10 +84,16 @@ auto WINAPI wWinMain(
     if (!Warp::Application::Create())
     {
         // We failed to create application
+        WARP_LOG_FATAL("Failed to create Application");
         return -1;
     }
 
     Warp::Application& application = Warp::Application::GetInstance();
+    if (!application.Init())
+    {
+        WARP_LOG_FATAL("Failed to init Application");
+        return -1;
+    }
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);

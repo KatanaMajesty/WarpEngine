@@ -1,5 +1,7 @@
 #include "Logger.h"
 
+#include "spdlog/sinks/stdout_color_sinks.h"
+
 namespace Warp::Logging
 {
 
@@ -18,9 +20,10 @@ namespace Warp::Logging
 
 	void Init(Severity severity)
 	{
-		auto defaultLogger = spdlog::default_logger();
+		auto defaultLogger = spdlog::stdout_color_mt("WARP");
 		defaultLogger->set_pattern("%^[%H:%M:%S] [%n](%l): %v%$");
 		defaultLogger->set_level(ConvertSeverity(severity));
+		spdlog::set_default_logger(defaultLogger);
 	}
 
 }
