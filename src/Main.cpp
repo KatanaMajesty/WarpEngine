@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "Core/Application.h"
+#include "Core/Logger.h"
 
 WCHAR g_ClassName[] = L"WarpEngineClass";
 
@@ -23,6 +24,9 @@ auto WINAPI wWinMain(
     _In_ int32_t nCmdShow) -> int32_t
 {
     InitWin32Console();
+
+    Warp::Logging::Init(Warp::Logging::Severity::WARP_SEVERITY_INFO);
+    WARP_LOG_INFO("Hello, World {}", 42);
 
     std::vector<std::string> cmdLineArgs;
     ParseWin32CmdlineParams(cmdLineArgs, pCmdLine);
