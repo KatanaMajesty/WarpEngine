@@ -4,14 +4,17 @@
     <Filter Include="Core">
       <UniqueIdentifier>{11bb9556-1a12-4a17-b285-6aea4f8802f3}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Gfx">
-      <UniqueIdentifier>{f5150979-c181-441e-b74e-6e21ba218ca7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Util">
       <UniqueIdentifier>{ad29b862-ac55-4379-8a00-3c936ab2ad6f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Vendor">
       <UniqueIdentifier>{7cb49077-2bf8-40e5-b356-c92510f879a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{f5150979-c181-441e-b74e-6e21ba218ca7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{09c23196-fc83-435e-8918-7063471a976e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -25,19 +28,13 @@
     <ClCompile Include="src\Core\Logger.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Gfx\Renderer.cpp">
-      <Filter>Gfx</Filter>
+    <ClCompile Include="src\Renderer\Renderer.cpp">
+      <Filter>Renderer</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Gfx\Renderer.h">
-      <Filter>Gfx</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Gfx\stdafx.h">
-      <Filter>Gfx</Filter>
     </ClInclude>
     <ClInclude Include="src\Util\String.h">
       <Filter>Util</Filter>
@@ -51,10 +48,23 @@
     <ClInclude Include="src\Core\Assert.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\stdafx.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Renderer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\d3dx12.h">
+      <Filter>Vendor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
       <Filter>Vendor</Filter>
     </None>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders\Triangle.hlsl" />
   </ItemGroup>
 </Project>

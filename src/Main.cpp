@@ -15,6 +15,7 @@ void InitWin32Console();
 void DeinitWin32Console();
 void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLine);
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+std::filesystem::path GetWorkingDirectory();
 
 // https://learn.microsoft.com/en-us/windows/win32/learnwin32/winmain--the-application-entry-point
 auto WINAPI wWinMain(
@@ -81,15 +82,18 @@ auto WINAPI wWinMain(
         return -1;
     }
 
-    if (!Warp::Application::Create())
+    if (!Warp::Application::Create(GetWorkingDirectory()))
     {
         // We failed to create application
         WARP_LOG_FATAL("Failed to create Application");
         return -1;
     }
 
-    Warp::Application& application = Warp::Application::GetInstance();
-    if (!application.Init())
+    Warp::Application& application = Warp::Application::Get();
+    application.SetShaderRelativePath(std::filesystem::path("shaders"));
+    application.SetAssetsRelativePath(std::filesystem::path("assets"));
+    
+    if (!application.Init(hwnd, windowWidth, windowHeight))
     {
         WARP_LOG_FATAL("Failed to init Application");
         return -1;
@@ -131,7 +135,7 @@ void DeinitWin32Console()
 {
     if (!FreeConsole())
     {
-        // Yield warning that no console was freed
+        WARP_LOG_ERROR("Failed to free the application's console");
     }
 }
 
@@ -151,7 +155,7 @@ void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLi
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    Warp::Application& application = Warp::Application::GetInstance();
+    Warp::Application& application = Warp::Application::Get();
     switch (uMsg)
     {
     case WM_DESTROY:
@@ -168,4 +172,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+std::filesystem::path GetWorkingDirectory()
+{
+    std::array<char, MAX_PATH> rawPath;
+    GetModuleFileNameA(nullptr, rawPath.data(), (DWORD)rawPath.size()); // this will always return null-termination character
+    return std::filesystem::path(std::string(rawPath.data())).parent_path(); // This std::string constructor will seek for the null-termination character
 }

@@ -3,17 +3,23 @@
 #include "Logger.h"
 #include "Defines.h"
 #include "Assert.h"
-#include "../Gfx/Renderer.h"
+#include "../Renderer/Renderer.h"
 
 namespace Warp
 {
 
-	bool Application::Create()
+	Application::Application(const std::filesystem::path& workingDirectory)
+		// TODO: This is a temporary workaround in order to make our SolutionDir a working directory
+		: m_workingDirectory(workingDirectory.parent_path().parent_path())
+	{
+	}
+
+	bool Application::Create(const std::filesystem::path& workingDirectory)
 	{
 		if (s_instance)
 			Delete();
 
-		s_instance = new Application();
+		s_instance = new Application(workingDirectory);
 		return true;
 	}
 
@@ -23,18 +29,18 @@ namespace Warp
 		s_instance = nullptr;
 	}
 
-	Application& Application::GetInstance()
+	Application& Application::Get()
 	{
 		return *s_instance;
 	}
 
-	bool Application::Init()
+	bool Application::Init(HWND hwnd, uint32_t width, uint32_t height)
 	{
 		WARP_MAYBE_UNUSED bool allocRes = AllocateAllComponents();
 		WARP_ASSERT(allocRes && "Couldn't allocate all Application components successfully");
 
-		Renderer& renderer = Renderer::GetInstance();
-		if (!renderer.Init())
+		Renderer& renderer = Renderer::Get();
+		if (!renderer.Init(hwnd, width, height))
 		{
 			WARP_LOG_FATAL("Failed to initialize Renderer");
 			return false;
@@ -53,6 +59,8 @@ namespace Warp
 
 	void Application::Tick()
 	{
+		Update();
+		Render();
 	}
 
 	void Application::Update()
@@ -61,6 +69,7 @@ namespace Warp
 
 	void Application::Render()
 	{
+		Renderer::Get().Render();
 	}
 
 }
