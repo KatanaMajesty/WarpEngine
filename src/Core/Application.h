@@ -37,15 +37,11 @@ namespace Warp
 		// Returns the working directory
 		inline constexpr const std::filesystem::path& GetWorkingDirectory() const { return m_workingDirectory; }
 
-		// Getters and setters for relative Shader and Asset paths
-		inline constexpr const std::filesystem::path& GetShaderRelativePath() const { return m_shaderRelativePath; }
-		inline constexpr const std::filesystem::path& GetAssetsRelativePath() const { return m_assetsRelativePath;  }
-		inline void SetShaderRelativePath(const std::filesystem::path& path) { m_shaderRelativePath = path; }
-		inline void SetAssetsRelativePath(const std::filesystem::path& path) { m_assetsRelativePath = path; }
-
-		// Returns Shaders and Assets absolute paths respectively
-		inline std::filesystem::path GetShaderAbsolutePath() const { return GetWorkingDirectory() / GetShaderRelativePath(); }
-		inline std::filesystem::path GetAssetsAbsolutePath() const { return GetWorkingDirectory() / GetAssetsRelativePath(); }
+		// Getters and setters for absolute Shader and Assets paths
+		inline constexpr const std::filesystem::path& GetShaderPath() const { return m_shaderPath; }
+		inline constexpr const std::filesystem::path& GetAssetsPath() const { return m_assetsPath;  }
+		inline constexpr void SetShaderPath(const std::filesystem::path& path) { m_shaderPath = path; }
+		inline constexpr void SetAssetsPath(const std::filesystem::path& path) { m_assetsPath = path; }
 
 		inline constexpr bool IsWindowFocused() const noexcept { return m_isWindowFocused; }
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
@@ -54,8 +50,8 @@ namespace Warp
 		static inline Application* s_instance = nullptr;
 
 		std::filesystem::path m_workingDirectory;
-		std::filesystem::path m_shaderRelativePath;
-		std::filesystem::path m_assetsRelativePath;
+		std::filesystem::path m_shaderPath;
+		std::filesystem::path m_assetsPath;
 		bool m_isWindowFocused = true;
 	};
 

@@ -90,8 +90,9 @@ auto WINAPI wWinMain(
     }
 
     Warp::Application& application = Warp::Application::Get();
-    application.SetShaderRelativePath(std::filesystem::path("shaders"));
-    application.SetAssetsRelativePath(std::filesystem::path("assets"));
+    auto localPath = application.GetWorkingDirectory().parent_path().parent_path();
+    application.SetShaderPath(localPath / "shaders");
+    application.SetAssetsPath(localPath / "assets");
     
     if (!application.Init(hwnd, windowWidth, windowHeight))
     {
@@ -111,7 +112,6 @@ auto WINAPI wWinMain(
             DispatchMessage(&msg);
         }
         
-        // TODO: Application Ticking
         application.Tick();
     }
 

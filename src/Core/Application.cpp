@@ -10,7 +10,7 @@ namespace Warp
 
 	Application::Application(const std::filesystem::path& workingDirectory)
 		// TODO: This is a temporary workaround in order to make our SolutionDir a working directory
-		: m_workingDirectory(workingDirectory.parent_path().parent_path())
+		: m_workingDirectory(workingDirectory)
 	{
 	}
 

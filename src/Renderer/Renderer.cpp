@@ -375,7 +375,7 @@ namespace Warp
 		compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #endif
 
-		std::string filepath = (Application::Get().GetShaderAbsolutePath() / "Triangle.hlsl").string();
+		std::string filepath = (Application::Get().GetShaderPath() / "Triangle.hlsl").string();
 		std::wstring wfilepath(filepath.begin(), filepath.end());
 		WARP_MAYBE_UNUSED HRESULT hr;
 		hr = D3DCompileFromFile(wfilepath.c_str(), nullptr, nullptr, "vs_main", "vs_5_0", compileFlags, 0, m_vs.ReleaseAndGetAddressOf(), nullptr);
