@@ -86,6 +86,26 @@ namespace Warp
 			}
 			else
 			{
+				D3D12_MESSAGE_ID deniedIDs[] = { 
+					// Suppress D3D12 ERROR: ID3D12CommandQueue::Present: Resource state (0x800: D3D12_RESOURCE_STATE_COPY_SOURCE)
+					// As it is a bug in the DXGI Debug Layer interaction with the DX12 Debug Layer w/ Windows 11.
+					// The issue comes from debug layer interacting with hybrid graphics, such as integrated and discrete laptop GPUs
+					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE 
+				};
+
+				D3D12_INFO_QUEUE_FILTER_DESC denyFilterDesc {
+					.NumIDs = _countof(deniedIDs),
+					.pIDList = deniedIDs
+				};
+				
+				D3D12_INFO_QUEUE_FILTER filter {
+					.AllowList = {},
+					.DenyList = {denyFilterDesc}
+				};
+				
+				hr = m_debugInfoQueue->AddStorageFilterEntries(&filter);
+				WARP_ASSERT(SUCCEEDED(hr), "Failed to add validation layer storage filters");
+
 				hr = m_debugInfoQueue->RegisterMessageCallback(OnDebugLayerMessage, D3D12_MESSAGE_CALLBACK_FLAG_NONE, this, &m_messageCallbackCookie);
 				WARP_ASSERT(SUCCEEDED(hr), "Failed to register validation layer message callback");
 			}
