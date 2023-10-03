@@ -27,7 +27,6 @@ auto WINAPI wWinMain(
     InitWin32Console();
 
     Warp::Logging::Init(Warp::Logging::Severity::WARP_SEVERITY_INFO);
-    WARP_LOG_INFO("Hello, World {}", 42);
 
     std::vector<std::string> cmdLineArgs;
     ParseWin32CmdlineParams(cmdLineArgs, pCmdLine);

@@ -26,18 +26,13 @@ namespace Warp
 		// For more info see https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-d3d12-debug-layer-gpu-based-validation
 		// NOTICE! GPU-based validation can only be enabled if the debug layer is enabled as well.
 		bool EnableGpuBasedValidation = false;
-
-		// If the callback is provided, the device will try to initialize debugInfoQueue object
-		// If succeded, this message callback will be called each time validation layer fires a message
-		// 
-		// NOTICE! Message callback will only be enabled if the debug layer is enabled
-		D3D12MessageFunc MessageCallback = nullptr;
 	};
 
 	class GpuDevice
 	{
 	public:
 		GpuDevice() = default;
+		~GpuDevice();
 
 		bool Init(const GpuDeviceDesc& desc);
 

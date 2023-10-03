@@ -40,9 +40,7 @@
     <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RendererDebugLayer.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuValidationLayer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -75,8 +73,8 @@
     <ClInclude Include="src\Renderer\RHI\GpuDevice.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RendererDebugLayer.h">
-      <Filter>Renderer</Filter>
+    <ClInclude Include="src\Renderer\RHI\GpuValidationLayer.h">
+      <Filter>Renderer\RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

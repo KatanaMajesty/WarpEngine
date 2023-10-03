@@ -5,8 +5,20 @@
 #include "../../Core/Logger.h"
 #include "../../Util/String.h"
 
+#include "GpuValidationLayer.h"
+
 namespace Warp
 {
+
+	GpuDevice::~GpuDevice()
+	{
+		if (m_debugInfoQueue)
+		{
+			WARP_LOG_INFO("Unregistering validation layer message callback");
+			WARP_MAYBE_UNUSED HRESULT hr = m_debugInfoQueue->UnregisterMessageCallback(m_messageCallbackCookie);
+			WARP_ASSERT(SUCCEEDED(hr));
+		}
+	}
 
 	bool GpuDevice::Init(const GpuDeviceDesc& desc)
 	{
@@ -65,7 +77,7 @@ namespace Warp
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create D3D12 Device");
 
 		// Setup validation layer messages callbacks
-		if (desc.EnableDebugLayer && desc.MessageCallback)
+		if (desc.EnableDebugLayer)
 		{
 			hr = m_device->QueryInterface(IID_PPV_ARGS(m_debugInfoQueue.ReleaseAndGetAddressOf()));
 			if (FAILED(hr))
@@ -74,11 +86,11 @@ namespace Warp
 			}
 			else
 			{
-				hr = m_debugInfoQueue->RegisterMessageCallback(desc.MessageCallback, D3D12_MESSAGE_CALLBACK_FLAG_NONE, this, &m_messageCallbackCookie);
-				WARP_ASSERT(SUCCEEDED(hr), "Failed to register message callback");
+				hr = m_debugInfoQueue->RegisterMessageCallback(OnDebugLayerMessage, D3D12_MESSAGE_CALLBACK_FLAG_NONE, this, &m_messageCallbackCookie);
+				WARP_ASSERT(SUCCEEDED(hr), "Failed to register validation layer message callback");
 			}
 		}
-
+		
 		hr = m_factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_PRINT_SCREEN); // No need for print-screen rn
 		if (FAILED(hr))
 		{

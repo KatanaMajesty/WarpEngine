@@ -5,8 +5,6 @@
 #include "../Core/Assert.h"
 #include "../Core/Application.h"
 
-#include "RendererDebugLayer.h"
-
 // TODO: Temp, remove
 #include <DirectXMath.h>
 
@@ -76,7 +74,6 @@ namespace Warp
 #ifdef WARP_DEBUG
 		deviceDesc.EnableDebugLayer = true;
 		deviceDesc.EnableGpuBasedValidation = true;
-		deviceDesc.MessageCallback = ::Warp::OnDebugLayerMessage;
 #endif
 
 		if (!m_device.Init(deviceDesc))
