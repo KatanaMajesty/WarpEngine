@@ -4,10 +4,11 @@
 #include "stdafx.h"
 #include "../Core/Defines.h"
 
+#include "RHI/GpuDevice.h"
+#include "RHI/GpuCommandQueue.h"
+
 namespace Warp
 {
-
-	using Microsoft::WRL::ComPtr;
 
 	class Renderer
 	{
@@ -17,7 +18,7 @@ namespace Warp
 	public:
 		Renderer(const Renderer&) = delete;
 		Renderer& operator=(const Renderer&) = delete;
-		~Renderer() = default;
+		~Renderer();
 
 		static bool Create();
 		static void Delete();
@@ -32,25 +33,19 @@ namespace Warp
 
 	private:
 		bool InitD3D12Api(HWND hwnd);
-		bool SelectBestSuitableDXGIAdapter();
 
 		static inline Renderer* s_instance = nullptr;
 
-		ComPtr<IDXGIFactory7> m_factory;
-		ComPtr<IDXGIAdapter1> m_adapter;
-		ComPtr<ID3D12Device9> m_device;
-
-		ComPtr<ID3D12Debug3> m_debugInterface;
-		ComPtr<ID3D12DebugDevice> m_debugDevice;
+		GpuDevice m_device;
+		GpuCommandQueue m_commandQueue;
 
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;
-		ComPtr<ID3D12CommandQueue> m_commandQueue;
 		ComPtr<IDXGISwapChain3> m_swapchain;
 		ComPtr<ID3D12Resource> m_swapchainRtvs[Renderer::FrameCount];
 		uint32_t m_rtvDescriptorSize = 0;
-		ComPtr<ID3D12DescriptorHeap> m_swapchainRtvDescriptorHeap;
 		ComPtr<ID3D12CommandAllocator> m_commandAllocator;
+		ComPtr<ID3D12DescriptorHeap> m_swapchainRtvDescriptorHeap;
 		ComPtr<ID3D12RootSignature> m_rootSignature;
 
 		// TODO: Remove this temp code
@@ -63,13 +58,10 @@ namespace Warp
 
 		// Synchronization
 		uint32_t m_frameIndex = uint32_t(-1);
-		HANDLE m_fenceEvent;
-		ComPtr<ID3D12Fence> m_fence;
-		uint64_t m_fenceValue;
 
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed
 		void PopulateCommandList(); // TODO: Temp, will be removed
-		void WaitForPreviousFrame();
+		void WaitForPreviousFrame(uint64_t fenceValue);
 	};
 }

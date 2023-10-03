@@ -5,11 +5,18 @@
 #include "../Core/Assert.h"
 #include "../Core/Application.h"
 
+#include "RendererDebugLayer.h"
+
 // TODO: Temp, remove
 #include <DirectXMath.h>
 
 namespace Warp
 {
+	
+	Renderer::~Renderer()
+	{
+		m_commandQueue.HostWaitIdle();
+	}
 
 	bool Renderer::Create()
 	{
@@ -53,69 +60,39 @@ namespace Warp
 		PopulateCommandList();
 
 		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		m_commandQueue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+		UINT64 fenceValue = m_commandQueue.ExecuteCommandLists(ppCommandLists, false);
 
 		WARP_MAYBE_UNUSED HRESULT hr = m_swapchain->Present(1, 0);
 		WARP_ASSERT(SUCCEEDED(hr));
 
-		WaitForPreviousFrame();
+		WaitForPreviousFrame(fenceValue);
 	}
 
 	bool Renderer::InitD3D12Api(HWND hwnd)
 	{
-		WARP_ASSERT(hwnd, "Provided HWND is invalid");
+		GpuDeviceDesc deviceDesc;
+		deviceDesc.hwnd = hwnd;
 
-		UINT dxgiFactoryFlags = 0;
-		WARP_MAYBE_UNUSED HRESULT hr;
-
-		// Init debug interface
 #ifdef WARP_DEBUG
-		ID3D12Debug* di;
-		hr = D3D12GetDebugInterface(IID_PPV_ARGS(&di));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to get D3D12 Debug Interface");
-
-		hr = di->QueryInterface(IID_PPV_ARGS(&m_debugInterface));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to query required D3D12 Debug Interface");
-
-		m_debugInterface->EnableDebugLayer();
-		m_debugInterface->SetEnableGPUBasedValidation(TRUE);
-		di->Release();
-
-		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+		deviceDesc.EnableDebugLayer = true;
+		deviceDesc.EnableGpuBasedValidation = true;
+		deviceDesc.MessageCallback = ::Warp::OnDebugLayerMessage;
 #endif
 
-		hr = CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_factory));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create DXGI Factory");
-
-		// Selecting an adapter
-		if (!SelectBestSuitableDXGIAdapter())
+		if (!m_device.Init(deviceDesc))
 		{
-			WARP_LOG_FATAL("Failed to select D3D12 Adapter as no suitable was found");
+			WARP_LOG_ERROR("Failed to initialize GPU device");
 			return false;
 		}
-		
-		DXGI_ADAPTER_DESC1 adapterDesc;
-		m_adapter->GetDesc1(&adapterDesc);
 
-		std::string adapterVendor;
-		WStringToString(adapterVendor, adapterDesc.Description);
+		// TODO: Temporary
+		ID3D12Device9* d3dDevice = m_device.GetD3D12Device();
+		IDXGIFactory7* dxgiFactory = m_device.GetFactory();
+		WARP_MAYBE_UNUSED HRESULT hr;
 
-		// Describe selected adapter to the client
-		WARP_LOG_INFO("[Renderer] Successfully selected D3D12 Adapter");
-		WARP_LOG_INFO("[Renderer] Adapter Description: {}", adapterVendor);
-		WARP_LOG_INFO("[Renderer] Available Dedicated Video Memory: {} bytes", adapterDesc.DedicatedVideoMemory);
-
-		hr = D3D12CreateDevice(m_adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create D3D12 Device");
-
-		// Create command queue
-		D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};
-		commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-		commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-		hr = m_device->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_commandQueue));
-		if (FAILED(hr))
+		if (!m_commandQueue.Init(d3dDevice, D3D12_COMMAND_LIST_TYPE_DIRECT))
 		{
-			WARP_LOG_FATAL("Failed to create command queue");
+			WARP_LOG_ERROR("Failed to initialize GPU command queue");
 			return false;
 		}
 
@@ -137,7 +114,7 @@ namespace Warp
 		swapchainFullscreenDesc.Windowed = TRUE;
 
 		ComPtr<IDXGISwapChain1> swapchain;
-		hr = m_factory->CreateSwapChainForHwnd(m_commandQueue.Get(), 
+		hr = dxgiFactory->CreateSwapChainForHwnd(m_commandQueue.GetInternalHandle(),
 			hwnd, // handle
 			&swapchainDesc,
 			nullptr, 
@@ -149,12 +126,12 @@ namespace Warp
 			return false;
 		}
 
-		hr = m_factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_PRINT_SCREEN); // No need for print-screen rn
-		if (FAILED(hr))
-		{
-			// Do not return
-			WARP_LOG_WARN("Failed to monitor window's message queue. Fullscreen-to-Windowed will not be available via alt+enter");
-		}
+		//hr = m_factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_PRINT_SCREEN); // No need for print-screen rn
+		//if (FAILED(hr))
+		//{
+		//	// Do not return
+		//	WARP_LOG_WARN("Failed to monitor window's message queue. Fullscreen-to-Windowed will not be available via alt+enter");
+		//}
 
 		hr = swapchain.As(&m_swapchain);
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to represent swapchain correctly");
@@ -165,14 +142,14 @@ namespace Warp
 		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		rtvHeapDesc.NumDescriptors = Renderer::FrameCount;
 		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		hr = m_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_swapchainRtvDescriptorHeap));
+		hr = d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_swapchainRtvDescriptorHeap));
 		if (FAILED(hr))
 		{
 			WARP_LOG_FATAL("Failed to create descriptor heap for swapchain's rtvs");
 			return false;
 		}
 
-		m_rtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		m_rtvDescriptorSize = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
 		// Create frame resources (a render target view for each frame)
 		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_swapchainRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
@@ -180,12 +157,12 @@ namespace Warp
 		{
 			hr = m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_swapchainRtvs[i]));
 			WARP_ASSERT(SUCCEEDED(hr));
-			m_device->CreateRenderTargetView(m_swapchainRtvs[i].Get(), nullptr, rtvHandle);
+			d3dDevice->CreateRenderTargetView(m_swapchainRtvs[i].Get(), nullptr, rtvHandle);
 			rtvHandle.Offset(1, m_rtvDescriptorSize);
 		}
 
 		// Create a command allocator
-		hr = m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator));
+		hr = d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator));
 		if (FAILED(hr))
 		{
 			WARP_LOG_FATAL("Failed to create command allocator");
@@ -195,50 +172,11 @@ namespace Warp
 		return true;
 	}
 
-	bool IsDXGIAdapterSuitable(IDXGIAdapter1* adapter, const DXGI_ADAPTER_DESC1& desc)
-	{
-		// Don't select render driver, provided by D3D12. We only use physical hardware
-		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-			return false;
-
-		// Passing nullptr as a parameter would just test the adapter for compatibility
-		if (FAILED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_12_0, __uuidof(ID3D12Device), nullptr)))
-			return false;
-
-		return true;
-	}
-
-	bool Renderer::SelectBestSuitableDXGIAdapter()
-	{
-		WARP_ASSERT(m_factory, "Factory cannot be nullptr at this point");
-
-		SIZE_T largestDedicatedMemory = 0;
-		IDXGIAdapter1* adapter;
-		for (UINT i = 0;
-			(HRESULT)m_factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; // Implicit cast between different types is fine...
-			++i)
-		{
-
-			DXGI_ADAPTER_DESC1 adapterDesc;
-			adapter->GetDesc1(&adapterDesc);
-			
-			// If the adapter is suitable, we can compare it with current adapter
-			if (IsDXGIAdapterSuitable(adapter, adapterDesc) && largestDedicatedMemory < adapterDesc.DedicatedVideoMemory)
-			{
-				largestDedicatedMemory = adapterDesc.DedicatedVideoMemory;
-				m_adapter.Attach(adapter);
-				continue;
-			}
-
-			adapter->Release();
-			adapter = nullptr;
-		}
-
-		return m_adapter != nullptr;
-	}
-
 	bool Renderer::InitAssets()
 	{
+		// TODO: Temporary
+		ID3D12Device9* d3dDevice = m_device.GetD3D12Device();
+
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -248,7 +186,7 @@ namespace Warp
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.GetAddressOf(), error.GetAddressOf());
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to serialize root signature");
 
-		hr = m_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature));
+		hr = d3dDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create root signature");
 
 		if (!InitShaders())
@@ -286,10 +224,10 @@ namespace Warp
 		// D3D12_CACHED_PIPELINE_STATE CachedPSO;
 		// D3D12_PIPELINE_STATE_FLAGS Flags;
 
-		hr = m_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
+		hr = d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create graphics pso");
 
-		hr = m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
+		hr = d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create command list");
 
 		// Command lists are created in the recording state, but there is nothing
@@ -320,7 +258,7 @@ namespace Warp
 		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 
-		hr = m_device->CreateCommittedResource(
+		hr = d3dDevice->CreateCommittedResource(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&resourceDesc,
@@ -344,23 +282,10 @@ namespace Warp
 		m_vbv.StrideInBytes = sizeof(Vertex);
 		m_vbv.SizeInBytes = vertexBufferSize;
 
-		// Create synchronization objects and wait until assets have been uploaded to the GPU.
-		hr = m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create fence");
-
-		m_fenceValue = 1;
-
-		// Create an event handle to use for frame synchronization.
-		m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-		if (!m_fenceEvent)
-		{
-			WARP_ASSERT(SUCCEEDED(HRESULT_FROM_WIN32(GetLastError())));
-		}
-
 		// Wait for the command list to execute; we are reusing the same command 
 		// list in our main loop but for now, we just want to wait for setup to 
 		// complete before continuing.
-		WaitForPreviousFrame();
+		m_commandQueue.HostWaitForValue(m_commandQueue.Signal());
 
 		return true;
 	}
@@ -447,7 +372,7 @@ namespace Warp
 		WARP_ASSERT(SUCCEEDED(hr));
 	}
 
-	void Renderer::WaitForPreviousFrame()
+	void Renderer::WaitForPreviousFrame(uint64_t fenceValue)
 	{
 		// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
 		// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
@@ -455,21 +380,7 @@ namespace Warp
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		const UINT64 fence = m_fenceValue;
-		WARP_MAYBE_UNUSED HRESULT hr = m_commandQueue->Signal(m_fence.Get(), fence);
-		WARP_ASSERT(SUCCEEDED(hr));
-
-		m_fenceValue++;
-
-		// Wait until the previous frame is finished.
-		if (m_fence->GetCompletedValue() < fence)
-		{
-			hr = m_fence->SetEventOnCompletion(fence, m_fenceEvent);
-			WARP_ASSERT(SUCCEEDED(hr));
-
-			WaitForSingleObject(m_fenceEvent, INFINITE);
-		}
-
+		m_commandQueue.HostWaitForValue(fenceValue);
 		m_frameIndex = m_swapchain->GetCurrentBackBufferIndex();
 	}
 

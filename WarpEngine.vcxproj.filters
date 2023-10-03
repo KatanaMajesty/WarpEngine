@@ -16,6 +16,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{09c23196-fc83-435e-8918-7063471a976e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer\RHI">
+      <UniqueIdentifier>{da755d4f-f851-4aee-bc8c-064f16b626b8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -29,6 +32,15 @@
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Renderer\Renderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuCommandQueue.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RendererDebugLayer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
   </ItemGroup>
@@ -56,6 +68,15 @@
     </ClInclude>
     <ClInclude Include="vendor\d3dx12.h">
       <Filter>Vendor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuCommandQueue.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuDevice.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RendererDebugLayer.h">
+      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -41,3 +41,5 @@
 #define WARP_ASSERT(...)
 
 #endif
+
+#define WARP_YIELD_NOIMPL() WARP_ASSERT(false, "No implementation!")
