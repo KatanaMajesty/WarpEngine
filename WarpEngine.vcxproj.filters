@@ -19,6 +19,9 @@
     <Filter Include="Renderer\RHI">
       <UniqueIdentifier>{da755d4f-f851-4aee-bc8c-064f16b626b8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Vendor\D3D12MA">
+      <UniqueIdentifier>{ce66f287-3aa8-40d8-a33e-11d00ecb681e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -40,7 +43,15 @@
     <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuValidationLayer.cpp" />
+    <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp">
+      <Filter>Vendor\D3D12MA</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuResource.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -73,7 +84,16 @@
     <ClInclude Include="src\Renderer\RHI\GpuDevice.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuValidationLayer.h">
+    <ClInclude Include="src\Renderer\RHI\RHIValidationLayer.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h">
+      <Filter>Vendor\D3D12MA</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuResource.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuSwapchain.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
   </ItemGroup>
@@ -84,6 +104,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\Triangle.hlsl" />
+    <Natvis Include="vendor\D3D12MA\D3D12MemAlloc.natvis">
+      <Filter>Vendor\D3D12MA</Filter>
+    </Natvis>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders\Triangle.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

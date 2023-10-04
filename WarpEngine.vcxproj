@@ -26,8 +26,10 @@
     <ClCompile Include="src\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Renderer\RHI\GpuCommandQueue.cpp" />
     <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuValidationLayer.cpp" />
+    <ClCompile Include="src\Renderer\RHI\GpuResource.cpp" />
+    <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp" />
     <ClCompile Include="src\Util\String.cpp" />
+    <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h" />
@@ -37,9 +39,12 @@
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\RHI\GpuCommandQueue.h" />
     <ClInclude Include="src\Renderer\RHI\GpuDevice.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuValidationLayer.h" />
+    <ClInclude Include="src\Renderer\RHI\GpuSwapchain.h" />
+    <ClInclude Include="src\Renderer\RHI\GpuResource.h" />
+    <ClInclude Include="src\Renderer\RHI\RHIValidationLayer.h" />
     <ClInclude Include="src\Renderer\stdafx.h" />
     <ClInclude Include="src\Util\String.h" />
+    <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
     <ClInclude Include="vendor\d3dx12.h" />
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +60,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="vendor\D3D12MA\D3D12MemAlloc.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

@@ -5,7 +5,7 @@
 #include "../../Core/Logger.h"
 #include "../../Util/String.h"
 
-#include "GpuValidationLayer.h"
+#include "RHIValidationLayer.h"
 
 namespace Warp
 {
@@ -22,6 +22,8 @@ namespace Warp
 
 	bool GpuDevice::Init(const GpuDeviceDesc& desc)
 	{
+		m_frameID = 0;
+
 		HWND hwnd = desc.hwnd;
 		WARP_ASSERT(hwnd, "Provided HWND is invalid");
 
@@ -88,7 +90,7 @@ namespace Warp
 			{
 				D3D12_MESSAGE_ID deniedIDs[] = { 
 					// Suppress D3D12 ERROR: ID3D12CommandQueue::Present: Resource state (0x800: D3D12_RESOURCE_STATE_COPY_SOURCE)
-					// As it is a bug in the DXGI Debug Layer interaction with the DX12 Debug Layer w/ Windows 11.
+					// As it thats a bug in the DXGI Debug Layer interaction with the DX12 Debug Layer w/ Windows 11.
 					// The issue comes from debug layer interacting with hybrid graphics, such as integrated and discrete laptop GPUs
 					D3D12_MESSAGE_ID_RESOURCE_BARRIER_MISMATCHING_COMMAND_LIST_TYPE 
 				};
@@ -106,7 +108,7 @@ namespace Warp
 				hr = m_debugInfoQueue->AddStorageFilterEntries(&filter);
 				WARP_ASSERT(SUCCEEDED(hr), "Failed to add validation layer storage filters");
 
-				hr = m_debugInfoQueue->RegisterMessageCallback(OnDebugLayerMessage, D3D12_MESSAGE_CALLBACK_FLAG_NONE, this, &m_messageCallbackCookie);
+				hr = m_debugInfoQueue->RegisterMessageCallback(ValidationLayer::OnDebugLayerMessage, D3D12_MESSAGE_CALLBACK_FLAG_NONE, this, &m_messageCallbackCookie);
 				WARP_ASSERT(SUCCEEDED(hr), "Failed to register validation layer message callback");
 			}
 		}
@@ -118,7 +120,44 @@ namespace Warp
 			WARP_LOG_WARN("Failed to monitor window's message queue. Fullscreen-to-Windowed will not be available via alt+enter");
 		}
 
+		D3D12MA::ALLOCATOR_DESC resourceAllocatorDesc{};
+		resourceAllocatorDesc.pAdapter = m_adapter.Get();
+		resourceAllocatorDesc.pDevice = GetD3D12Device();
+
+		hr = D3D12MA::CreateAllocator(&resourceAllocatorDesc, m_resourceAllocator.ReleaseAndGetAddressOf());
+		if (FAILED(hr))
+		{
+			WARP_LOG_ERROR("Failed to create D3D12MA resource allocator");
+			return false;
+		}
+
 		return true;
+	}
+
+	void GpuDevice::BeginFrame()
+	{
+	}
+
+	void GpuDevice::EndFrame()
+	{
+		++m_frameID;
+		m_resourceAllocator->SetCurrentFrameIndex(m_frameID);
+	}
+
+	GpuBuffer GpuDevice::CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags)
+	{
+		// Work remarks:
+		// Applications should stick to the heap type abstractions of UPLOAD, DEFAULT, and READBACK, 
+		// in order to support all adapter architectures reasonably well.
+		GpuBuffer buffer(GetD3D12Device(), 
+			m_resourceAllocator.Get(), 
+			D3D12_HEAP_TYPE_UPLOAD, 		   // TODO: Rewrite this, request a heap type from the user
+			D3D12_RESOURCE_STATE_GENERIC_READ, // TODO: Rewrite this, avoid using generic read, start using transitions
+			flags, 
+			strideInBytes, sizeInBytes);
+
+		// TODO: Add validity checks
+		return buffer;
 	}
 
 	bool IsDXGIAdapterSuitable(IDXGIAdapter1* adapter, const DXGI_ADAPTER_DESC1& desc)

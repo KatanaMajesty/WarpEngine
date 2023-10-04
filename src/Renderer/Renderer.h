@@ -4,8 +4,9 @@
 #include "stdafx.h"
 #include "../Core/Defines.h"
 
-#include "RHI/GpuDevice.h"
 #include "RHI/GpuCommandQueue.h"
+#include "RHI/GpuDevice.h"
+#include "RHI/GpuResource.h"
 
 namespace Warp
 {
@@ -49,12 +50,12 @@ namespace Warp
 		ComPtr<ID3D12RootSignature> m_rootSignature;
 
 		// TODO: Remove this temp code
-		ComPtr<ID3D12Resource> m_vertexBuffer;
 		ComPtr<ID3D12PipelineState> m_pso;
 		ComPtr<ID3D12GraphicsCommandList> m_commandList;
 		ComPtr<ID3DBlob> m_vs;
 		ComPtr<ID3DBlob> m_ps;
-		D3D12_VERTEX_BUFFER_VIEW m_vbv;
+
+		GpuBuffer m_vertexBuffer;
 
 		// Synchronization
 		uint32_t m_frameIndex = uint32_t(-1);

@@ -83,7 +83,7 @@ namespace Warp
 		}
 
 		// TODO: Temporary
-		ID3D12Device9* d3dDevice = m_device.GetD3D12Device();
+		ID3D12Device* d3dDevice = m_device.GetD3D12Device();
 		IDXGIFactory7* dxgiFactory = m_device.GetFactory();
 		WARP_MAYBE_UNUSED HRESULT hr;
 
@@ -172,14 +172,14 @@ namespace Warp
 	bool Renderer::InitAssets()
 	{
 		// TODO: Temporary
-		ID3D12Device9* d3dDevice = m_device.GetD3D12Device();
+		ID3D12Device* d3dDevice = m_device.GetD3D12Device();
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 		ComPtr<ID3DBlob> signature;
 		ComPtr<ID3DBlob> error;
-		WARP_MAYBE_UNUSED HRESULT hr;
+		HRESULT hr;
 		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.GetAddressOf(), error.GetAddressOf());
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to serialize root signature");
 
@@ -255,13 +255,11 @@ namespace Warp
 		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 
-		hr = d3dDevice->CreateCommittedResource(
-			&heapProps,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			nullptr,
-			IID_PPV_ARGS(&m_vertexBuffer));
+		m_vertexBuffer = m_device.CreateBuffer(sizeof(Vertex), vertexBufferSize);
+		if (!m_vertexBuffer.IsValid())
+		{
+			WARP_LOG_FATAL("failed to create vertex buffer");
+		}
 
 		if (FAILED(hr))
 		{
@@ -269,15 +267,8 @@ namespace Warp
 			return false;
 		}
 
-		void* pVertexData = nullptr;
-		CD3DX12_RANGE readRange(0, 0);
-		m_vertexBuffer->Map(0, &readRange, &pVertexData);
-		memcpy(pVertexData, triangleVertices, vertexBufferSize);
-		m_vertexBuffer->Unmap(0, nullptr);
-
-		m_vbv.BufferLocation = m_vertexBuffer->GetGPUVirtualAddress();
-		m_vbv.StrideInBytes = sizeof(Vertex);
-		m_vbv.SizeInBytes = vertexBufferSize;
+		Vertex* vertexData = m_vertexBuffer.GetCpuVirtualAddress<Vertex>();
+		memcpy(vertexData, triangleVertices, vertexBufferSize);
 
 		// Wait for the command list to execute; we are reusing the same command 
 		// list in our main loop but for now, we just want to wait for setup to 
@@ -351,12 +342,14 @@ namespace Warp
 		const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_swapchainRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
 		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
+		auto vbv = m_vertexBuffer.GetVertexBufferView();
+
 		// Record commands.
 		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 		// m_commandList->SetPipelineState(m_pso.Get());
 		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_commandList->IASetVertexBuffers(0, 1, &m_vbv);
+		m_commandList->IASetVertexBuffers(0, 1, &vbv);
 		m_commandList->DrawInstanced(3, 1, 0, 0);
 
 		// Indicate that the back buffer will now be used to present.

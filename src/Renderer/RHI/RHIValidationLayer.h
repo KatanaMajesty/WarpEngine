@@ -3,7 +3,7 @@
 
 #include "../stdafx.h"
 
-namespace Warp
+namespace Warp::ValidationLayer
 {
 
 	void OnDebugLayerMessage(D3D12_MESSAGE_CATEGORY category,

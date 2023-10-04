@@ -1,7 +1,11 @@
 #pragma once
 
+#include <memory>
+
+#include "D3D12MA/D3D12MemAlloc.h"
+
 #include "../stdafx.h"
-#include "GpuCommandQueue.h"
+#include "GpuResource.h"
 
 namespace Warp
 {
@@ -36,11 +40,20 @@ namespace Warp
 
 		bool Init(const GpuDeviceDesc& desc);
 
+		void BeginFrame();
+		void EndFrame();
+
 		inline IDXGIFactory7* GetFactory() const { return m_factory.Get(); }
 		inline IDXGIAdapter1* GetAdapter() const { return m_adapter.Get(); }
-		inline ID3D12Device9* GetD3D12Device() const { return m_device.Get(); }
+		inline ID3D12Device9* GetD3D12Device9() const { return m_device.Get(); }
+		inline ID3D12Device* GetD3D12Device() const { return GetD3D12Device9(); }
 
 		inline bool IsDebugLayerEnabled() const { return m_debugInterface != nullptr; }
+
+		inline constexpr UINT GetFrameID() const { return m_frameID; }
+		inline constexpr UINT GetNumSimultaneousFrames() const { return m_numSimultaneousFrames; }
+
+		GpuBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 	private:
 		bool SelectBestSuitableDXGIAdapter();
@@ -52,6 +65,10 @@ namespace Warp
 		ComPtr<ID3D12Debug3> m_debugInterface;
 		ComPtr<ID3D12InfoQueue1> m_debugInfoQueue;
 		DWORD m_messageCallbackCookie = DWORD(-1);
+
+		UINT m_frameID = 0;
+		UINT m_numSimultaneousFrames = 3;
+		ComPtr<D3D12MA::Allocator> m_resourceAllocator = nullptr;
 	};
 
 }

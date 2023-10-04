@@ -8,7 +8,7 @@
 #define NOMINMAX
 #endif					// Exclude rarely-used stuff from Windows headers.
 
-#include <windows.h>
+#include <Windows.h>
 
 // #pragma comment(lib, "DirectXTK.lib")
 // #pragma comment(lib, "dxguid.lib")

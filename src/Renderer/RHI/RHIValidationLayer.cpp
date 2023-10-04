@@ -1,10 +1,10 @@
-#include "GpuValidationLayer.h"
+#include "RHIValidationLayer.h"
 
 #include "../../Core/Assert.h"
 #include "../../Core/Defines.h"
 #include "../../Core/Logger.h"
 
-namespace Warp
+namespace Warp::ValidationLayer
 {
 
 	static std::string_view GetMessageCategoryAsStr(D3D12_MESSAGE_CATEGORY category)
@@ -45,38 +45,32 @@ namespace Warp
 		LPCSTR description,
 		void* vpDevice)
 	{
-		// It is safe and guaranteed by the device itself to be valid
-		// WARP_MAYBE_UNUSED GpuDevice* device = (GpuDevice*)vpDevice; 
-
-		auto pCategory = GetMessageCategoryAsStr(category);
-		auto pSeverity = GetMessageSeverityAsStr(severity);
+		std::string_view pCategory = GetMessageCategoryAsStr(category);
+		std::string_view pSeverity = GetMessageSeverityAsStr(severity);
 		std::string Message = std::format("(Severity: {}) [Category: {}], ID {}: {}",
 			pSeverity,
 			pCategory,
 			static_cast<UINT>(ID),
 			description);
 
-		[&Message](D3D12_MESSAGE_SEVERITY severity)
+		switch (severity)
 		{
-			switch (severity)
-			{
-			case D3D12_MESSAGE_SEVERITY_CORRUPTION:
-			case D3D12_MESSAGE_SEVERITY_ERROR:
-			{
-				WARP_LOG_ERROR(Message);
-			}; break;
-			case D3D12_MESSAGE_SEVERITY_WARNING:
-			{
-				WARP_LOG_WARN(Message);
-			}; break;
-			case D3D12_MESSAGE_SEVERITY_INFO:
-			case D3D12_MESSAGE_SEVERITY_MESSAGE:
-			{
-				WARP_LOG_INFO(Message);
-			}; break;
-			WARP_ATTR_UNLIKELY default: WARP_ASSERT(false); break;
-			}
-		}(severity);
+		case D3D12_MESSAGE_SEVERITY_CORRUPTION:
+		case D3D12_MESSAGE_SEVERITY_ERROR:
+		{
+			WARP_LOG_ERROR(Message);
+		}; break;
+		case D3D12_MESSAGE_SEVERITY_WARNING:
+		{
+			WARP_LOG_WARN(Message);
+		}; break;
+		case D3D12_MESSAGE_SEVERITY_INFO:
+		case D3D12_MESSAGE_SEVERITY_MESSAGE:
+		{
+			WARP_LOG_INFO(Message);
+		}; break;
+		WARP_ATTR_UNLIKELY default: WARP_ASSERT(false); break;
+		}
 	}
 
 }
