@@ -2,19 +2,20 @@
 
 #include <span>
 
-#include "../stdafx.h"
+#include "stdafx.h"
 #include "../../Core/Defines.h"
+#include "GpuCommandList.h"
+#include "GpuDeviceChild.h"
+#include "RHICommandAllocatorPool.h"
 
 namespace Warp
 {
 
-	class GpuCommandQueue
+	class GpuCommandQueue : public GpuDeviceChild
 	{
 	public:
 		GpuCommandQueue() = default;
-
-		// Initializes the command queue. Returns true if no error occured, otherwise returns false and logs the error
-		bool Init(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type);
+		GpuCommandQueue(GpuDevice* device, D3D12_COMMAND_LIST_TYPE type);
 
 		// Returns a pointer to the internally handled D3D12 command queue
 		inline ID3D12CommandQueue* GetInternalHandle() const { return m_handle.Get(); }
@@ -42,7 +43,7 @@ namespace Warp
 		// If waitForCompletion is TRUE, then the host will wait for the completion of the command list
 		// Otherwise, the host can manually wait for the completion using the WaitForValue() or HostWaitForValue() methods providing
 		// the returned fence value
-		UINT64 ExecuteCommandLists(std::span<ID3D12CommandList*> commandLists, bool waitForCompletion);
+		UINT64 ExecuteCommandLists(std::span<GpuCommandList* const> commandLists, bool waitForCompletion);
 
 		// Updates last completed value by the fence and stores it, effectively caching it, in m_fenceLastCompletedValue field
 		// This value can then be obtained by calling GetFenceLastCompletedValue method
@@ -60,6 +61,9 @@ namespace Warp
 		ComPtr<ID3D12Fence> m_fence;
 		UINT64 m_fenceNextValue;
 		mutable UINT64 m_fenceLastCompletedValue; // We cache last completed value of fence
-	};
 
+		GpuCommandList m_barrierCommandList;
+		RHICommandAllocatorPool m_barrierCommandAllocatorPool;
+		ComPtr<ID3D12CommandAllocator> m_barrierCommandAllocator;
+	};
 }

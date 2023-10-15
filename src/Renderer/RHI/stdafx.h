@@ -26,3 +26,13 @@
 #include <wrl.h>
 
 using Microsoft::WRL::ComPtr;
+
+#define WARP_RHI_VALIDATE(expr) \
+	do \
+	{  \
+		HRESULT hr = expr; \
+		if (FAILED(hr)) \
+		{ \
+		throw std::runtime_error("Hresult is in failed state"); \
+		} \
+	} while(false) // use do-while to enforce semicolon

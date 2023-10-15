@@ -1,16 +1,72 @@
 #include "GpuResource.h"
 
 #include <cmath>
+#include "GpuDevice.h"
 
 namespace Warp
 {
 
-	GpuResource::GpuResource(ID3D12Device* device,
+	GpuResourceState::GpuResourceState(UINT numSubresources, D3D12_RESOURCE_STATES initialState)
+		: m_perSubresource(numSubresources > 1) // If there are more than 1 subresource, then resource state is perSubresource
+		, m_resourceState(initialState)
+		, m_subresourceStates(numSubresources, initialState)
+		, m_numSubresources(numSubresources)
+	{
+	}
+
+	void GpuResourceState::SetSubresourceState(UINT subresourceIndex, D3D12_RESOURCE_STATES state)
+	{
+		// If setting all subresources, or the resource only has a single subresource, set the per-resource state
+		if (subresourceIndex == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES || m_subresourceStates.size() == 1)
+		{
+			m_perSubresource = false;
+			m_resourceState = state;
+		}
+		else
+		{
+			// If we previously tracked resource per resource level, we need to update all subresource states before proceeding
+			// we need that because before switching to perSubresource we were using m_resourceState, but not m_subresourceStates array
+			// thus it needs to be updated with the relevant m_resourceState value
+			if (!IsPerSubresource())
+			{
+				m_perSubresource = true;
+				for (D3D12_RESOURCE_STATES& subresourceState : m_subresourceStates)
+				{
+					subresourceState = m_resourceState;
+				}
+			}
+			m_subresourceStates[subresourceIndex] = state;
+		}
+	}
+
+	WARP_ATTR_NODISCARD D3D12_RESOURCE_STATES GpuResourceState::GetSubresourceState(UINT subresourceIndex) const
+	{
+		if (IsPerSubresource())
+		{
+			WARP_ASSERT(subresourceIndex < GetNumSubresources());
+			return m_subresourceStates[subresourceIndex];
+		}
+		else return m_resourceState;
+	}
+
+	//inline constexpr bool GpuResourceState::IsValid() const
+	//{
+	//	if (IsPerSubresource())
+	//	{
+	//		return m_numSubresources == static_cast<UINT>(m_subresourceStates.size());
+	//	}
+	//	return m_numSubresources > 0; // Actually, only 1 is valid, but whatever
+	//}
+
+	GpuResource::GpuResource(GpuDevice* device,
 		D3D12MA::Allocator* allocator,
 		D3D12_HEAP_TYPE heapType,
 		D3D12_RESOURCE_STATES initialState,
 		const D3D12_RESOURCE_DESC& desc)
-		: m_desc(desc)
+		: GpuDeviceChild(device)
+		, m_desc(desc)
+		, m_numPlanes(D3D12GetFormatPlaneCount(device->GetD3D12Device(), desc.Format))
+		, m_numSubresources(QueryNumSubresources())
 	{
 		WARP_ASSERT(device && allocator);
 
@@ -27,14 +83,35 @@ namespace Warp
 		WARP_ASSERT(SUCCEEDED(hr) && IsValid(), "Failed to create a resource");
 	}
 
+	WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS GpuResource::GetGpuVirtualAddress() const
+	{
+		WARP_ASSERT(IsValid());
+		return GetD3D12Resource()->GetGPUVirtualAddress();
+	}
+
 	ID3D12Resource* GpuResource::GetD3D12Resource() const
 	{
 		WARP_ASSERT(m_allocation);
 		return m_allocation->GetResource();
 	}
 
+	UINT GpuResource::QueryNumSubresources()
+	{
+		if (m_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+		{
+			WARP_ASSERT(m_desc.MipLevels == 1);
+			WARP_ASSERT(m_desc.DepthOrArraySize == 1);
+			// If a resource contains a buffer, then it simply contains one subresource with an index of 0.
+			return 1;
+		}
+		else
+		{
+			return m_desc.MipLevels * m_desc.DepthOrArraySize * m_numPlanes;
+		}
+	}
+
 	GpuBuffer::GpuBuffer(
-		ID3D12Device* device, 
+		GpuDevice* device,
 		D3D12MA::Allocator* allocator, 
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState,
@@ -98,7 +175,7 @@ namespace Warp
 		return ibv;
 	}
 
-	GpuTexture::GpuTexture(ID3D12Device* device, 
+	GpuTexture::GpuTexture(GpuDevice* device,
 		D3D12MA::Allocator* allocator, 
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState, 
@@ -110,21 +187,25 @@ namespace Warp
 			desc)
 	{
 		QueryNumMipLevels();
-		QueryNumSubresources();
 
 #ifdef WARP_DEBUG
 		// TODO: Perform healthy-checks and yield warnings in debug-only
 #endif
 	}
 
+	bool GpuTexture::IsViewableAsTextureCube() const
+	{
+		if (!IsTexture2D())
+		{
+			return false;
+		}
+
+		return GetDepthOrArraySize() % 6 == 0;
+	}
+
 	UINT GpuTexture::GetSubresourceIndex(UINT mipSlice, UINT arraySlice, UINT planeSlice) const
 	{
 		return D3D12CalcSubresource(mipSlice, arraySlice, planeSlice, GetNumMipLevels(), GetDepthOrArraySize());
-	}
-
-	void GpuTexture::QueryNumSubresources()
-	{
-		m_numSubresources = m_desc.MipLevels * m_desc.DepthOrArraySize;
 	}
 
 	void GpuTexture::QueryNumMipLevels()

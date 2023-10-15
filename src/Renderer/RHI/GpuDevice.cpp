@@ -18,6 +18,10 @@ namespace Warp
 			WARP_MAYBE_UNUSED HRESULT hr = m_debugInfoQueue->UnregisterMessageCallback(m_messageCallbackCookie);
 			WARP_ASSERT(SUCCEEDED(hr));
 		}
+
+		m_graphicsQueue->HostWaitIdle();
+		m_computeQueue->HostWaitIdle();
+		m_copyQueue->HostWaitIdle();
 	}
 
 	bool GpuDevice::Init(const GpuDeviceDesc& desc)
@@ -131,6 +135,7 @@ namespace Warp
 			return false;
 		}
 
+		InitCommandQueues();
 		return true;
 	}
 
@@ -144,12 +149,23 @@ namespace Warp
 		m_resourceAllocator->SetCurrentFrameIndex(m_frameID);
 	}
 
+	GpuCommandQueue* GpuDevice::GetQueue(D3D12_COMMAND_LIST_TYPE type) const
+	{
+		switch (type)
+		{
+		case D3D12_COMMAND_LIST_TYPE_DIRECT: return GetGraphicsQueue();
+		case D3D12_COMMAND_LIST_TYPE_COMPUTE: return GetComputeQueue();
+		case D3D12_COMMAND_LIST_TYPE_COPY: return GetCopyQueue();
+		default: WARP_ASSERT(false); return nullptr;
+		}
+	}
+
 	GpuBuffer GpuDevice::CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags)
 	{
 		// Work remarks:
 		// Applications should stick to the heap type abstractions of UPLOAD, DEFAULT, and READBACK, 
 		// in order to support all adapter architectures reasonably well.
-		GpuBuffer buffer(GetD3D12Device(), 
+		GpuBuffer buffer(this, 
 			m_resourceAllocator.Get(), 
 			D3D12_HEAP_TYPE_UPLOAD, 		   // TODO: Rewrite this, request a heap type from the user
 			D3D12_RESOURCE_STATE_GENERIC_READ, // TODO: Rewrite this, avoid using generic read, start using transitions
@@ -200,6 +216,13 @@ namespace Warp
 		}
 
 		return m_adapter != nullptr;
+	}
+
+	void GpuDevice::InitCommandQueues()
+	{
+		m_graphicsQueue.reset(new GpuCommandQueue(this, D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_computeQueue.reset(new GpuCommandQueue(this, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+		m_copyQueue.reset(new GpuCommandQueue(this, D3D12_COMMAND_LIST_TYPE_COPY));
 	}
 
 }

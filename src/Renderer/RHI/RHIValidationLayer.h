@@ -1,7 +1,7 @@
 #pragma once
 #pragma once
 
-#include "../stdafx.h"
+#include "stdafx.h"
 
 namespace Warp::ValidationLayer
 {

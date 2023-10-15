@@ -52,6 +52,18 @@
     <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuSwapchain.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuCommandList.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\RHICommandAllocatorPool.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\RHICommandContext.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -69,7 +81,7 @@
     <ClInclude Include="src\Core\Assert.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\stdafx.h">
+    <ClInclude Include="src\Renderer\RHI\stdafx.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\Renderer.h">
@@ -94,6 +106,18 @@
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\RHI\GpuSwapchain.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuCommandList.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuDeviceChild.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\RHICommandAllocatorPool.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\RHICommandContext.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
   </ItemGroup>

@@ -13,7 +13,6 @@ namespace Warp
 	
 	Renderer::~Renderer()
 	{
-		m_commandQueue.HostWaitIdle();
 	}
 
 	bool Renderer::Create()
@@ -57,8 +56,7 @@ namespace Warp
 		// Populate command lists
 		PopulateCommandList();
 
-		ID3D12CommandList* ppCommandLists[] = { m_commandList.Get() };
-		UINT64 fenceValue = m_commandQueue.ExecuteCommandLists(ppCommandLists, false);
+		UINT64 fenceValue = m_commandContext.Execute(false);
 
 		WARP_MAYBE_UNUSED HRESULT hr = m_swapchain->Present(1, 0);
 		WARP_ASSERT(SUCCEEDED(hr));
@@ -87,12 +85,6 @@ namespace Warp
 		IDXGIFactory7* dxgiFactory = m_device.GetFactory();
 		WARP_MAYBE_UNUSED HRESULT hr;
 
-		if (!m_commandQueue.Init(d3dDevice, D3D12_COMMAND_LIST_TYPE_DIRECT))
-		{
-			WARP_LOG_ERROR("Failed to initialize GPU command queue");
-			return false;
-		}
-
 		DXGI_SWAP_CHAIN_DESC1 swapchainDesc{};
 		swapchainDesc.Width = m_width;
 		swapchainDesc.Height = m_height;
@@ -111,7 +103,7 @@ namespace Warp
 		swapchainFullscreenDesc.Windowed = TRUE;
 
 		ComPtr<IDXGISwapChain1> swapchain;
-		hr = dxgiFactory->CreateSwapChainForHwnd(m_commandQueue.GetInternalHandle(),
+		hr = dxgiFactory->CreateSwapChainForHwnd(m_device.GetGraphicsQueue()->GetInternalHandle(),
 			hwnd, // handle
 			&swapchainDesc,
 			nullptr, 
@@ -158,13 +150,7 @@ namespace Warp
 			rtvHandle.Offset(1, m_rtvDescriptorSize);
 		}
 
-		// Create a command allocator
-		hr = d3dDevice->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator));
-		if (FAILED(hr))
-		{
-			WARP_LOG_FATAL("Failed to create command allocator");
-			return false;
-		}
+		m_commandContext = RHICommandContext(m_device.GetGraphicsQueue());
 
 		return true;
 	}
@@ -224,12 +210,12 @@ namespace Warp
 		hr = d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create graphics pso");
 
-		hr = d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create command list");
+		// hr = d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
+		// WARP_ASSERT(SUCCEEDED(hr), "Failed to create command list");
 
 		// Command lists are created in the recording state, but there is nothing
 		// to record yet. The main loop expects it to be closed, so close it now.
-		m_commandList->Close();
+		// m_commandList->Close();
 
 		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
 		struct Vertex
@@ -273,7 +259,8 @@ namespace Warp
 		// Wait for the command list to execute; we are reusing the same command 
 		// list in our main loop but for now, we just want to wait for setup to 
 		// complete before continuing.
-		m_commandQueue.HostWaitForValue(m_commandQueue.Signal());
+		GpuCommandQueue* queue = m_device.GetGraphicsQueue();
+		queue->HostWaitForValue(queue->Signal());
 
 		return true;
 	}
@@ -302,17 +289,8 @@ namespace Warp
 
 	void Renderer::PopulateCommandList()
 	{
-		// Command list allocators can only be reset when the associated 
-		// command lists have finished execution on the GPU; apps should use 
-		// fences to determine GPU execution progress.
-		WARP_MAYBE_UNUSED HRESULT hr = m_commandAllocator->Reset();
-		WARP_ASSERT(SUCCEEDED(hr), "Some command lists are still being executed!");
-	
-		// However, when ExecuteCommandList() is called on a particular command 
-		// list, that command list can then be reset at any time and must be before 
-		// re-recording.
-		hr = m_commandList->Reset(m_commandAllocator.Get(), m_pso.Get());
-		WARP_ASSERT(SUCCEEDED(hr));
+		m_commandContext.Open();
+		m_commandContext->SetPipelineState(m_pso.Get());
 
 		// Set necessary state.
 		D3D12_VIEWPORT viewport{};
@@ -329,37 +307,38 @@ namespace Warp
 		rect.right = m_width;
 		rect.bottom = m_height;
 
-		m_commandList->SetGraphicsRootSignature(m_rootSignature.Get());
-		m_commandList->RSSetViewports(1, &viewport);
-		m_commandList->RSSetScissorRects(1, &rect);
+		m_commandContext->SetGraphicsRootSignature(m_rootSignature.Get());
+		m_commandContext->RSSetViewports(1, &viewport);
+		m_commandContext->RSSetScissorRects(1, &rect);
 
+		// TODO: Replace this with AddTransitionBarrier method in RHICommandContext
 		// Indicate that the back buffer will be used as a render target.
 		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_swapchainRtvs[m_frameIndex].Get(),
 			D3D12_RESOURCE_STATE_PRESENT,
 			D3D12_RESOURCE_STATE_RENDER_TARGET);
-		m_commandList->ResourceBarrier(1, &barrier);
+		m_commandContext->ResourceBarrier(1, &barrier);
 
 		const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_swapchainRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-		m_commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+		m_commandContext->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
 		auto vbv = m_vertexBuffer.GetVertexBufferView();
 
 		// Record commands.
 		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 		// m_commandList->SetPipelineState(m_pso.Get());
-		m_commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-		m_commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_commandList->IASetVertexBuffers(0, 1, &vbv);
-		m_commandList->DrawInstanced(3, 1, 0, 0);
+		m_commandContext->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		m_commandContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_commandContext->IASetVertexBuffers(0, 1, &vbv);
+		m_commandContext->DrawInstanced(3, 1, 0, 0);
 
+		// TODO: Replace this with AddTransitionBarrier method in RHICommandContext
 		// Indicate that the back buffer will now be used to present.
 		barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_swapchainRtvs[m_frameIndex].Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			D3D12_RESOURCE_STATE_PRESENT);
-		m_commandList->ResourceBarrier(1, &barrier);
+		m_commandContext->ResourceBarrier(1, &barrier);
 
-		hr = m_commandList->Close();
-		WARP_ASSERT(SUCCEEDED(hr));
+		m_commandContext.Close();
 	}
 
 	void Renderer::WaitForPreviousFrame(uint64_t fenceValue)
@@ -370,7 +349,7 @@ namespace Warp
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		m_commandQueue.HostWaitForValue(fenceValue);
+		m_device.GetGraphicsQueue()->HostWaitForValue(fenceValue);
 		m_frameIndex = m_swapchain->GetCurrentBackBufferIndex();
 	}
 

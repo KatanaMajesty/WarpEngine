@@ -3,13 +3,20 @@
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
 #include "../../Core/Logger.h"
+#include "GpuDevice.h"
 
 namespace Warp
 {
 
-	bool GpuCommandQueue::Init(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE type)
+	GpuCommandQueue::GpuCommandQueue(GpuDevice* device, D3D12_COMMAND_LIST_TYPE type)
+		: GpuDeviceChild(device)
+		, m_queueType(type)
+		, m_barrierCommandList(device->GetD3D12Device9(), type)
+		, m_barrierCommandAllocatorPool(this)
 	{
 		Reset();
+		WARP_ASSERT(device);
+		ID3D12Device9* D3D12Device = device->GetD3D12Device9();
 
 		WARP_MAYBE_UNUSED HRESULT hr;
 		D3D12_COMMAND_QUEUE_DESC desc;
@@ -17,13 +24,12 @@ namespace Warp
 		desc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
 		desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		desc.NodeMask = 0;
-		hr = device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_handle.ReleaseAndGetAddressOf()));
+		hr = D3D12Device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_handle.ReleaseAndGetAddressOf()));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create D3D12 command queue for a GpuCommandQueue");
 
 		UINT64 FenceInitialValue = 0;
-		hr = device->CreateFence(FenceInitialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
+		hr = D3D12Device->CreateFence(FenceInitialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create a fence for a GpuCommandQueue");
-		return true;
 	}
 
 	UINT64 GpuCommandQueue::Signal()
@@ -69,7 +75,7 @@ namespace Warp
 		return fenceValue <= QueryFenceCompletedValue();
 	}
 
-	UINT64 GpuCommandQueue::ExecuteCommandLists(std::span<ID3D12CommandList*> commandLists, bool waitForCompletion)
+	UINT64 GpuCommandQueue::ExecuteCommandLists(std::span<GpuCommandList* const> commandLists, bool waitForCompletion)
 	{
 		if (commandLists.empty())
 		{
@@ -78,17 +84,53 @@ namespace Warp
 			WARP_LOG_WARN("GpuCommandQueue::ExecuteCommandLists() was called with no command lists provided");
 		}
 
-		UINT NumCommandLists = static_cast<UINT>(commandLists.size());
-		m_handle->ExecuteCommandLists(NumCommandLists, commandLists.data());
-		UINT64 FenceValue = Signal();
+		UINT numCommandLists = 0;
+		UINT numBarrierCommandLists = 0;
+		ID3D12CommandList* D3D12CommandLists[32] = {};
+		for (GpuCommandList* const list : commandLists)
+		{
+			// Resolve pending resource barriers
+			auto resolvedBarriers = list->ResolvePendingResourceBarriers();
+			UINT numBarriers = static_cast<UINT>(resolvedBarriers.size());
+			if (numBarriers > 0)
+			{
+				if (!m_barrierCommandAllocator)
+				{
+					m_barrierCommandAllocator = m_barrierCommandAllocatorPool.GetCommandAllocator();
+					WARP_ASSERT(m_barrierCommandAllocator);
+				}
+
+				m_barrierCommandList.Open(m_barrierCommandAllocator.Get());
+				m_barrierCommandList->ResourceBarrier(numBarriers, resolvedBarriers.data());
+				m_barrierCommandList.Close();
+
+				D3D12CommandLists[numCommandLists++] = m_barrierCommandList.GetD3D12CommandList();
+				++numBarrierCommandLists;
+			}
+
+			// TODO: Check if command list is not empty and if its closed (maybe)
+			D3D12CommandLists[numCommandLists++] = list->GetD3D12CommandList();
+		}
+
+		WARP_ASSERT(numCommandLists <= 32, "Max amount of simultaneous command lists is 32 (including barrier command lists)");
+
+		// TODO: Resolve resource barriers
+		m_handle->ExecuteCommandLists(numCommandLists, D3D12CommandLists);
+		UINT64 fenceValue = Signal();
+
+		// If we resolved any barriers, we need to discard command allocator, as we no longer use it
+		if (numBarrierCommandLists > 0)
+		{
+			m_barrierCommandAllocatorPool.DiscardCommandAllocator(std::exchange(m_barrierCommandAllocator, nullptr), fenceValue);
+		}
 
 		if (waitForCompletion)
 		{
-			HostWaitForValue(FenceValue);
-			WARP_ASSERT(IsFenceComplete(FenceValue), "Internal error during fence synchronization");
+			HostWaitForValue(fenceValue);
+			WARP_ASSERT(IsFenceComplete(fenceValue), "Internal error during fence synchronization");
 		}
 
-		return FenceValue;
+		return fenceValue;
 	}
 
 	UINT64 GpuCommandQueue::QueryFenceCompletedValue() const
@@ -100,8 +142,6 @@ namespace Warp
 	void GpuCommandQueue::Reset(UINT64 fenceInitialValue)
 	{
 		m_handle.Reset();
-		m_queueType = D3D12_COMMAND_LIST_TYPE_DIRECT; // Just a default val
-
 		m_fence.Reset();
 		m_fenceNextValue = fenceInitialValue + 1;
 		m_fenceLastCompletedValue = fenceInitialValue;
