@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../../Core/Defines.h"
+
 namespace Warp
 {
 
@@ -9,14 +11,15 @@ namespace Warp
 	{
 	public:
 		GpuDeviceChild() = default;
-		GpuDeviceChild(GpuDevice* device)
+		explicit GpuDeviceChild(GpuDevice* device)
 			: m_device(device)
 		{
 		}
 
-		inline constexpr GpuDevice* GetDevice() const { return m_device; }
+		// Returns a logical device, associated with the child
+		WARP_ATTR_NODISCARD inline constexpr GpuDevice* GetDevice() const { return m_device; }
 
-	private:
+	protected:
 		GpuDevice* m_device;
 	};
 

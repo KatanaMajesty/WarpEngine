@@ -17,6 +17,12 @@ namespace Warp
 		GpuCommandQueue() = default;
 		GpuCommandQueue(GpuDevice* device, D3D12_COMMAND_LIST_TYPE type);
 
+		GpuCommandQueue(const GpuCommandQueue&) = default;
+		GpuCommandQueue& operator=(const GpuCommandQueue&) = default;
+
+		GpuCommandQueue(GpuCommandQueue&&) = default;
+		GpuCommandQueue& operator=(GpuCommandQueue&&) = default;
+
 		// Returns a pointer to the internally handled D3D12 command queue
 		inline ID3D12CommandQueue* GetInternalHandle() const { return m_handle.Get(); }
 		inline bool IsValid() const { return GetInternalHandle() != nullptr; }

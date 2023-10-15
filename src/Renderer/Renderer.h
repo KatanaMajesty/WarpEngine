@@ -5,6 +5,7 @@
 #include "../Core/Defines.h"
 #include "RHI/stdafx.h"
 #include "RHI/GpuDevice.h"
+#include "RHI/GpuPhysicalDevice.h"
 #include "RHI/GpuResource.h"
 #include "RHI/RHICommandContext.h"
 
@@ -37,7 +38,8 @@ namespace Warp
 
 		static inline Renderer* s_instance = nullptr;
 
-		GpuDevice m_device;
+		std::unique_ptr<GpuPhysicalDevice> m_physicalDevice;
+		GpuDevice* m_device;
 		GpuBuffer m_vertexBuffer;
 
 		uint32_t m_width = 0;

@@ -66,47 +66,31 @@ namespace Warp
 
 	bool Renderer::InitD3D12Api(HWND hwnd)
 	{
-		GpuDeviceDesc deviceDesc;
-		deviceDesc.hwnd = hwnd;
+		GpuPhysicalDeviceDesc physicalDeviceDesc;
+		physicalDeviceDesc.hwnd = hwnd;
 
 #ifdef WARP_DEBUG
-		deviceDesc.EnableDebugLayer = true;
-		deviceDesc.EnableGpuBasedValidation = true;
+		physicalDeviceDesc.EnableDebugLayer = true;
+		physicalDeviceDesc.EnableGpuBasedValidation = true;
 #endif
 
-		if (!m_device.Init(deviceDesc))
-		{
-			WARP_LOG_ERROR("Failed to initialize GPU device");
-			return false;
-		}
+		m_physicalDevice = std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
+		WARP_ASSERT(m_physicalDevice->IsValid(), "Failed to init GPU physical device");
+
+		m_device = m_physicalDevice->GetAssociatedLogicalDevice();
 
 		// TODO: Temporary
-		ID3D12Device* d3dDevice = m_device.GetD3D12Device();
-		IDXGIFactory7* dxgiFactory = m_device.GetFactory();
+		ID3D12Device* d3dDevice = m_device->GetD3D12Device();
+		IDXGIFactory7* dxgiFactory = m_physicalDevice->GetFactory();
 		WARP_MAYBE_UNUSED HRESULT hr;
 
-		DXGI_SWAP_CHAIN_DESC1 swapchainDesc{};
-		swapchainDesc.Width = m_width;
-		swapchainDesc.Height = m_height;
-		swapchainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		swapchainDesc.SampleDesc.Count = 1;
-		swapchainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-		swapchainDesc.BufferCount = Renderer::FrameCount;
-		swapchainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-		// swapchainDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-
-		DXGI_SWAP_CHAIN_FULLSCREEN_DESC swapchainFullscreenDesc{};
-		swapchainFullscreenDesc.RefreshRate.Numerator = 60;
-		swapchainFullscreenDesc.RefreshRate.Denominator = 1;
-		swapchainFullscreenDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
-		swapchainFullscreenDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-		swapchainFullscreenDesc.Windowed = TRUE;
+		
 
 		ComPtr<IDXGISwapChain1> swapchain;
 		hr = dxgiFactory->CreateSwapChainForHwnd(m_device.GetGraphicsQueue()->GetInternalHandle(),
 			hwnd, // handle
 			&swapchainDesc,
-			nullptr, 
+			&swapchainFullscreenDesc,
 			nullptr, // Restrict content to an output target (NULL if not)
 			swapchain.GetAddressOf());
 		if (FAILED(hr))
@@ -123,7 +107,7 @@ namespace Warp
 		//}
 
 		hr = swapchain.As(&m_swapchain);
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to represent swapchain correctly");
+		WARP_ASSERT(SUCCEEDED(hr), );
 		m_frameIndex = m_swapchain->GetCurrentBackBufferIndex();
 
 		// Create descriptor heap
