@@ -37,6 +37,8 @@ namespace Warp
 
 		inline IDXGISwapChain* GetDXGISwapchain() const { return m_DXGISwapchain.Get(); }
 		inline IDXGISwapChain4* GetDXGISwapchain4() const { return m_DXGISwapchain.Get(); }
+		inline constexpr UINT GetWidth() const { return m_width; }
+		inline constexpr UINT GetHeight() const { return m_height; }
 
 	private:
 		void InitDXGISwapchain();

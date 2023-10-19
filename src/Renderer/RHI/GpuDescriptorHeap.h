@@ -8,8 +8,6 @@
 namespace Warp
 {
 
-	// TODO: Currently we only store 1 descriptor in descriptor allocation
-	// This will be changed when we will prefer copying over a descriptor range to copy them to GPU instead
 	struct RHIDescriptorAllocation
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE	CpuHandle = { 0 };
@@ -67,23 +65,6 @@ namespace Warp
 		UINT m_descriptorIncrementSize;
 		UINT m_numDescriptors;
 		bool m_shaderVisible;
-	};
-
-	// Currently we only use 1 type of descriptor allocators. In future we might switch to CPU/GPU allocators
-	class RHIDescriptorAllocator
-	{
-	public:
-		RHIDescriptorAllocator() = default;
-		RHIDescriptorAllocator(GpuDevice* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptorsInPoolHeap, bool shaderVisible);
-
-		RHIDescriptorAllocator(const RHIDescriptorAllocator&) = delete;
-		RHIDescriptorAllocator& operator=(const RHIDescriptorAllocator&) = delete;
-
-		RHIDescriptorAllocation Allocate(UINT numDescriptors);
-		void Free(RHIDescriptorAllocation&& allocation);
-
-	private:
-		std::vector<GpuDescriptorHeap> m_heapPool;
 	};
 
 }

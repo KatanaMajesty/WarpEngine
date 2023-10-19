@@ -92,12 +92,7 @@ auto WINAPI wWinMain(
     auto localPath = application.GetWorkingDirectory().parent_path().parent_path();
     application.SetShaderPath(localPath / "shaders");
     application.SetAssetsPath(localPath / "assets");
-    
-    if (!application.Init(hwnd, windowWidth, windowHeight))
-    {
-        WARP_LOG_FATAL("Failed to init Application");
-        return -1;
-    }
+    application.Init(hwnd);
 
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
@@ -160,7 +155,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         return 0;
-
+    case WM_SIZE:
+        if (wParam != SIZE_MINIMIZED)
+        {
+            application.Resize(LOWORD(lParam), HIWORD(lParam));
+        }
+        return 0;
     case WM_KILLFOCUS:
         application.SetWindowFocused(false);
         break;

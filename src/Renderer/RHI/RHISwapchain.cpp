@@ -15,10 +15,13 @@ namespace Warp
 		DXGI_SWAP_CHAIN_DESC1 desc;
 		WARP_RHI_VALIDATE(m_DXGISwapchain->GetDesc1(&desc));
 		Resize(desc.Width, desc.Height);
+
 	}
 
 	void RHISwapchain::Present(bool vsync)
 	{
+		// https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/d3d10-graphics-programming-guide-dxgi
+		// TODO: Start using dirty rectangles - https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-1-2-presentation-improvements
 		// UINT SwapchainFlags = DXGI_PRESENT_ALLOW_TEARING;
 		UINT syncInterval = vsync ? 1 : 0;
 		m_DXGISwapchain->Present(syncInterval, 0);
@@ -35,12 +38,12 @@ namespace Warp
 		m_width = width;
 		m_height = height;
 
+		GpuDevice* device = GetPhysicalDevice()->GetAssociatedLogicalDevice();
 		for (uint32_t i = 0; i < BackbufferCount; ++i)
 		{
 			ComPtr<ID3D12Resource> buffer;
 			WARP_RHI_VALIDATE(m_DXGISwapchain->GetBuffer(i, IID_PPV_ARGS(buffer.GetAddressOf())));
 
-			GpuDevice* device = GetPhysicalDevice()->GetAssociatedLogicalDevice();
 			m_backbuffers[i] = GpuTexture(device, buffer.Get(), D3D12_RESOURCE_STATE_PRESENT);
 
 			device->GetD3D12Device()->CreateRenderTargetView(

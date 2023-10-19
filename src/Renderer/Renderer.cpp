@@ -10,76 +10,68 @@
 
 namespace Warp
 {
-	
-	Renderer::~Renderer()
+
+	Renderer::Renderer(HWND hwnd)
+		: m_physicalDevice(
+			[hwnd]() -> std::unique_ptr<GpuPhysicalDevice>
+			{
+				GpuPhysicalDeviceDesc physicalDeviceDesc;
+				physicalDeviceDesc.hwnd = hwnd;
+#ifdef WARP_DEBUG
+				physicalDeviceDesc.EnableDebugLayer = true;
+				physicalDeviceDesc.EnableGpuBasedValidation = true;
+#endif
+				return std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
+			}()
+		)
+		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
+		, m_commandContext(m_device->GetGraphicsQueue())
+		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
-	}
-
-	bool Renderer::Create()
-	{
-		if (s_instance)
-			Renderer::Delete();
-
-		s_instance = new Renderer();
-		return true;
-	}
-
-	void Renderer::Delete()
-	{
-		delete s_instance;
-		s_instance = nullptr;
-	}
-
-	bool Renderer::Init(HWND hwnd, uint32_t width, uint32_t height)
-	{
-		m_width = width;
-		m_height = height;
-		if (!InitD3D12Api(hwnd))
-		{
-			WARP_LOG_ERROR("Failed to init D3D12 Components");
-			return false;
-		}
-
 		// TODO: Temp, remove
 		if (!InitAssets())
 		{
 			WARP_LOG_ERROR("Failed to init assets");
-			return false;
+			return;
 		}
 
 		WARP_LOG_INFO("Renderer was initialized successfully");
-		return true;
+	}
+	
+	void Renderer::Resize(uint32_t width, uint32_t height)
+	{
+		// Wait for all frames to be completed before resizing the backbuffers
+		// as they may still be used
+		WaitForGfxToFinish();
+		m_swapchain->Resize(width, height);
 	}
 
-	void Renderer::Render()
+	void Renderer::RenderFrame()
 	{
-		// Populate command lists
-		PopulateCommandList();
+		// Wait for inflight frame of the currently used backbuffer
+		UINT frameIndex = m_swapchain->GetCurrentBackbufferIndex();
+		WaitForGfxOnFrameToFinish(frameIndex);
 
-		UINT64 fenceValue = m_commandContext.Execute(false);
-		m_swapchain->Present(true);
+		m_device->BeginFrame();
+		{
+			// Populate command lists
+			// TODO: Remove this
+			PopulateCommandList();
 
-		WaitForPreviousFrame(fenceValue);
+			m_frameFenceValues[frameIndex] = m_commandContext.Execute(false);
+			m_swapchain->Present(true);
+		}
+		m_device->EndFrame();
 	}
 
-	bool Renderer::InitD3D12Api(HWND hwnd)
+	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{
-		GpuPhysicalDeviceDesc physicalDeviceDesc;
-		physicalDeviceDesc.hwnd = hwnd;
+		m_device->GetGraphicsQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
+	}
 
-#ifdef WARP_DEBUG
-		physicalDeviceDesc.EnableDebugLayer = true;
-		physicalDeviceDesc.EnableGpuBasedValidation = true;
-#endif
-
-		m_physicalDevice = std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
-		WARP_ASSERT(m_physicalDevice->IsValid(), "Failed to init GPU physical device");
-
-		m_device = m_physicalDevice->GetAssociatedLogicalDevice();
-		m_commandContext = RHICommandContext(m_device->GetGraphicsQueue());
-		m_swapchain = std::make_unique<RHISwapchain>(m_physicalDevice.get());
-
-		return true;
+	void Renderer::WaitForGfxToFinish()
+	{
+		m_device->GetGraphicsQueue()->HostWaitIdle();
 	}
 
 	bool Renderer::InitAssets()
@@ -151,7 +143,7 @@ namespace Warp
 			DirectX::XMFLOAT4 color;
 		};
 		// Define the geometry for a triangle.
-		float aspectRatio = static_cast<float>(m_width) / m_height;
+		float aspectRatio = static_cast<float>(m_swapchain->GetWidth()) / m_swapchain->GetHeight();
 		Vertex triangleVertices[] =
 		{
 			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
@@ -219,20 +211,22 @@ namespace Warp
 		m_commandContext.Open();
 		m_commandContext->SetPipelineState(m_pso.Get());
 
+		UINT width = m_swapchain->GetWidth();
+		UINT height = m_swapchain->GetHeight();
 		// Set necessary state.
 		D3D12_VIEWPORT viewport{};
 		viewport.TopLeftX = 0.0f;
 		viewport.TopLeftY = 0.0f;
-		viewport.Width = (FLOAT)m_width;
-		viewport.Height = (FLOAT)m_height;
+		viewport.Width = (FLOAT)width;
+		viewport.Height = (FLOAT)height;
 		viewport.MinDepth = 0.0f;
 		viewport.MaxDepth = 1.0f;
 
 		D3D12_RECT rect{};
 		rect.left = 0;
 		rect.top = 0;
-		rect.right = m_width;
-		rect.bottom = m_height;
+		rect.right = width;
+		rect.bottom = height;
 
 		m_commandContext->SetGraphicsRootSignature(m_rootSignature.Get());
 		m_commandContext->RSSetViewports(1, &viewport);
@@ -254,7 +248,7 @@ namespace Warp
 		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
 		m_commandContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_commandContext->IASetVertexBuffers(0, 1, &vbv);
-		m_commandContext->DrawInstanced(3, 1, 0, 0);
+		m_commandContext.DrawInstanced(3, 1, 0, 0);
 
 		// Indicate that the back buffer will now be used to present.
 		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
@@ -269,7 +263,7 @@ namespace Warp
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		m_device->GetGraphicsQueue()->HostWaitForValue(fenceValue);
+		// m_device->GetGraphicsQueue()->HostWaitForValue(fenceValue);
 	}
 
 }

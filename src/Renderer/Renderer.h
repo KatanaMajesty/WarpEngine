@@ -14,42 +14,40 @@
 namespace Warp
 {
 
+	// TODO: Remove singleton, its annoying
 	class Renderer
 	{
-	private:
-		Renderer() = default;
-
 	public:
+		Renderer() = default;
+		Renderer(HWND hwnd);
+
 		Renderer(const Renderer&) = delete;
 		Renderer& operator=(const Renderer&) = delete;
-		~Renderer();
 
-		static bool Create();
-		static void Delete();
-		static inline constexpr Renderer& Get() { return *s_instance; }
+		void Resize(uint32_t width, uint32_t height);
+		void RenderFrame();
 
-		bool Init(HWND hwnd, uint32_t width, uint32_t height);
-
-		// TODO: Temporary, just drawing a triangle
-		void Render();
+		static constexpr uint32_t SimultaneousFrames = RHISwapchain::BackbufferCount;
 
 	private:
-		bool InitD3D12Api(HWND hwnd);
+		// Waits for graphics queue to finish executing on the particular specified frame
+		void WaitForGfxOnFrameToFinish(uint32_t frameIndex);
 
-		static inline Renderer* s_instance = nullptr;
+		// Wait for graphics queue to finish executing all the commands on all frames
+		void WaitForGfxToFinish();
 
 		std::unique_ptr<GpuPhysicalDevice> m_physicalDevice;
 		GpuDevice* m_device;
-		GpuBuffer m_vertexBuffer;
-
-		uint32_t m_width = 0;
-		uint32_t m_height = 0;
 
 		std::unique_ptr<RHISwapchain> m_swapchain;
+		RHICommandContext m_commandContext; // TODO: Make it unique_ptr after we implement whole functionality
+		UINT64 m_frameFenceValues[SimultaneousFrames];
+
+		GpuBuffer m_vertexBuffer;
+
 		ComPtr<ID3D12RootSignature> m_rootSignature;
 
 		// TODO: Remove this temp code
-		RHICommandContext m_commandContext;
 		ComPtr<ID3D12PipelineState> m_pso;
 		ComPtr<ID3DBlob> m_vs;
 		ComPtr<ID3DBlob> m_ps;

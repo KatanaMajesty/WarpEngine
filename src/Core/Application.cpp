@@ -34,27 +34,14 @@ namespace Warp
 		return *s_instance;
 	}
 
-	bool Application::Init(HWND hwnd, uint32_t width, uint32_t height)
+	void Application::Init(HWND hwnd)
 	{
-		WARP_MAYBE_UNUSED bool allocRes = AllocateAllComponents();
-		WARP_ASSERT(allocRes && "Couldn't allocate all Application components successfully");
-
-		Renderer& renderer = Renderer::Get();
-		if (!renderer.Init(hwnd, width, height))
-		{
-			WARP_LOG_FATAL("Failed to initialize Renderer");
-			return false;
-		}
-
-		return true;
+		m_renderer = std::make_unique<Renderer>(hwnd);
 	}
 
-	bool Application::AllocateAllComponents()
+	void Application::Resize(uint32_t width, uint32_t height)
 	{
-		if (!Renderer::Create())
-			return false;
-	
-		return true;
+		m_renderer->Resize(width, height);
 	}
 
 	void Application::Tick()
@@ -69,7 +56,7 @@ namespace Warp
 
 	void Application::Render()
 	{
-		Renderer::Get().Render();
+		m_renderer->RenderFrame();
 	}
 
 }
