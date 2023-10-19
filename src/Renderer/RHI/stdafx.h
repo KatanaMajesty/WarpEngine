@@ -28,6 +28,7 @@
 using Microsoft::WRL::ComPtr;
 
 // It is best to avoid calling WARP_RHI_VALIDATE on a per-frame basis. Prefer using the macro for one-time resource initialization only
+#include <stdexcept>
 #define WARP_RHI_VALIDATE(expr) \
 	do \
 	{  \

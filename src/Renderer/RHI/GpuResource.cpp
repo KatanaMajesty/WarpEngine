@@ -3,6 +3,8 @@
 #include <cmath>
 #include "GpuDevice.h"
 
+#include "../../Core/Logger.h"
+
 namespace Warp
 {
 
