@@ -48,10 +48,12 @@ namespace Warp
 	public:
 		GpuResource() = default;
 		GpuResource(GpuDevice* device,
-			D3D12MA::Allocator* allocator,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			const D3D12_RESOURCE_DESC& desc);
+		GpuResource(GpuDevice* device,
+			ID3D12Resource* resource,
+			D3D12_RESOURCE_STATES initialState);
 
 		GpuResource(const GpuResource&) = default;
 		GpuResource& operator=(const GpuResource&) = default;
@@ -59,15 +61,11 @@ namespace Warp
 		GpuResource(GpuResource&&) = default;
 		GpuResource& operator=(GpuResource&&) = default;
 
-		inline D3D12MA::Allocation* GetAllocation() const { return m_allocation.Get(); }
-		inline bool IsValid() const { return GetAllocation() != nullptr; }
+		inline ID3D12Resource* GetD3D12Resource() const { return m_D3D12Resource.Get(); }
+		inline bool IsValid() const { return GetD3D12Resource() != nullptr; }
 
 		// Returns a virtual address of a resource in GPU memory
 		WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const;
-
-		// Returns a D3D12 Resource
-		// One must ensure that the GpuResource object is valid by calling IsValid() method before issuing this call
-		WARP_ATTR_NODISCARD ID3D12Resource* GetD3D12Resource() const;
 
 		WARP_ATTR_NODISCARD inline constexpr GpuResourceState& GetState() { return m_state; }
 		WARP_ATTR_NODISCARD inline constexpr const GpuResourceState& GetState() const { return m_state; }
@@ -77,11 +75,11 @@ namespace Warp
 		// https://learn.microsoft.com/en-us/windows/win32/direct3d12/subresources
 		WARP_ATTR_NODISCARD UINT QueryNumSubresources();
 
-		ComPtr<D3D12MA::Allocation> m_allocation;
+		ComPtr<ID3D12Resource> m_D3D12Resource;
 		D3D12_RESOURCE_DESC m_desc{};
-		GpuResourceState m_state;
 		UINT m_numPlanes = 0;
 		UINT m_numSubresources = 0;
+		GpuResourceState m_state;
 	};
 
 	class GpuBuffer final : public GpuResource
@@ -89,7 +87,6 @@ namespace Warp
 	public:
 		GpuBuffer() = default;
 		GpuBuffer(GpuDevice* device,
-			D3D12MA::Allocator* allocator,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			D3D12_RESOURCE_FLAGS flags,
@@ -130,10 +127,12 @@ namespace Warp
 	public:
 		GpuTexture() = default;
 		GpuTexture(GpuDevice* device,
-			D3D12MA::Allocator* allocator,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			const D3D12_RESOURCE_DESC& desc);
+		GpuTexture(GpuDevice* device,
+			ID3D12Resource* resource,
+			D3D12_RESOURCE_STATES initialState);
 
 		GpuTexture(const GpuTexture&) = default;
 		GpuTexture& operator=(const GpuTexture&) = default;
@@ -155,6 +154,7 @@ namespace Warp
 
 	private:
 		void QueryNumMipLevels();
+		UINT GetNumMaxMipLevels();
 	};
 
 }

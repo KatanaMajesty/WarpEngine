@@ -76,13 +76,15 @@ namespace Warp
 
 		if (m_debugDevice)
 		{
-			WARP_RHI_VALIDATE(m_debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL));
+			WARP_MAYBE_UNUSED HRESULT hr = m_debugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+			WARP_ASSERT(SUCCEEDED(hr));
 		}
 		
 		if (m_debugInfoQueue)
 		{
 			WARP_LOG_INFO("Unregistering validation layer message callback");
-			WARP_RHI_VALIDATE(m_debugInfoQueue->UnregisterMessageCallback(m_messageCallbackCookie));
+			WARP_MAYBE_UNUSED HRESULT hr = m_debugInfoQueue->UnregisterMessageCallback(m_messageCallbackCookie);
+			WARP_ASSERT(SUCCEEDED(hr));
 		}
 	}
 
@@ -113,7 +115,6 @@ namespace Warp
 		// Applications should stick to the heap type abstractions of UPLOAD, DEFAULT, and READBACK, 
 		// in order to support all adapter architectures reasonably well.
 		GpuBuffer buffer(this, 
-			m_resourceAllocator.Get(), 
 			D3D12_HEAP_TYPE_UPLOAD, 		   // TODO: Rewrite this, request a heap type from the user
 			D3D12_RESOURCE_STATE_GENERIC_READ, // TODO: Rewrite this, avoid using generic read, start using transitions
 			flags, 

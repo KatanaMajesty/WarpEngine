@@ -7,6 +7,7 @@
 #include "stdafx.h"
 #include "GpuResource.h"
 #include "GpuCommandQueue.h"
+#include "GpuPhysicalDevice.h"
 
 namespace Warp
 {
@@ -47,6 +48,8 @@ namespace Warp
 
 		// TODO: We should not return by value!
 		WARP_ATTR_NODISCARD GpuBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
+
+		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
 
 	private:
 		GpuPhysicalDevice* m_physicalDevice;

@@ -59,7 +59,6 @@ namespace Warp
 	//}
 
 	GpuResource::GpuResource(GpuDevice* device,
-		D3D12MA::Allocator* allocator,
 		D3D12_HEAP_TYPE heapType,
 		D3D12_RESOURCE_STATES initialState,
 		const D3D12_RESOURCE_DESC& desc)
@@ -67,20 +66,31 @@ namespace Warp
 		, m_desc(desc)
 		, m_numPlanes(D3D12GetFormatPlaneCount(device->GetD3D12Device(), desc.Format))
 		, m_numSubresources(QueryNumSubresources())
+		, m_state(m_numSubresources, initialState)
 	{
-		WARP_ASSERT(device && allocator);
-
 		D3D12MA::ALLOCATION_DESC allocDesc{
 			.Flags = D3D12MA::ALLOCATION_FLAG_NONE,
 			.HeapType = heapType
 		};
 
-		WARP_MAYBE_UNUSED HRESULT hr = allocator->CreateResource(&allocDesc,
+		ComPtr<D3D12MA::Allocation> allocation;
+		WARP_RHI_VALIDATE(device->GetResourceAllocator()->CreateResource(&allocDesc,
 			&desc,
 			initialState,
 			nullptr, // TODO: Handle clear value
-			&m_allocation, __uuidof(ID3D12Resource), nullptr);
-		WARP_ASSERT(SUCCEEDED(hr) && IsValid(), "Failed to create a resource");
+			allocation.GetAddressOf(),
+			IID_PPV_ARGS(m_D3D12Resource.ReleaseAndGetAddressOf())
+		));
+	}
+
+	GpuResource::GpuResource(GpuDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
+		: GpuDeviceChild(device)
+		, m_D3D12Resource(resource)
+		, m_desc(resource->GetDesc())
+		, m_numPlanes(D3D12GetFormatPlaneCount(device->GetD3D12Device(), m_desc.Format))
+		, m_numSubresources(QueryNumSubresources())
+		, m_state(m_numSubresources, initialState)
+	{
 	}
 
 	WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS GpuResource::GetGpuVirtualAddress() const
@@ -89,11 +99,11 @@ namespace Warp
 		return GetD3D12Resource()->GetGPUVirtualAddress();
 	}
 
-	ID3D12Resource* GpuResource::GetD3D12Resource() const
-	{
-		WARP_ASSERT(m_allocation);
-		return m_allocation->GetResource();
-	}
+	// ID3D12Resource* GpuResource::GetD3D12Resource() const
+	// {
+	// 	WARP_ASSERT(m_allocation);
+	// 	return m_allocation->GetResource();
+	// }
 
 	UINT GpuResource::QueryNumSubresources()
 	{
@@ -112,14 +122,12 @@ namespace Warp
 
 	GpuBuffer::GpuBuffer(
 		GpuDevice* device,
-		D3D12MA::Allocator* allocator, 
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState,
 		D3D12_RESOURCE_FLAGS flags,
 		UINT strideInBytes, 
 		UINT64 sizeInBytes)
 		: GpuResource(device,
-			allocator,
 			heapType,
 			initialState,
 			D3D12_RESOURCE_DESC{
@@ -176,12 +184,10 @@ namespace Warp
 	}
 
 	GpuTexture::GpuTexture(GpuDevice* device,
-		D3D12MA::Allocator* allocator, 
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState, 
 		const D3D12_RESOURCE_DESC& desc)
 		: GpuResource(device,
-			allocator,
 			heapType,
 			initialState,
 			desc)
@@ -191,6 +197,12 @@ namespace Warp
 #ifdef WARP_DEBUG
 		// TODO: Perform healthy-checks and yield warnings in debug-only
 #endif
+	}
+
+	GpuTexture::GpuTexture(GpuDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
+		: GpuResource(device, resource, initialState)
+	{
+		QueryNumMipLevels();
 	}
 
 	bool GpuTexture::IsViewableAsTextureCube() const
@@ -214,6 +226,13 @@ namespace Warp
 		{
 			m_desc.MipLevels = GetD3D12Resource()->GetDesc().MipLevels;
 		}
+	}
+
+	UINT GpuTexture::GetNumMaxMipLevels()
+	{
+		ULONG highBit;
+		_BitScanReverse(&highBit, GetWidth() | GetHeight());
+		return UINT(highBit) + 1;
 	}
 
 }

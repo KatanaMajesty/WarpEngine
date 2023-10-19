@@ -57,9 +57,7 @@ namespace Warp
 		PopulateCommandList();
 
 		UINT64 fenceValue = m_commandContext.Execute(false);
-
-		WARP_MAYBE_UNUSED HRESULT hr = m_swapchain->Present(1, 0);
-		WARP_ASSERT(SUCCEEDED(hr));
+		m_swapchain->Present(true);
 
 		WaitForPreviousFrame(fenceValue);
 	}
@@ -78,63 +76,8 @@ namespace Warp
 		WARP_ASSERT(m_physicalDevice->IsValid(), "Failed to init GPU physical device");
 
 		m_device = m_physicalDevice->GetAssociatedLogicalDevice();
-
-		// TODO: Temporary
-		ID3D12Device* d3dDevice = m_device->GetD3D12Device();
-		IDXGIFactory7* dxgiFactory = m_physicalDevice->GetFactory();
-		WARP_MAYBE_UNUSED HRESULT hr;
-
-		
-
-		ComPtr<IDXGISwapChain1> swapchain;
-		hr = dxgiFactory->CreateSwapChainForHwnd(m_device.GetGraphicsQueue()->GetInternalHandle(),
-			hwnd, // handle
-			&swapchainDesc,
-			&swapchainFullscreenDesc,
-			nullptr, // Restrict content to an output target (NULL if not)
-			swapchain.GetAddressOf());
-		if (FAILED(hr))
-		{
-			WARP_LOG_FATAL("Failed to create swapchain");
-			return false;
-		}
-
-		//hr = m_factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_PRINT_SCREEN); // No need for print-screen rn
-		//if (FAILED(hr))
-		//{
-		//	// Do not return
-		//	WARP_LOG_WARN("Failed to monitor window's message queue. Fullscreen-to-Windowed will not be available via alt+enter");
-		//}
-
-		hr = swapchain.As(&m_swapchain);
-		WARP_ASSERT(SUCCEEDED(hr), );
-		m_frameIndex = m_swapchain->GetCurrentBackBufferIndex();
-
-		// Create descriptor heap
-		D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc{};
-		rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		rtvHeapDesc.NumDescriptors = Renderer::FrameCount;
-		rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		hr = d3dDevice->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_swapchainRtvDescriptorHeap));
-		if (FAILED(hr))
-		{
-			WARP_LOG_FATAL("Failed to create descriptor heap for swapchain's rtvs");
-			return false;
-		}
-
-		m_rtvDescriptorSize = d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-		// Create frame resources (a render target view for each frame)
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_swapchainRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-		for (uint32_t i = 0; i < Renderer::FrameCount; ++i)
-		{
-			hr = m_swapchain->GetBuffer(i, IID_PPV_ARGS(&m_swapchainRtvs[i]));
-			WARP_ASSERT(SUCCEEDED(hr));
-			d3dDevice->CreateRenderTargetView(m_swapchainRtvs[i].Get(), nullptr, rtvHandle);
-			rtvHandle.Offset(1, m_rtvDescriptorSize);
-		}
-
-		m_commandContext = RHICommandContext(m_device.GetGraphicsQueue());
+		m_commandContext = RHICommandContext(m_device->GetGraphicsQueue());
+		m_swapchain = std::make_unique<RHISwapchain>(m_physicalDevice.get());
 
 		return true;
 	}
@@ -142,7 +85,7 @@ namespace Warp
 	bool Renderer::InitAssets()
 	{
 		// TODO: Temporary
-		ID3D12Device* d3dDevice = m_device.GetD3D12Device();
+		ID3D12Device* d3dDevice = m_device->GetD3D12Device();
 
 		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
 		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
@@ -225,7 +168,7 @@ namespace Warp
 		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
 		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 
-		m_vertexBuffer = m_device.CreateBuffer(sizeof(Vertex), vertexBufferSize);
+		m_vertexBuffer = m_device->CreateBuffer(sizeof(Vertex), vertexBufferSize);
 		if (!m_vertexBuffer.IsValid())
 		{
 			WARP_LOG_FATAL("failed to create vertex buffer");
@@ -243,7 +186,7 @@ namespace Warp
 		// Wait for the command list to execute; we are reusing the same command 
 		// list in our main loop but for now, we just want to wait for setup to 
 		// complete before continuing.
-		GpuCommandQueue* queue = m_device.GetGraphicsQueue();
+		GpuCommandQueue* queue = m_device->GetGraphicsQueue();
 		queue->HostWaitForValue(queue->Signal());
 
 		return true;
@@ -295,33 +238,26 @@ namespace Warp
 		m_commandContext->RSSetViewports(1, &viewport);
 		m_commandContext->RSSetScissorRects(1, &rect);
 
-		// TODO: Replace this with AddTransitionBarrier method in RHICommandContext
 		// Indicate that the back buffer will be used as a render target.
-		CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_swapchainRtvs[m_frameIndex].Get(),
-			D3D12_RESOURCE_STATE_PRESENT,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-		m_commandContext->ResourceBarrier(1, &barrier);
+		UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
+		GpuTexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
+		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-		const CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_swapchainRtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart(), m_frameIndex, m_rtvDescriptorSize);
-		m_commandContext->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+		D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
+		m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, nullptr);
 
 		auto vbv = m_vertexBuffer.GetVertexBufferView();
 
 		// Record commands.
 		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
 		// m_commandList->SetPipelineState(m_pso.Get());
-		m_commandContext->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
 		m_commandContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		m_commandContext->IASetVertexBuffers(0, 1, &vbv);
 		m_commandContext->DrawInstanced(3, 1, 0, 0);
 
-		// TODO: Replace this with AddTransitionBarrier method in RHICommandContext
 		// Indicate that the back buffer will now be used to present.
-		barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_swapchainRtvs[m_frameIndex].Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PRESENT);
-		m_commandContext->ResourceBarrier(1, &barrier);
-
+		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
 		m_commandContext.Close();
 	}
 
@@ -333,8 +269,7 @@ namespace Warp
 		// maximize GPU utilization.
 
 		// Signal and increment the fence value.
-		m_device.GetGraphicsQueue()->HostWaitForValue(fenceValue);
-		m_frameIndex = m_swapchain->GetCurrentBackBufferIndex();
+		m_device->GetGraphicsQueue()->HostWaitForValue(fenceValue);
 	}
 
 }
