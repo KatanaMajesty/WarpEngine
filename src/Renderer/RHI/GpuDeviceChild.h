@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../Core/Defines.h"
+#include "../../Core/Assert.h"
 
 namespace Warp
 {
@@ -14,6 +15,7 @@ namespace Warp
 		explicit GpuDeviceChild(GpuDevice* device)
 			: m_device(device)
 		{
+			WARP_ASSERT(device);
 		}
 
 		// Returns a logical device, associated with the child

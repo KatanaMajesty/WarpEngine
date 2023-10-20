@@ -2,6 +2,7 @@
 
 #include "GpuCommandQueue.h"
 #include "GpuDevice.h"
+#include "RootSignature.h"
 
 namespace Warp
 {
@@ -30,6 +31,11 @@ namespace Warp
 	void RHICommandContext::AddUavBarrier(GpuResource* resource)
 	{
 		m_commandList.AddUavBarrier(resource);
+	}
+
+	void RHICommandContext::SetGraphicsRootSignature(const RHIRootSignature& rootSignature)
+	{
+		m_commandList->SetGraphicsRootSignature(rootSignature.GetD3D12RootSignature());
 	}
 
 	UINT64 RHICommandContext::Execute(bool waitForCompletion)

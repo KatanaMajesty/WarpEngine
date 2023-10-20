@@ -10,6 +10,7 @@
 #include "RHI/RHICommandContext.h"
 #include "RHI/GpuDescriptorHeap.h"
 #include "RHI/RHISwapchain.h"
+#include "RHI/RootSignature.h"
 
 namespace Warp
 {
@@ -41,13 +42,11 @@ namespace Warp
 
 		std::unique_ptr<RHISwapchain> m_swapchain;
 		RHICommandContext m_commandContext; // TODO: Make it unique_ptr after we implement whole functionality
+		RHIRootSignature m_rootSignature;
 		UINT64 m_frameFenceValues[SimultaneousFrames];
 
-		GpuBuffer m_vertexBuffer;
-
-		ComPtr<ID3D12RootSignature> m_rootSignature;
-
 		// TODO: Remove this temp code
+		GpuBuffer m_vertexBuffer;
 		ComPtr<ID3D12PipelineState> m_pso;
 		ComPtr<ID3DBlob> m_vs;
 		ComPtr<ID3DBlob> m_ps;
@@ -55,6 +54,5 @@ namespace Warp
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed
 		void PopulateCommandList(); // TODO: Temp, will be removed
-		void WaitForPreviousFrame(uint64_t fenceValue);
 	};
 }

@@ -27,6 +27,7 @@ namespace Warp
 		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
 		, m_commandContext(m_device->GetGraphicsQueue())
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
+		, m_rootSignature(m_device, RHIRootSignatureDesc(0, 0, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT))
 	{
 		// TODO: Temp, remove
 		if (!InitAssets())
@@ -79,18 +80,6 @@ namespace Warp
 		// TODO: Temporary
 		ID3D12Device* d3dDevice = m_device->GetD3D12Device();
 
-		CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc{};
-		rootSignatureDesc.Init(0, nullptr, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-		ComPtr<ID3DBlob> signature;
-		ComPtr<ID3DBlob> error;
-		HRESULT hr;
-		hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, signature.GetAddressOf(), error.GetAddressOf());
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to serialize root signature");
-
-		hr = d3dDevice->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSignature));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create root signature");
-
 		if (!InitShaders())
 		{
 			WARP_LOG_ERROR("Failed to init shaders");
@@ -103,7 +92,7 @@ namespace Warp
 		};
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
-		psoDesc.pRootSignature = m_rootSignature.Get();
+		psoDesc.pRootSignature = m_rootSignature.GetD3D12RootSignature();
 		psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_vs.Get());
 		psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_ps.Get());
 		// psoDesc.DS;
@@ -126,7 +115,7 @@ namespace Warp
 		// D3D12_CACHED_PIPELINE_STATE CachedPSO;
 		// D3D12_PIPELINE_STATE_FLAGS Flags;
 
-		hr = d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
+		WARP_MAYBE_UNUSED HRESULT hr = d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to create graphics pso");
 
 		// hr = d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
@@ -146,30 +135,17 @@ namespace Warp
 		float aspectRatio = static_cast<float>(m_swapchain->GetWidth()) / m_swapchain->GetHeight();
 		Vertex triangleVertices[] =
 		{
-			{ { 0.0f, 0.25f * aspectRatio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f * aspectRatio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
+			{ { 0.0f, 0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+			{ { 0.25f, -0.25f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+			{ { -0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
 		};
 
 		const UINT vertexBufferSize = sizeof(triangleVertices);
-
-		// Note: using upload heaps to transfer static data like vert buffers is not 
-		// recommended. Every time the GPU needs it, the upload heap will be marshalled 
-		// over. Please read up on Default Heap usage. An upload heap is used here for 
-		// code simplicity and because there are very few verts to actually transfer.
-		CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_UPLOAD);
-		CD3DX12_RESOURCE_DESC resourceDesc = CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize);
 
 		m_vertexBuffer = m_device->CreateBuffer(sizeof(Vertex), vertexBufferSize);
 		if (!m_vertexBuffer.IsValid())
 		{
 			WARP_LOG_FATAL("failed to create vertex buffer");
-		}
-
-		if (FAILED(hr))
-		{
-			WARP_LOG_ERROR("Failed to create committed resource");
-			return false;
 		}
 
 		Vertex* vertexData = m_vertexBuffer.GetCpuVirtualAddress<Vertex>();
@@ -228,7 +204,7 @@ namespace Warp
 		rect.right = width;
 		rect.bottom = height;
 
-		m_commandContext->SetGraphicsRootSignature(m_rootSignature.Get());
+		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
 		m_commandContext->RSSetViewports(1, &viewport);
 		m_commandContext->RSSetScissorRects(1, &rect);
 
@@ -253,17 +229,6 @@ namespace Warp
 		// Indicate that the back buffer will now be used to present.
 		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
 		m_commandContext.Close();
-	}
-
-	void Renderer::WaitForPreviousFrame(uint64_t fenceValue)
-	{
-		// WAITING FOR THE FRAME TO COMPLETE BEFORE CONTINUING IS NOT BEST PRACTICE.
-		// This is code implemented as such for simplicity. The D3D12HelloFrameBuffering
-		// sample illustrates how to use fences for efficient resource usage and to
-		// maximize GPU utilization.
-
-		// Signal and increment the fence value.
-		// m_device->GetGraphicsQueue()->HostWaitForValue(fenceValue);
 	}
 
 }

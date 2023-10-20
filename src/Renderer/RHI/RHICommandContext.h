@@ -13,6 +13,8 @@
 namespace Warp
 {
 
+	class RHIRootSignature;
+
 	class RHICommandContext
 	{
 	public:
@@ -26,6 +28,8 @@ namespace Warp
 		void AddTransitionBarrier(GpuResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		void AddAliasingBarrier(GpuResource* before, GpuResource* after); // NOIMPL
 		void AddUavBarrier(GpuResource* resource); // NOIMPL
+
+		void SetGraphicsRootSignature(const RHIRootSignature& rootSignature);
 
 		void Open();
 		void Close();

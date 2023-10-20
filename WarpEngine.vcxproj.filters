@@ -67,7 +67,8 @@
     <ClCompile Include="src\Renderer\RHI\GpuPhysicalDevice.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuDescriptorAllocator.cpp" />
+    <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp" />
+    <ClCompile Include="src\Renderer\RHI\RootSignature.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -124,12 +125,11 @@
     <ClInclude Include="src\Renderer\RHI\RHICommandContext.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuDescriptorAllocator.h">
-      <Filter>Renderer\RHI</Filter>
-    </ClInclude>
     <ClInclude Include="src\Renderer\RHI\GpuPhysicalDevice.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuDescriptorHeap.h" />
+    <ClInclude Include="src\Renderer\RHI\RootSignature.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
