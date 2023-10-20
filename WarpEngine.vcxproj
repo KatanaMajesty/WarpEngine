@@ -29,6 +29,7 @@
     <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp" />
     <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp" />
     <ClCompile Include="src\Renderer\RHI\GpuPhysicalDevice.cpp" />
+    <ClCompile Include="src\Renderer\RHI\GpuPipelineState.cpp" />
     <ClCompile Include="src\Renderer\RHI\GpuResource.cpp" />
     <ClCompile Include="src\Renderer\RHI\RHISwapchain.cpp" />
     <ClCompile Include="src\Renderer\RHI\RHICommandAllocatorPool.cpp" />
@@ -50,6 +51,7 @@
     <ClInclude Include="src\Renderer\RHI\GpuDevice.h" />
     <ClInclude Include="src\Renderer\RHI\GpuDeviceChild.h" />
     <ClInclude Include="src\Renderer\RHI\GpuPhysicalDevice.h" />
+    <ClInclude Include="src\Renderer\RHI\GpuPipelineState.h" />
     <ClInclude Include="src\Renderer\RHI\RHISwapchain.h" />
     <ClInclude Include="src\Renderer\RHI\GpuResource.h" />
     <ClInclude Include="src\Renderer\RHI\RHICommandAllocatorPool.h" />

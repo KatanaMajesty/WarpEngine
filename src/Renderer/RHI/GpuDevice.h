@@ -51,6 +51,13 @@ namespace Warp
 
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
 
+		template<D3D12_FEATURE Feature, typename FeatureType>
+		void CheckLogicalDeviceFeatureSupport(FeatureType& feature) const
+		{
+			// TODO: Add FeatureType concept?
+			WARP_RHI_VALIDATE(m_device->CheckFeatureSupport(Feature, &feature, sizeof(FeatureType)));
+		}
+
 	private:
 		GpuPhysicalDevice* m_physicalDevice;
 

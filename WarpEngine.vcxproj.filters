@@ -69,6 +69,7 @@
     </ClCompile>
     <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp" />
     <ClCompile Include="src\Renderer\RHI\RootSignature.cpp" />
+    <ClCompile Include="src\Renderer\RHI\GpuPipelineState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -130,6 +131,7 @@
     </ClInclude>
     <ClInclude Include="src\Renderer\RHI\GpuDescriptorHeap.h" />
     <ClInclude Include="src\Renderer\RHI\RootSignature.h" />
+    <ClInclude Include="src\Renderer\RHI\GpuPipelineState.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">

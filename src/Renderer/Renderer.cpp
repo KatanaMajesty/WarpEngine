@@ -29,6 +29,11 @@ namespace Warp
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 		, m_rootSignature(m_device, RHIRootSignatureDesc(0, 0, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT))
 	{
+
+		D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature; 
+		m_device->CheckLogicalDeviceFeatureSupport<D3D12_FEATURE_D3D12_OPTIONS7>(feature);
+		WARP_ASSERT(feature.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1, "Cannot run with no mesh shader support");
+
 		// TODO: Temp, remove
 		if (!InitAssets())
 		{
@@ -151,12 +156,7 @@ namespace Warp
 		Vertex* vertexData = m_vertexBuffer.GetCpuVirtualAddress<Vertex>();
 		memcpy(vertexData, triangleVertices, vertexBufferSize);
 
-		// Wait for the command list to execute; we are reusing the same command 
-		// list in our main loop but for now, we just want to wait for setup to 
-		// complete before continuing.
-		GpuCommandQueue* queue = m_device->GetGraphicsQueue();
-		queue->HostWaitForValue(queue->Signal());
-
+		WaitForGfxToFinish();
 		return true;
 	}
 
