@@ -33,6 +33,28 @@ namespace Warp
 		m_commandList.AddUavBarrier(resource);
 	}
 
+	void RHICommandContext::SetViewport(UINT topLeftX, UINT topLeftY, UINT width, UINT height)
+	{
+		D3D12_VIEWPORT viewport{};
+		viewport.TopLeftX = static_cast<FLOAT>(topLeftX);
+		viewport.TopLeftY = static_cast<FLOAT>(topLeftY);
+		viewport.Width = static_cast<FLOAT>(width);
+		viewport.Height = static_cast<FLOAT>(height);
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		m_commandList->RSSetViewports(1, &viewport);
+	}
+
+	void RHICommandContext::SetScissorRect(UINT left, UINT top, UINT right, UINT bottom)
+	{
+		D3D12_RECT rect{};
+		rect.left = top;
+		rect.top = left;
+		rect.right = right;
+		rect.bottom = bottom;
+		m_commandList->RSSetScissorRects(1, &rect);
+	}
+
 	void RHICommandContext::SetGraphicsRootSignature(const RHIRootSignature& rootSignature)
 	{
 		m_commandList->SetGraphicsRootSignature(rootSignature.GetD3D12RootSignature());

@@ -189,24 +189,9 @@ namespace Warp
 
 		UINT width = m_swapchain->GetWidth();
 		UINT height = m_swapchain->GetHeight();
-		// Set necessary state.
-		D3D12_VIEWPORT viewport{};
-		viewport.TopLeftX = 0.0f;
-		viewport.TopLeftY = 0.0f;
-		viewport.Width = (FLOAT)width;
-		viewport.Height = (FLOAT)height;
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-
-		D3D12_RECT rect{};
-		rect.left = 0;
-		rect.top = 0;
-		rect.right = width;
-		rect.bottom = height;
-
+		m_commandContext.SetViewport(0, 0, width, height);
+		m_commandContext.SetScissorRect(0, 0, width, height);
 		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
-		m_commandContext->RSSetViewports(1, &viewport);
-		m_commandContext->RSSetScissorRects(1, &rect);
 
 		// Indicate that the back buffer will be used as a render target.
 		UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
@@ -220,6 +205,7 @@ namespace Warp
 
 		// Record commands.
 		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+
 		// m_commandList->SetPipelineState(m_pso.Get());
 		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
 		m_commandContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

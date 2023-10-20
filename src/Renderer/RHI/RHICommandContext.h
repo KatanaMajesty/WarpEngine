@@ -29,6 +29,9 @@ namespace Warp
 		void AddAliasingBarrier(GpuResource* before, GpuResource* after); // NOIMPL
 		void AddUavBarrier(GpuResource* resource); // NOIMPL
 
+		// TODO: This might change from UINT to FLOAT
+		void SetViewport(UINT topLeftX, UINT topLeftY, UINT width, UINT height);
+		void SetScissorRect(UINT left, UINT top, UINT right, UINT bottom);
 		void SetGraphicsRootSignature(const RHIRootSignature& rootSignature);
 
 		void Open();
