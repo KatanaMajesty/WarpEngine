@@ -66,28 +66,18 @@ namespace Warp
 		const std::vector<DxcDefine>& defines, EShaderCompilationFlags flags)
 	{
 		std::vector<LPCWSTR> dxcArguments;
+
+#ifdef WARP_DEBUG
+		dxcArguments.push_back(L"-O0");
+#else
+		dxcArguments.push_back(L"-O3");
+#endif
+
 		if (flags & eShaderCompilationFlags_StripDebug)
 			dxcArguments.push_back(L"-Qstrip_debug");
 
 		if (flags & eShaderCompilationFlags_StripReflect)
 			dxcArguments.push_back(L"-Qstrip_reflect");
-
-		if (flags & eShaderCompilationFlags_O3)
-		{
-			dxcArguments.push_back(L"-O3");
-		}
-		else if (flags & eShaderCompilationFlags_O2)
-		{
-			dxcArguments.push_back(L"-O2");
-		}
-		else if (flags & eShaderCompilationFlags_O1)
-		{
-			dxcArguments.push_back(L"-O1");
-		}
-		else if (flags & eShaderCompilationFlags_O0)
-		{
-			dxcArguments.push_back(L"-O0");
-		}
 
 		ComPtr<IDxcCompilerArgs> compilerArgs;
 		WARP_RHI_VALIDATE(m_DxcUtils->BuildArguments(

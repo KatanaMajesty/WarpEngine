@@ -23,18 +23,6 @@ namespace Warp
 
 		// Strips reflection data from Object
 		eShaderCompilationFlags_StripReflect = 2,
-
-		// Only 1 optimization flag should be specified, otherwise the highest optimization level will be selected
-		eShaderCompilationFlags_O0 = 4,
-		eShaderCompilationFlags_O1 = 8,
-		eShaderCompilationFlags_O2 = 16,
-		eShaderCompilationFlags_O3 = 32,
-
-#ifdef WARP_DEBUG
-		eShaderCompilationFlags_Suitable = eShaderCompilationFlags_O0,
-#else
-		eShaderCompilationFlags_Suitable = eShaderCompilationFlags_O3 | eShaderCompilationFlags_StripDebug | eShaderCompilationFlags_StripReflect,
-#endif
 	};
 
 	// Shader define should only live in a scope of shader compilation
@@ -86,7 +74,7 @@ namespace Warp
 
 		CShader CompileShader(const std::string& filepath, 
 			const ShaderCompilationDesc& desc, 
-			EShaderCompilationFlags flags = eShaderCompilationFlags_Suitable);
+			EShaderCompilationFlags flags = eShaderCompilationFlags_None);
 		
 	private:
 		std::wstring_view GetTargetProfile(EShaderModel shaderModel, EShaderType shaderType) const;
