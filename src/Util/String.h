@@ -7,4 +7,6 @@ namespace Warp
 {
 	void WStringToString(std::string& output, const wchar_t* wstr) noexcept;
 	void WStringToString(std::string& output, const std::wstring& wstr) noexcept;
+
+	std::wstring StringToWString(std::string_view view);
 }

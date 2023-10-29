@@ -36,6 +36,7 @@
     <ClCompile Include="src\Renderer\RHI\RHICommandContext.cpp" />
     <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp" />
     <ClCompile Include="src\Renderer\RHI\RootSignature.cpp" />
+    <ClCompile Include="src\Renderer\ShaderCompiler.cpp" />
     <ClCompile Include="src\Util\String.cpp" />
     <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp" />
   </ItemGroup>
@@ -59,6 +60,8 @@
     <ClInclude Include="src\Renderer\RHI\RHIValidationLayer.h" />
     <ClInclude Include="src\Renderer\RHI\stdafx.h" />
     <ClInclude Include="src\Renderer\RHI\RootSignature.h" />
+    <ClInclude Include="src\Renderer\Shader.h" />
+    <ClInclude Include="src\Renderer\ShaderCompiler.h" />
     <ClInclude Include="src\Util\String.h" />
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
     <ClInclude Include="vendor\d3dx12.h" />

@@ -37,4 +37,6 @@ using Microsoft::WRL::ComPtr;
 		{ \
 		throw std::runtime_error("Hresult is in failed state"); \
 		} \
-	} while(false) // use do-while to enforce semicolon
+	} while(false) // use do-while to enforce semicolon (?)
+
+#define WARP_COM_SAFE_RELEASE(ptr) if (ptr) { ptr->Release(); ptr = nullptr; }

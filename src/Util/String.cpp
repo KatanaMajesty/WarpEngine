@@ -16,4 +16,9 @@ namespace Warp
 		std::ranges::transform(wstr, output.begin(), [](wchar_t c) { return static_cast<char>(c); });
 	}
 
+	std::wstring StringToWString(std::string_view view)
+	{
+		return std::wstring(view.begin(), view.end());
+	}
+
 }
