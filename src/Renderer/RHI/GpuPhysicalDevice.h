@@ -67,11 +67,11 @@ namespace Warp
 
 	private:
 		void InitDebugInterface(bool enableGpuBasedValidation);
-		bool SelectBestSuitableDXGIAdapter();
+		bool SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference);
 
 		HWND m_HWND = nullptr;
 		ComPtr<IDXGIFactory7> m_factory;
-		ComPtr<IDXGIAdapter1> m_adapter;
+		ComPtr<IDXGIAdapter3> m_adapter;
 		DXGI_ADAPTER_DESC1 m_adapterDesc;
 		GpuVendor m_vendorID = GpuVendor::Unknown;
 

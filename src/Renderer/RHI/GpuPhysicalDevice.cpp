@@ -25,7 +25,7 @@ namespace Warp
 		WARP_RHI_VALIDATE(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_factory)));
 
 		// Selecting an adapter
-		if (!SelectBestSuitableDXGIAdapter())
+		if (!SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE))
 		{
 			WARP_LOG_FATAL("Failed to select D3D12 Adapter as no suitable was found");
 			return;
@@ -84,7 +84,7 @@ namespace Warp
 	}
 
 	// TODO: Maybe move this inside the GpuPhysicalDevice class?
-	static bool IsDXGIAdapterSuitable(IDXGIAdapter1* adapter, const DXGI_ADAPTER_DESC1& desc)
+	static bool IsDXGIAdapterSuitable(IDXGIAdapter3* adapter, const DXGI_ADAPTER_DESC1& desc)
 	{
 		// Don't select render driver, provided by D3D12. We only use physical hardware
 		if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
@@ -97,24 +97,23 @@ namespace Warp
 		return true;
 	}
 
-	bool GpuPhysicalDevice::SelectBestSuitableDXGIAdapter()
+	bool GpuPhysicalDevice::SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference)
 	{
 		WARP_ASSERT(m_factory, "Factory cannot be nullptr at this point");
 
-		SIZE_T largestDedicatedMemory = 0;
-		IDXGIAdapter1* adapter;
+		UINT64 maxVideoMemory = 0;
+		IDXGIAdapter3* adapter;
 		for (UINT i = 0;
-			(HRESULT)m_factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; // Implicit cast between different types is fine...
+			(HRESULT)m_factory->EnumAdapterByGpuPreference(i, preference, IID_PPV_ARGS(&adapter)) != DXGI_ERROR_NOT_FOUND; // Implicit cast between different types is fine...
 			++i)
 		{
-
 			DXGI_ADAPTER_DESC1 adapterDesc;
 			adapter->GetDesc1(&adapterDesc);
 
 			// If the adapter is suitable, we can compare it with current adapter
-			if (IsDXGIAdapterSuitable(adapter, adapterDesc) && largestDedicatedMemory < adapterDesc.DedicatedVideoMemory)
+			if (adapterDesc.DedicatedVideoMemory > maxVideoMemory && IsDXGIAdapterSuitable(adapter, adapterDesc))
 			{
-				largestDedicatedMemory = adapterDesc.DedicatedVideoMemory;
+				maxVideoMemory = adapterDesc.DedicatedVideoMemory;
 				m_adapter.Attach(adapter);
 				continue;
 			}
