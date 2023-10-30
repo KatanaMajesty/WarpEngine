@@ -2,6 +2,7 @@
 
 #pragma comment(lib, "dxcompiler.lib")
 
+#include <array>
 #include "../Core/Defines.h"
 #include "../Core/Logger.h"
 #include "../Core/Assert.h"
@@ -37,7 +38,7 @@ namespace Warp
 		}
 
 		CompilationResult result = CompileInternal(wFilepath, wEntryPoint, wTargetProfile, dxcDefines, flags);
-		return CShader();
+		return CShader(desc.ShaderType, result.Binary, result.Pdb, result.Reflection);
 	}
 
 	std::wstring_view CShaderCompiler::GetTargetProfile(EShaderModel shaderModel, EShaderType shaderType) const
@@ -53,6 +54,7 @@ namespace Warp
 			case EShaderType::Mesh: return L"ms_6_5";
 			case EShaderType::Pixel: return L"ps_6_5";
 			case EShaderType::Compute: return L"cs_6_5";
+			default: WARP_ASSERT(false); return L"";
 			};
 		}; break;
 		default: WARP_ASSERT(false); return L"";
@@ -65,14 +67,19 @@ namespace Warp
 		std::wstring_view targetProfile,
 		const std::vector<DxcDefine>& defines, EShaderCompilationFlags flags)
 	{
-		std::vector<LPCWSTR> dxcArguments;
-
+		// https://strontic.github.io/xcyclopedia/library/dxc.exe-0C1709D4E1787E3EB3E6A35C85714824.html
+		static constexpr std::array dxcDefault =
+		{
 #ifdef WARP_DEBUG
-		dxcArguments.push_back(L"-O0");
+			L"-O0", // no optimization
+			L"-Zi", // enable debug information
 #else
-		dxcArguments.push_back(L"-O3");
+			L"-O3", // max optimization
 #endif
+			L"-WX", // treat warnings as errors
+		};
 
+		std::vector<LPCWSTR> dxcArguments(dxcDefault.begin(), dxcDefault.end());
 		if (flags & eShaderCompilationFlags_StripDebug)
 			dxcArguments.push_back(L"-Qstrip_debug");
 
@@ -122,15 +129,36 @@ namespace Warp
 
 		// TODO: If needed, add pdb and reflection parse
 		// If reflection of debug data was stripped, process it
-		/*if (flags & eShaderCompilationFlags_StripDebug)
+		if (flags & eShaderCompilationFlags_StripDebug)
 		{
+			ComPtr<IDxcBlobUtf16> pdbPathBlob;
+			WARP_RHI_VALIDATE(
+				compilationResult->GetOutput(
+					DXC_OUT_PDB, 
+					IID_PPV_ARGS(result.Pdb.GetAddressOf()), 
+					pdbPathBlob.GetAddressOf())
+			);
 
+			// TODO: rewrite
+			std::wstring wPdbPath(pdbPathBlob->GetStringPointer(), pdbPathBlob->GetStringPointer() + pdbPathBlob->GetStringLength());
+			WARP_LOG_INFO("[ShaderCompiler]: Pdb is {}", WStringToString(wPdbPath));
 		}
 
 		if (flags & eShaderCompilationFlags_StripReflect)
 		{
+			ComPtr<IDxcBlobUtf16> reflectPathBlob;
+			WARP_RHI_VALIDATE(
+				compilationResult->GetOutput(
+					DXC_OUT_REFLECTION,
+					IID_PPV_ARGS(result.Reflection.GetAddressOf()),
+					reflectPathBlob.GetAddressOf())
+			);
 
-		}*/
+			// TODO: rewrite
+			std::wstring wReflectPath(reflectPathBlob->GetStringPointer(), reflectPathBlob->GetStringPointer() + reflectPathBlob->GetStringLength());
+			WARP_LOG_INFO("[ShaderCompiler]: Reflection is {}", WStringToString(wReflectPath));
+		}
+
 		return result;
 	}
 

@@ -36,6 +36,7 @@
     <ClCompile Include="src\Renderer\RHI\RHICommandContext.cpp" />
     <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp" />
     <ClCompile Include="src\Renderer\RHI\RootSignature.cpp" />
+    <ClCompile Include="src\Renderer\Shader.cpp" />
     <ClCompile Include="src\Renderer\ShaderCompiler.cpp" />
     <ClCompile Include="src\Util\String.cpp" />
     <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp" />
@@ -69,6 +70,12 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="vcpkg.json" />
+    <CopyFileToFolders Include="vendor\dxcompiler.dll">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vendor\dxil.dll">
+      <FileType>Document</FileType>
+    </CopyFileToFolders>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\Triangle.hlsl">
@@ -179,6 +186,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -198,6 +207,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

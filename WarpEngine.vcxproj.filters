@@ -67,10 +67,21 @@
     <ClCompile Include="src\Renderer\RHI\GpuPhysicalDevice.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp" />
-    <ClCompile Include="src\Renderer\RHI\RootSignature.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuPipelineState.cpp" />
-    <ClCompile Include="src\Renderer\ShaderCompiler.cpp" />
+    <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\GpuPipelineState.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\Shader.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\ShaderCompiler.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\RootSignature.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -130,11 +141,21 @@
     <ClInclude Include="src\Renderer\RHI\GpuPhysicalDevice.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuDescriptorHeap.h" />
-    <ClInclude Include="src\Renderer\RHI\RootSignature.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuPipelineState.h" />
-    <ClInclude Include="src\Renderer\Shader.h" />
-    <ClInclude Include="src\Renderer\ShaderCompiler.h" />
+    <ClInclude Include="src\Renderer\RHI\GpuDescriptorHeap.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\GpuPipelineState.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\ShaderCompiler.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Shader.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\RootSignature.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
@@ -151,5 +172,13 @@
     <FxCompile Include="shaders\Triangle.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="vendor\dxil.dll">
+      <Filter>Vendor</Filter>
+    </CopyFileToFolders>
+    <CopyFileToFolders Include="vendor\dxcompiler.dll">
+      <Filter>Vendor</Filter>
+    </CopyFileToFolders>
   </ItemGroup>
 </Project>

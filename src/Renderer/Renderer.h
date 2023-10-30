@@ -11,6 +11,7 @@
 #include "RHI/GpuDescriptorHeap.h"
 #include "RHI/RHISwapchain.h"
 #include "RHI/RootSignature.h"
+#include "ShaderCompiler.h"
 
 namespace Warp
 {
@@ -48,8 +49,10 @@ namespace Warp
 		// TODO: Remove this temp code
 		GpuBuffer m_vertexBuffer;
 		ComPtr<ID3D12PipelineState> m_pso;
-		ComPtr<ID3DBlob> m_vs;
-		ComPtr<ID3DBlob> m_ps;
+	
+		CShaderCompiler m_shaderCompiler;
+		CShader m_vs;
+		CShader m_ps;
 
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed

@@ -45,7 +45,7 @@ namespace Warp
 		ShaderCompilationDesc() = default;
 		ShaderCompilationDesc(std::string_view entryPoint, EShaderModel shaderModel, EShaderType shaderType)
 			: EntryPoint(entryPoint)
-			, ShaderModel(ShaderModel)
+			, ShaderModel(shaderModel)
 			, ShaderType(shaderType)
 		{
 		}
@@ -84,7 +84,6 @@ namespace Warp
 			ComPtr<IDxcBlob> Binary;
 			ComPtr<IDxcBlob> Pdb;
 			ComPtr<IDxcBlob> Reflection;
-			//IDxcBlob - RDAT part with reflection data
 		};
 
 		CompilationResult CompileInternal(
@@ -93,9 +92,9 @@ namespace Warp
 			std::wstring_view targetProfile,
 			const std::vector<DxcDefine>& defines, EShaderCompilationFlags flags);
 
-		ComPtr<struct IDxcUtils> m_DxcUtils;
-		ComPtr<struct IDxcCompiler3> m_DxcCompiler;
-		ComPtr<struct IDxcIncludeHandler> m_DxcIncludeHandler;
+		ComPtr<IDxcUtils> m_DxcUtils;
+		ComPtr<IDxcCompiler3> m_DxcCompiler;
+		ComPtr<IDxcIncludeHandler> m_DxcIncludeHandler;
 	};
 
 }

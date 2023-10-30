@@ -138,9 +138,7 @@ void DeinitWin32Console()
 
 void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLine)
 {
-    std::string args;
-    Warp::WStringToString(args, pCmdLine);
-
+    std::string args = Warp::WStringToString(pCmdLine);
     std::istringstream iss(args);
 
     using IteratorType = std::istream_iterator<std::string>;

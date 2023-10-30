@@ -1,5 +1,8 @@
 #pragma once
 
+#include "RHI/stdafx.h"
+#include <dxcapi.h>
+
 namespace Warp
 {
 
@@ -24,9 +27,26 @@ namespace Warp
 	class CShader
 	{
 	public:
+		CShader() = default;
+		CShader(EShaderType type, ComPtr<IDxcBlob> binary, ComPtr<IDxcBlob> pdb, ComPtr<IDxcBlob> reflection)
+			: m_shaderType(type)
+			, m_binary(binary)
+			, m_pdb(pdb)
+			, m_reflection(reflection)
+		{
+		}
+
+		inline constexpr EShaderType GetType() const { return m_shaderType; }
+		inline D3D12_SHADER_BYTECODE GetBinaryBytecode() { return CD3DX12_SHADER_BYTECODE(GetBinaryPointer(), GetBinarySize()); }
+
+		void* GetBinaryPointer() const;
+		size_t GetBinarySize() const;
 
 	private:
-		// Blob, ptr, whatever
+		EShaderType m_shaderType;
+		ComPtr<IDxcBlob> m_binary;
+		ComPtr<IDxcBlob> m_pdb;
+		ComPtr<IDxcBlob> m_reflection;
 	};
 
 }

@@ -98,8 +98,8 @@ namespace Warp
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
 		psoDesc.pRootSignature = m_rootSignature.GetD3D12RootSignature();
-		psoDesc.VS = CD3DX12_SHADER_BYTECODE(m_vs.Get());
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(m_ps.Get());
+		psoDesc.VS = m_vs.GetBinaryBytecode();
+		psoDesc.PS = m_ps.GetBinaryBytecode();
 		// psoDesc.DS;
 		// psoDesc.HS;
 		// psoDesc.GS;
@@ -162,24 +162,13 @@ namespace Warp
 
 	bool Renderer::InitShaders()
 	{
-		ComPtr<ID3DBlob> vertexShader;
-		ComPtr<ID3DBlob> pixelShader;
-		UINT compileFlags = 0;
-
-#ifdef WARP_DEBUG
-		compileFlags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#endif
-
 		std::string filepath = (Application::Get().GetShaderPath() / "Triangle.hlsl").string();
-		std::wstring wfilepath(filepath.begin(), filepath.end());
-		WARP_MAYBE_UNUSED HRESULT hr;
-		hr = D3DCompileFromFile(wfilepath.c_str(), nullptr, nullptr, "vs_main", "vs_5_0", compileFlags, 0, m_vs.ReleaseAndGetAddressOf(), nullptr);
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to compile vs");
+		ShaderCompilationDesc vsShaderDesc = ShaderCompilationDesc("VSMain", EShaderModel::sm_6_5, EShaderType::Vertex);
+		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
-		hr = D3DCompileFromFile(wfilepath.c_str(), nullptr, nullptr, "ps_main", "ps_5_0", compileFlags, 0, m_ps.ReleaseAndGetAddressOf(), nullptr);
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to compile ps");
-
-		return true;
+		m_vs = m_shaderCompiler.CompileShader(filepath, vsShaderDesc);
+		m_ps = m_shaderCompiler.CompileShader(filepath, psShaderDesc);
+		return m_vs.GetBinaryPointer() && m_ps.GetBinaryPointer();
 	}
 
 	void Renderer::PopulateCommandList()
