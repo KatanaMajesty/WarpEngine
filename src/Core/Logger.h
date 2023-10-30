@@ -24,7 +24,7 @@ namespace Warp::Logging
 #define WARP_LOG_FATAL(message, ...) (spdlog::critical(message, ##__VA_ARGS__))
 #else
 
-#if 0 // for release-crash debugging
+#if 1 // for release-crash debugging
 #define WARP_LOG_INFO(message, ...)
 #define WARP_LOG_WARN(message, ...)
 #define WARP_LOG_ERROR(message, ...)

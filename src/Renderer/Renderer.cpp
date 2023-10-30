@@ -20,9 +20,10 @@ namespace Warp
 #ifdef WARP_DEBUG
 				physicalDeviceDesc.EnableDebugLayer = true;
 				physicalDeviceDesc.EnableGpuBasedValidation = true;
+#else
+				physicalDeviceDesc.EnableDebugLayer = false;
+				physicalDeviceDesc.EnableGpuBasedValidation = false;
 #endif
-				physicalDeviceDesc.EnableDebugLayer = true;
-				physicalDeviceDesc.EnableGpuBasedValidation = true;
 				return std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
 			}()
 		)
