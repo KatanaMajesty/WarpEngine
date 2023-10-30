@@ -44,7 +44,7 @@ namespace Warp
         }
 
         WARP_RHI_VALIDATE(
-            device->GetD3D12Device9()->CreateDescriptorHeap(
+            device->GetD3D12Device()->CreateDescriptorHeap(
                 &desc, 
                 IID_PPV_ARGS(m_D3D12DescriptorHeap.ReleaseAndGetAddressOf())
             ));

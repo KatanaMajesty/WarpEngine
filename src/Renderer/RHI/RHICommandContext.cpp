@@ -13,7 +13,7 @@ namespace Warp
 
 	RHICommandContext::RHICommandContext(GpuCommandQueue* queue)
 		: m_queue(queue)
-		, m_commandList(queue->GetDevice()->GetD3D12Device9(), queue->GetType())
+		, m_commandList(queue->GetDevice()->GetD3D12Device(), queue->GetType())
 		, m_commandAllocatorPool(queue)
 	{
 	}

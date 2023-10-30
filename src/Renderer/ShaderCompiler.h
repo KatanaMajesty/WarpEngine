@@ -14,15 +14,16 @@ namespace Warp
 
 	// For better understanding of DXC https://simoncoenen.com/blog/programming/graphics/DxcCompiling
 	
-	enum EShaderCompilationFlags
+	using EShaderCompilationFlags = uint32_t;
+	enum  EShaderCompilationFlag
 	{
-		eShaderCompilationFlags_None = 0,
+		eShaderCompilationFlag_None = 0,
 
-		// Strips PDBs from the Object
-		eShaderCompilationFlags_StripDebug = 1,
+		// Strips PDB from the Object
+		eShaderCompilationFlag_StripDebug = 1,
 
-		// Strips reflection data from Object
-		eShaderCompilationFlags_StripReflect = 2,
+		// Strips RDAT from Object
+		eShaderCompilationFlag_StripReflect = 2,
 	};
 
 	// Shader define should only live in a scope of shader compilation
@@ -74,7 +75,7 @@ namespace Warp
 
 		CShader CompileShader(const std::string& filepath, 
 			const ShaderCompilationDesc& desc, 
-			EShaderCompilationFlags flags = eShaderCompilationFlags_None);
+			EShaderCompilationFlags flags = eShaderCompilationFlag_None);
 		
 	private:
 		std::wstring_view GetTargetProfile(EShaderModel shaderModel, EShaderType shaderType) const;

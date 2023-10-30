@@ -71,19 +71,19 @@ namespace Warp
 		static constexpr std::array dxcDefault =
 		{
 #ifdef WARP_DEBUG
-			L"-O0", // no optimization
-			L"-Zi", // enable debug information
+			L"-Od", // no optimization
 #else
 			L"-O3", // max optimization
 #endif
+			L"-Zi", // enable debug information
 			L"-WX", // treat warnings as errors
 		};
 
 		std::vector<LPCWSTR> dxcArguments(dxcDefault.begin(), dxcDefault.end());
-		if (flags & eShaderCompilationFlags_StripDebug)
+		if (flags & eShaderCompilationFlag_StripDebug)
 			dxcArguments.push_back(L"-Qstrip_debug");
 
-		if (flags & eShaderCompilationFlags_StripReflect)
+		if (flags & eShaderCompilationFlag_StripReflect)
 			dxcArguments.push_back(L"-Qstrip_reflect");
 
 		ComPtr<IDxcCompilerArgs> compilerArgs;
@@ -126,37 +126,28 @@ namespace Warp
 		}
 		
 		WARP_RHI_VALIDATE(compilationResult->GetResult(result.Binary.GetAddressOf()));
+		WARP_ASSERT(result.Binary);
 
-		// TODO: If needed, add pdb and reflection parse
-		// If reflection of debug data was stripped, process it
-		if (flags & eShaderCompilationFlags_StripDebug)
+		if (flags & eShaderCompilationFlag_StripDebug)
 		{
-			ComPtr<IDxcBlobUtf16> pdbPathBlob;
 			WARP_RHI_VALIDATE(
 				compilationResult->GetOutput(
 					DXC_OUT_PDB, 
 					IID_PPV_ARGS(result.Pdb.GetAddressOf()), 
-					pdbPathBlob.GetAddressOf())
+					nullptr)
 			);
-
-			// TODO: rewrite
-			std::wstring wPdbPath(pdbPathBlob->GetStringPointer(), pdbPathBlob->GetStringPointer() + pdbPathBlob->GetStringLength());
-			WARP_LOG_INFO("[ShaderCompiler]: Pdb is {}", WStringToString(wPdbPath));
+			WARP_ASSERT(result.Pdb);
 		}
 
-		if (flags & eShaderCompilationFlags_StripReflect)
+		if (flags & eShaderCompilationFlag_StripReflect)
 		{
-			ComPtr<IDxcBlobUtf16> reflectPathBlob;
 			WARP_RHI_VALIDATE(
 				compilationResult->GetOutput(
 					DXC_OUT_REFLECTION,
 					IID_PPV_ARGS(result.Reflection.GetAddressOf()),
-					reflectPathBlob.GetAddressOf())
+					nullptr)
 			);
-
-			// TODO: rewrite
-			std::wstring wReflectPath(reflectPathBlob->GetStringPointer(), reflectPathBlob->GetStringPointer() + reflectPathBlob->GetStringLength());
-			WARP_LOG_INFO("[ShaderCompiler]: Reflection is {}", WStringToString(wReflectPath));
+			WARP_ASSERT(result.Reflection);
 		}
 
 		return result;

@@ -36,9 +36,7 @@ namespace Warp
 		void BeginFrame();
 		void EndFrame();
 
-		WARP_ATTR_NODISCARD inline ID3D12Device9* GetD3D12Device9() const { return m_device.Get(); }
-		WARP_ATTR_NODISCARD inline ID3D12Device* GetD3D12Device() const { return GetD3D12Device9(); }
-
+		WARP_ATTR_NODISCARD inline ID3D12Device9* GetD3D12Device() const { return m_device.Get(); }
 		WARP_ATTR_NODISCARD inline constexpr UINT GetFrameID() const { return m_frameID; }
 
 		WARP_ATTR_NODISCARD GpuCommandQueue* GetQueue(D3D12_COMMAND_LIST_TYPE type) const;

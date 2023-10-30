@@ -11,12 +11,12 @@ namespace Warp
 	GpuCommandQueue::GpuCommandQueue(GpuDevice* device, D3D12_COMMAND_LIST_TYPE type)
 		: GpuDeviceChild(device)
 		, m_queueType(type)
-		, m_barrierCommandList(device->GetD3D12Device9(), type)
+		, m_barrierCommandList(device->GetD3D12Device(), type)
 		, m_barrierCommandAllocatorPool(this)
 	{
 		Reset();
 		WARP_ASSERT(device);
-		ID3D12Device9* D3D12Device = device->GetD3D12Device9();
+		ID3D12Device9* D3D12Device = device->GetD3D12Device();
 
 		WARP_MAYBE_UNUSED HRESULT hr;
 		D3D12_COMMAND_QUEUE_DESC desc;

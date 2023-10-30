@@ -21,6 +21,8 @@ namespace Warp
 				physicalDeviceDesc.EnableDebugLayer = true;
 				physicalDeviceDesc.EnableGpuBasedValidation = true;
 #endif
+				physicalDeviceDesc.EnableDebugLayer = true;
+				physicalDeviceDesc.EnableGpuBasedValidation = true;
 				return std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
 			}()
 		)
@@ -44,6 +46,13 @@ namespace Warp
 		WARP_LOG_INFO("Renderer was initialized successfully");
 	}
 	
+	Renderer::~Renderer()
+	{
+		WaitForGfxToFinish();
+		m_device->GetComputeQueue()->HostWaitIdle();
+		m_device->GetCopyQueue()->HostWaitIdle();
+	}
+
 	void Renderer::Resize(uint32_t width, uint32_t height)
 	{
 		// Wait for all frames to be completed before resizing the backbuffers
@@ -96,33 +105,52 @@ namespace Warp
 			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
 		};
 
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{};
+		//D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+		//psoDesc.pRootSignature = m_rootSignature.GetD3D12RootSignature();
+		//psoDesc.VS = m_vs.GetBinaryBytecode();
+		//psoDesc.PS = m_ps.GetBinaryBytecode();
+		//// psoDesc.DS;
+		//// psoDesc.HS;
+		//// psoDesc.GS;
+		//// D3D12_STREAM_OUTPUT_DESC StreamOutput;
+		//psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		//psoDesc.SampleMask = UINT_MAX;
+		//psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		//psoDesc.DepthStencilState.DepthEnable = FALSE;
+		//psoDesc.DepthStencilState.StencilEnable = FALSE;
+		//psoDesc.InputLayout.NumElements = 2;
+		//psoDesc.InputLayout.pInputElementDescs = elementDescs;
+		//// D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
+		//psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		//psoDesc.NumRenderTargets = 1;
+		//psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		//psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		//psoDesc.SampleDesc.Count = 1;
+		//// UINT NodeMask;
+		//// D3D12_CACHED_PIPELINE_STATE CachedPSO;
+		//// D3D12_PIPELINE_STATE_FLAGS Flags;
+
+		// Describe and create the graphics pipeline state object (PSO).
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+		psoDesc.InputLayout = { elementDescs, _countof(elementDescs) };
 		psoDesc.pRootSignature = m_rootSignature.GetD3D12RootSignature();
 		psoDesc.VS = m_vs.GetBinaryBytecode();
 		psoDesc.PS = m_ps.GetBinaryBytecode();
-		// psoDesc.DS;
-		// psoDesc.HS;
-		// psoDesc.GS;
-		// D3D12_STREAM_OUTPUT_DESC StreamOutput;
-		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		psoDesc.DepthStencilState.DepthEnable = false;
-		psoDesc.DepthStencilState.StencilEnable = false;
-		psoDesc.InputLayout = D3D12_INPUT_LAYOUT_DESC{ elementDescs, 2 };
-		// D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
+		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		psoDesc.DepthStencilState.DepthEnable = FALSE;
+		psoDesc.DepthStencilState.StencilEnable = FALSE;
+		psoDesc.SampleMask = UINT_MAX;
 		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		psoDesc.NumRenderTargets = 1;
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		// DXGI_FORMAT DSVFormat;
 		psoDesc.SampleDesc.Count = 1;
-		// UINT NodeMask;
-		// D3D12_CACHED_PIPELINE_STATE CachedPSO;
-		// D3D12_PIPELINE_STATE_FLAGS Flags;
 
-		WARP_MAYBE_UNUSED HRESULT hr = d3dDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&m_pso));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create graphics pso");
-
+		WARP_MAYBE_UNUSED HRESULT hr = m_device->GetD3D12Device()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_pso.GetAddressOf()));
+		if (hr == E_OUTOFMEMORY)
+		{
+			WARP_LOG_INFO("asad");
+		}
 		// hr = d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
 		// WARP_ASSERT(SUCCEEDED(hr), "Failed to create command list");
 
@@ -166,7 +194,7 @@ namespace Warp
 		ShaderCompilationDesc vsShaderDesc = ShaderCompilationDesc("VSMain", EShaderModel::sm_6_5, EShaderType::Vertex);
 		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
-		m_vs = m_shaderCompiler.CompileShader(filepath, vsShaderDesc);
+		m_vs = m_shaderCompiler.CompileShader(filepath, vsShaderDesc, eShaderCompilationFlag_StripDebug | eShaderCompilationFlag_StripReflect);
 		m_ps = m_shaderCompiler.CompileShader(filepath, psShaderDesc);
 		return m_vs.GetBinaryPointer() && m_ps.GetBinaryPointer();
 	}

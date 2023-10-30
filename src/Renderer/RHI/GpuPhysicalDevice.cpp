@@ -38,7 +38,7 @@ namespace Warp
 		switch (m_adapterDesc.VendorId)
 		{
 		case (WARP_PCI_VENDOR_ID_NVIDIA): m_vendorID = GpuVendor::Nvidia; break;
-		case (WARP_PCI_VENDOR_ID_AMD): m_vendorID = GpuVendor::AMD; break;
+		case (WARP_PCI_VENDOR_ID_AMD): m_vendorID = GpuVendor::Amd; break;
 		default:
 		{
 			WARP_LOG_WARN("Failed to determine if the GPU vendor is AMD or Nvidia. GpuVendor is set to \"unknown\"");

@@ -26,6 +26,8 @@ namespace Warp
 		Renderer(const Renderer&) = delete;
 		Renderer& operator=(const Renderer&) = delete;
 
+		~Renderer();
+
 		void Resize(uint32_t width, uint32_t height);
 		void RenderFrame();
 

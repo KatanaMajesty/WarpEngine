@@ -159,7 +159,7 @@ namespace Warp
 					desc.pPipelineStateSubobjectStream = &stream;
 
 					ComPtr<ID3D12PipelineState> pso;
-					WARP_RHI_VALIDATE(device->GetD3D12Device9()->CreatePipelineState(&desc, IID_PPV_ARGS(pso.GetAddressOf())));
+					WARP_RHI_VALIDATE(device->GetD3D12Device()->CreatePipelineState(&desc, IID_PPV_ARGS(pso.GetAddressOf())));
 					return pso;
 				}()
 			)

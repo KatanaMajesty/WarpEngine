@@ -34,7 +34,7 @@ namespace Warp
 		// Otherwise, we create a new allocator
 		ComPtr<ID3D12CommandAllocator> allocator;
 		GpuDevice* device = m_queue->GetDevice();
-		WARP_RHI_VALIDATE(device->GetD3D12Device9()->CreateCommandAllocator(m_queue->GetType(), IID_PPV_ARGS(allocator.GetAddressOf())));
+		WARP_RHI_VALIDATE(device->GetD3D12Device()->CreateCommandAllocator(m_queue->GetType(), IID_PPV_ARGS(allocator.GetAddressOf())));
 		WARP_RHI_VALIDATE(allocator->Reset());
 		return allocator;
 	}

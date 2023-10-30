@@ -34,7 +34,7 @@ namespace Warp
 	{
 		Unknown = 0,
 		Nvidia,
-		AMD,
+		Amd,
 	};
 
 	class GpuDevice;
