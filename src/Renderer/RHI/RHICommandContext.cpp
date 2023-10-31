@@ -133,4 +133,13 @@ namespace Warp
 			numThreadGroupsZ);
 	}
 
+	void RHICommandContext::DispatchMesh(UINT numThreadGroupsX, UINT numThreadGroupsY, UINT numThreadGroupsZ)
+	{
+		m_commandList.FlushBatchedResourceBarriers();
+		m_commandList->DispatchMesh(
+			numThreadGroupsX,
+			numThreadGroupsY,
+			numThreadGroupsZ);
+	}
+
 }

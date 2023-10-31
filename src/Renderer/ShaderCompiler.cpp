@@ -77,6 +77,11 @@ namespace Warp
 #endif
 			L"-Zi", // enable debug information
 			L"-WX", // treat warnings as errors
+			L"-Zpr", // enforce row-major ordering
+
+			// Use the /all_resources_bound / D3DCOMPILE_ALL_RESOURCES_BOUND compile flag if possible
+			// This allows for the compiler to do a better job at optimizing texture accesses.We have seen frame rate improvements of > 1 % when toggling this flag on.
+			L"-all_resources_bound", // Enables agressive flattening
 		};
 
 		std::vector<LPCWSTR> dxcArguments(dxcDefault.begin(), dxcDefault.end());

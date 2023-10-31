@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <Windows.h>
 
+#include "../Util/Timer.h"
+
 namespace Warp
 {
 
@@ -34,7 +36,7 @@ namespace Warp
 		void Resize(uint32_t width, uint32_t height);
 
 		void Tick();
-		void Update();
+		void Update(float timestep);
 		void Render();
 
 		inline Renderer* GetRenderer() const { return m_renderer.get(); }
@@ -53,6 +55,9 @@ namespace Warp
 
 	private:
 		static inline Application* s_instance = nullptr;
+
+		Timer m_appTimer;
+		double m_lastFrameTime = 0.0;
 
 		std::unique_ptr<Renderer> m_renderer;
 		std::filesystem::path m_workingDirectory;

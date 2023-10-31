@@ -32,6 +32,9 @@ namespace Warp
 		void Resize(uint32_t width, uint32_t height);
 		void RenderFrame();
 
+		// TODO: Maybe temp
+		void Update(float timestep);
+
 		static constexpr uint32_t SimultaneousFrames = RHISwapchain::BackbufferCount;
 
 	private:
@@ -49,13 +52,13 @@ namespace Warp
 		RHIRootSignature m_rootSignature;
 		UINT64 m_frameFenceValues[SimultaneousFrames];
 
-		// TODO: Remove this temp code
-		GpuBuffer m_vertexBuffer;
-		RHIGraphicsPipelineState m_pso;
-	
+		GpuBuffer m_constantBuffer;
 		CShaderCompiler m_shaderCompiler;
-		CShader m_vs;
-		CShader m_ps;
+
+		float m_timeElapsed = 0.0f;
+		RHIMeshPipelineState m_cubePso;
+		CShader m_cubeMs;
+		CShader m_cubePs;
 
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed

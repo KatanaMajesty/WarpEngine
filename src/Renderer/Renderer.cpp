@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include <cmath>
 #include "../Util/String.h"
 #include "../Core/Logger.h"
 #include "../Core/Assert.h"
@@ -10,6 +11,13 @@
 
 namespace Warp
 {
+
+	struct alignas(256) ConstantBuffer
+	{
+		DirectX::XMMATRIX model;
+		DirectX::XMMATRIX view;
+		DirectX::XMMATRIX proj;
+	};
 
 	Renderer::Renderer(HWND hwnd)
 		: m_physicalDevice(
@@ -30,7 +38,6 @@ namespace Warp
 		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
 		, m_commandContext(m_device->GetGraphicsQueue())
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
-		, m_rootSignature(m_device, RHIRootSignatureDesc(0, 0, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT))
 	{
 
 		D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature; 
@@ -80,6 +87,31 @@ namespace Warp
 		m_device->EndFrame();
 	}
 
+	void Renderer::Update(float timestep)
+	{
+		m_timeElapsed += timestep;
+		ConstantBuffer cb;
+		cb.model = DirectX::XMMatrixAffineTransformation(
+			DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f),
+			DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
+			DirectX::XMQuaternionRotationRollPitchYaw(
+				m_timeElapsed * 0.5f,
+				m_timeElapsed * 1.0f,
+				m_timeElapsed * 0.75f
+			),
+			DirectX::XMVectorSet(0.0f, 0.0f, 2.0f, 0.0f)
+		);
+		cb.view = DirectX::XMMatrixIdentity();
+
+		uint32_t width = m_swapchain->GetWidth();
+		uint32_t height = m_swapchain->GetHeight();
+		float aspectRatio = static_cast<float>(width) / height;
+		cb.proj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
+
+		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
+		memcpy(data, &cb, sizeof(ConstantBuffer));
+	}
+
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{
 		m_device->GetGraphicsQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
@@ -101,44 +133,31 @@ namespace Warp
 			return false;
 		}
 
-		RHIGraphicsPipelineDesc psoDesc = {};
-		psoDesc.RootSignature = m_rootSignature;
-		psoDesc.InputElements.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-		psoDesc.InputElements.push_back({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-		psoDesc.VS = m_vs.GetBinaryBytecode();
-		psoDesc.PS = m_ps.GetBinaryBytecode();
-		psoDesc.DepthStencil.DepthEnable = FALSE;
-		psoDesc.DepthStencil.StencilEnable = FALSE;
-		psoDesc.NumRTVs = 1;
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		m_pso = RHIGraphicsPipelineState(m_device, psoDesc);
+		m_rootSignature = RHIRootSignature(m_device, 
+			RHIRootSignatureDesc(1, 0).AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)); // TODO: Figure out why MESH visibility wont work
+
+		RHIMeshPipelineDesc cubePsoDesc = {};
+		cubePsoDesc.RootSignature = m_rootSignature;
+		cubePsoDesc.MS = m_cubeMs.GetBinaryBytecode();
+		cubePsoDesc.PS = m_cubePs.GetBinaryBytecode();
+		cubePsoDesc.DepthStencil.DepthEnable = FALSE;
+		cubePsoDesc.DepthStencil.StencilEnable = FALSE;
+		cubePsoDesc.NumRTVs = 1;
+		cubePsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		m_cubePso = RHIMeshPipelineState(m_device, cubePsoDesc);
 
 		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
-		struct Vertex
-		{
-			DirectX::XMFLOAT3 position;
-			DirectX::XMFLOAT4 color;
-		};
-		// Define the geometry for a triangle.
-		float aspectRatio = static_cast<float>(m_swapchain->GetWidth()) / m_swapchain->GetHeight();
-		Vertex triangleVertices[] =
-		{
-			{ { 0.0f, 0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-			{ { 0.25f, -0.25f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-			{ { -0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } }
-		};
+		
+		ConstantBuffer cb;
+		cb.model = DirectX::XMMatrixIdentity();
+		cb.view = DirectX::XMMatrixIdentity();
+		cb.proj = DirectX::XMMatrixIdentity();
 
-		const UINT vertexBufferSize = sizeof(triangleVertices);
+		m_constantBuffer = m_device->CreateBuffer(sizeof(ConstantBuffer), sizeof(ConstantBuffer));
+		WARP_ASSERT(m_constantBuffer.IsValid());
 
-		m_vertexBuffer = m_device->CreateBuffer(sizeof(Vertex), vertexBufferSize);
-		if (!m_vertexBuffer.IsValid())
-		{
-			WARP_LOG_FATAL("failed to create vertex buffer");
-		}
-
-		Vertex* vertexData = m_vertexBuffer.GetCpuVirtualAddress<Vertex>();
-		WARP_ASSERT(vertexData);
-		memcpy(vertexData, triangleVertices, vertexBufferSize);
+		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
+		memcpy(data, &cb, sizeof(ConstantBuffer));
 
 		WaitForGfxToFinish();
 		return true;
@@ -147,24 +166,27 @@ namespace Warp
 	bool Renderer::InitShaders()
 	{
 		std::string filepath = (Application::Get().GetShaderPath() / "Triangle.hlsl").string();
-		ShaderCompilationDesc vsShaderDesc = ShaderCompilationDesc("VSMain", EShaderModel::sm_6_5, EShaderType::Vertex);
+		std::string badCubeShader = (Application::Get().GetShaderPath() / "CubeBad.hlsl").string();
+		ShaderCompilationDesc msShaderDesc = ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh)
+			.AddDefine(ShaderDefine("MAX_OUTPUT_VERTICES", "256"))
+			.AddDefine(ShaderDefine("MAX_OUTPUT_PRIMITIVES", "256")); // TODO: Defines do not work as expected
+
 		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
-		m_vs = m_shaderCompiler.CompileShader(filepath, vsShaderDesc, eShaderCompilationFlag_StripDebug | eShaderCompilationFlag_StripReflect);
-		m_ps = m_shaderCompiler.CompileShader(filepath, psShaderDesc);
-		return m_vs.GetBinaryPointer() && m_ps.GetBinaryPointer();
+		m_cubeMs = m_shaderCompiler.CompileShader(badCubeShader, msShaderDesc);
+		m_cubePs = m_shaderCompiler.CompileShader(badCubeShader, psShaderDesc);
+		return m_cubeMs.GetBinaryPointer() && m_cubePs.GetBinaryPointer();
 	}
 
 	void Renderer::PopulateCommandList()
 	{
 		m_commandContext.Open();
-		m_commandContext.SetPipelineState(m_pso);
+		m_commandContext.SetPipelineState(m_cubePso);
 
 		UINT width = m_swapchain->GetWidth();
 		UINT height = m_swapchain->GetHeight();
 		m_commandContext.SetViewport(0, 0, width, height);
 		m_commandContext.SetScissorRect(0, 0, width, height);
-		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
 
 		// Indicate that the back buffer will be used as a render target.
 		UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
@@ -174,16 +196,12 @@ namespace Warp
 		D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
 		m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, nullptr);
 
-		auto vbv = m_vertexBuffer.GetVertexBufferView();
-
-		// Record commands.
-		const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-
-		// m_commandList->SetPipelineState(m_pso.Get());
+		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
-		m_commandContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		m_commandContext->IASetVertexBuffers(0, 1, &vbv);
-		m_commandContext.DrawInstanced(3, 1, 0, 0);
+
+		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
+		m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
+		m_commandContext.DispatchMesh(1, 1, 1);
 
 		// Indicate that the back buffer will now be used to present.
 		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);

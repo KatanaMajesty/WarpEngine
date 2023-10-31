@@ -58,6 +58,10 @@ namespace Warp
 			UINT numThreadGroupsX,
 			UINT numThreadGroupsY,
 			UINT numThreadGroupsZ);
+		void DispatchMesh(
+			UINT numThreadGroupsX,
+			UINT numThreadGroupsY,
+			UINT numThreadGroupsZ);
 
 	private:
 		static constexpr UINT NumResourceBarriersPerBatch = 16;

@@ -46,12 +46,17 @@ namespace Warp
 
 	void Application::Tick()
 	{
-		Update();
+		double elapsed = m_appTimer.GetElapsedSeconds();
+		double timestep = elapsed - m_lastFrameTime;
+		m_lastFrameTime = elapsed;
+
+		Update((float)timestep);
 		Render();
 	}
 
-	void Application::Update()
+	void Application::Update(float timestep)
 	{
+		m_renderer->Update(timestep);
 	}
 
 	void Application::Render()
