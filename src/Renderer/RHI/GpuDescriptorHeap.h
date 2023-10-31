@@ -15,8 +15,8 @@ namespace Warp
 		UINT NumDescriptors = 0;
 		UINT DescriptorIncrementSize = 0;
 
-		WARP_ATTR_NODISCARD D3D12_CPU_DESCRIPTOR_HANDLE GetCpuAddress(UINT index) const;
-		WARP_ATTR_NODISCARD D3D12_GPU_DESCRIPTOR_HANDLE GetGpuAddress(UINT index) const;
+		WARP_ATTR_NODISCARD D3D12_CPU_DESCRIPTOR_HANDLE GetCpuAddress(UINT index = 0) const;
+		WARP_ATTR_NODISCARD D3D12_GPU_DESCRIPTOR_HANDLE GetGpuAddress(UINT index = 0) const;
 
 		inline constexpr bool IsValid() const { return NumDescriptors > 0 && DescriptorIncrementSize > 0; }
 		inline constexpr bool IsNull() const { return CpuHandle.ptr == 0; }

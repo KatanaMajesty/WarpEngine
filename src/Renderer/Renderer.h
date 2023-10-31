@@ -52,6 +52,12 @@ namespace Warp
 		RHIRootSignature m_rootSignature;
 		UINT64 m_frameFenceValues[SimultaneousFrames];
 
+		// TODO: Remove/move
+		void InitDepthStencil();
+		std::unique_ptr<GpuTexture> m_depthStencil;
+		std::unique_ptr<GpuDescriptorHeap> m_dsvHeap;
+		RHIDescriptorAllocation m_dsv;
+
 		GpuBuffer m_constantBuffer;
 		CShaderCompiler m_shaderCompiler;
 

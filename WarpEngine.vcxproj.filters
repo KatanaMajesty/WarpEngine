@@ -173,10 +173,7 @@
     <FxCompile Include="shaders\Triangle.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\CubeBad.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="shaders\CubeBetter.hlsl">
+    <FxCompile Include="shaders\Cube.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

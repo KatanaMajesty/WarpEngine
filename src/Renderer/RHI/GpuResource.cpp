@@ -63,7 +63,8 @@ namespace Warp
 	GpuResource::GpuResource(GpuDevice* device,
 		D3D12_HEAP_TYPE heapType,
 		D3D12_RESOURCE_STATES initialState,
-		const D3D12_RESOURCE_DESC& desc)
+		const D3D12_RESOURCE_DESC& desc, 
+		const D3D12_CLEAR_VALUE* optimizedClearValue)
 		: GpuDeviceChild(device)
 		, m_desc(desc)
 		, m_numPlanes(D3D12GetFormatPlaneCount(device->GetD3D12Device(), desc.Format))
@@ -79,7 +80,7 @@ namespace Warp
 		WARP_RHI_VALIDATE(device->GetResourceAllocator()->CreateResource(&allocDesc,
 			&desc,
 			initialState,
-			nullptr, // TODO: Handle clear value
+			optimizedClearValue,
 			allocation.GetAddressOf(),
 			IID_PPV_ARGS(m_D3D12Resource.ReleaseAndGetAddressOf())
 		));
@@ -144,7 +145,7 @@ namespace Warp
 				// buffer memory layouts are understood by applications and row-major texture data is commonly marshaled through buffers
 				.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
 				.Flags = flags,
-			})
+			}, nullptr)
 		, m_strideInBytes(strideInBytes)
 		, m_sizeInBytes(sizeInBytes)
 	{
@@ -188,11 +189,13 @@ namespace Warp
 	GpuTexture::GpuTexture(GpuDevice* device,
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState, 
-		const D3D12_RESOURCE_DESC& desc)
+		const D3D12_RESOURCE_DESC& desc, 
+		const D3D12_CLEAR_VALUE& optimizedClearValue)
 		: GpuResource(device,
 			heapType,
 			initialState,
-			desc)
+			desc,
+			&optimizedClearValue)
 	{
 		QueryNumMipLevels();
 

@@ -50,7 +50,8 @@ namespace Warp
 		GpuResource(GpuDevice* device,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
-			const D3D12_RESOURCE_DESC& desc);
+			const D3D12_RESOURCE_DESC& desc,
+			const D3D12_CLEAR_VALUE* optimizedClearValue);
 		GpuResource(GpuDevice* device,
 			ID3D12Resource* resource,
 			D3D12_RESOURCE_STATES initialState);
@@ -129,7 +130,8 @@ namespace Warp
 		GpuTexture(GpuDevice* device,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
-			const D3D12_RESOURCE_DESC& desc);
+			const D3D12_RESOURCE_DESC& desc,
+			const D3D12_CLEAR_VALUE& optimizedClearValue = CD3DX12_CLEAR_VALUE());
 		GpuTexture(GpuDevice* device,
 			ID3D12Resource* resource,
 			D3D12_RESOURCE_STATES initialState);

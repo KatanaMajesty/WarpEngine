@@ -34,7 +34,7 @@ namespace Warp
 #endif
 				return std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
 			}()
-		)
+				)
 		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
 		, m_commandContext(m_device->GetGraphicsQueue())
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
@@ -50,6 +50,8 @@ namespace Warp
 			WARP_LOG_ERROR("Failed to init assets");
 			return;
 		}
+
+		InitDepthStencil();
 
 		WARP_LOG_INFO("Renderer was initialized successfully");
 	}
@@ -67,6 +69,8 @@ namespace Warp
 		// as they may still be used
 		WaitForGfxToFinish();
 		m_swapchain->Resize(width, height);
+
+		InitDepthStencil();
 	}
 
 	void Renderer::RenderFrame()
@@ -122,6 +126,34 @@ namespace Warp
 		m_device->GetGraphicsQueue()->HostWaitIdle();
 	}
 
+	void Renderer::InitDepthStencil()
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+		desc.Width = m_swapchain->GetWidth();
+		desc.Height = m_swapchain->GetHeight();
+		desc.DepthOrArraySize = 1;
+		desc.MipLevels = 1;
+		desc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+		// Create depth-stencil texture2d
+		m_depthStencil = std::make_unique<GpuTexture>(m_device, 
+			D3D12_HEAP_TYPE_DEFAULT, 
+			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
+			desc, 
+			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 1));
+
+		// Depth-stencil view
+		m_dsvHeap = std::make_unique<GpuDescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+		m_dsv = m_dsvHeap->Allocate(1);
+		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
+	}
+
 	bool Renderer::InitAssets()
 	{
 		// TODO: Temporary
@@ -140,10 +172,13 @@ namespace Warp
 		cubePsoDesc.RootSignature = m_rootSignature;
 		cubePsoDesc.MS = m_cubeMs.GetBinaryBytecode();
 		cubePsoDesc.PS = m_cubePs.GetBinaryBytecode();
-		cubePsoDesc.DepthStencil.DepthEnable = FALSE;
+		cubePsoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
+		cubePsoDesc.DepthStencil.DepthEnable = TRUE;
+		cubePsoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		cubePsoDesc.DepthStencil.StencilEnable = FALSE;
 		cubePsoDesc.NumRTVs = 1;
 		cubePsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		cubePsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		m_cubePso = RHIMeshPipelineState(m_device, cubePsoDesc);
 
 		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
@@ -165,16 +200,15 @@ namespace Warp
 
 	bool Renderer::InitShaders()
 	{
-		std::string filepath = (Application::Get().GetShaderPath() / "Triangle.hlsl").string();
-		std::string badCubeShader = (Application::Get().GetShaderPath() / "CubeBad.hlsl").string();
+		std::string cubeShader = (Application::Get().GetShaderPath() / "Cube.hlsl").string();
 		ShaderCompilationDesc msShaderDesc = ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh)
 			.AddDefine(ShaderDefine("MAX_OUTPUT_VERTICES", "256"))
 			.AddDefine(ShaderDefine("MAX_OUTPUT_PRIMITIVES", "256")); // TODO: Defines do not work as expected
 
 		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
-		m_cubeMs = m_shaderCompiler.CompileShader(badCubeShader, msShaderDesc);
-		m_cubePs = m_shaderCompiler.CompileShader(badCubeShader, psShaderDesc);
+		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);
+		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc);
 		return m_cubeMs.GetBinaryPointer() && m_cubePs.GetBinaryPointer();
 	}
 
@@ -194,10 +228,11 @@ namespace Warp
 		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
-		m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, nullptr);
+		m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
 
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
+		m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 1, 0, nullptr);
 
 		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
 		m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
