@@ -8,6 +8,7 @@
 #include "RHI/GpuPhysicalDevice.h"
 #include "RHI/GpuResource.h"
 #include "RHI/RHICommandContext.h"
+#include "RHI/GpuPipelineState.h"
 #include "RHI/GpuDescriptorHeap.h"
 #include "RHI/RHISwapchain.h"
 #include "RHI/RootSignature.h"
@@ -50,7 +51,7 @@ namespace Warp
 
 		// TODO: Remove this temp code
 		GpuBuffer m_vertexBuffer;
-		ComPtr<ID3D12PipelineState> m_pso;
+		RHIGraphicsPipelineState m_pso;
 	
 		CShaderCompiler m_shaderCompiler;
 		CShader m_vs;

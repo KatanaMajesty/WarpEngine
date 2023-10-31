@@ -60,6 +60,11 @@ namespace Warp
 		m_commandList->SetGraphicsRootSignature(rootSignature.GetD3D12RootSignature());
 	}
 
+	void RHICommandContext::SetPipelineState(const GpuPipelineState& pso)
+	{
+		m_commandList->SetPipelineState(pso.GetD3D12PipelineState());
+	}
+
 	UINT64 RHICommandContext::Execute(bool waitForCompletion)
 	{
 		WARP_ASSERT(m_commandAllocator);

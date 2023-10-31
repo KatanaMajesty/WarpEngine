@@ -9,6 +9,7 @@
 #include "GpuResource.h"
 #include "GpuCommandList.h"
 #include "GpuCommandQueue.h"
+#include "GpuPipelineState.h"
 
 namespace Warp
 {
@@ -33,6 +34,8 @@ namespace Warp
 		void SetViewport(UINT topLeftX, UINT topLeftY, UINT width, UINT height);
 		void SetScissorRect(UINT left, UINT top, UINT right, UINT bottom);
 		void SetGraphicsRootSignature(const RHIRootSignature& rootSignature);
+
+		void SetPipelineState(const GpuPipelineState& pso);
 
 		void Open();
 		void Close();

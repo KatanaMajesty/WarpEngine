@@ -101,63 +101,17 @@ namespace Warp
 			return false;
 		}
 
-		D3D12_INPUT_ELEMENT_DESC elementDescs[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-			{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-		};
-
-		//D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-		//psoDesc.pRootSignature = m_rootSignature.GetD3D12RootSignature();
-		//psoDesc.VS = m_vs.GetBinaryBytecode();
-		//psoDesc.PS = m_ps.GetBinaryBytecode();
-		//// psoDesc.DS;
-		//// psoDesc.HS;
-		//// psoDesc.GS;
-		//// D3D12_STREAM_OUTPUT_DESC StreamOutput;
-		//psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		//psoDesc.SampleMask = UINT_MAX;
-		//psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		//psoDesc.DepthStencilState.DepthEnable = FALSE;
-		//psoDesc.DepthStencilState.StencilEnable = FALSE;
-		//psoDesc.InputLayout.NumElements = 2;
-		//psoDesc.InputLayout.pInputElementDescs = elementDescs;
-		//// D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
-		//psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		//psoDesc.NumRenderTargets = 1;
-		//psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		//psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		//psoDesc.SampleDesc.Count = 1;
-		//// UINT NodeMask;
-		//// D3D12_CACHED_PIPELINE_STATE CachedPSO;
-		//// D3D12_PIPELINE_STATE_FLAGS Flags;
-
-		// Describe and create the graphics pipeline state object (PSO).
-		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-		psoDesc.InputLayout = { elementDescs, _countof(elementDescs) };
-		psoDesc.pRootSignature = m_rootSignature.GetD3D12RootSignature();
+		RHIGraphicsPipelineDesc psoDesc = {};
+		psoDesc.RootSignature = m_rootSignature;
+		psoDesc.InputElements.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
+		psoDesc.InputElements.push_back({ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 		psoDesc.VS = m_vs.GetBinaryBytecode();
 		psoDesc.PS = m_ps.GetBinaryBytecode();
-		psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-		psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		psoDesc.DepthStencilState.DepthEnable = FALSE;
-		psoDesc.DepthStencilState.StencilEnable = FALSE;
-		psoDesc.SampleMask = UINT_MAX;
-		psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		psoDesc.NumRenderTargets = 1;
+		psoDesc.DepthStencil.DepthEnable = FALSE;
+		psoDesc.DepthStencil.StencilEnable = FALSE;
+		psoDesc.NumRTVs = 1;
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		psoDesc.SampleDesc.Count = 1;
-
-		WARP_MAYBE_UNUSED HRESULT hr = m_device->GetD3D12Device()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(m_pso.GetAddressOf()));
-		if (hr == E_OUTOFMEMORY)
-		{
-			WARP_LOG_INFO("asad");
-		}
-		// hr = d3dDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocator.Get(), m_pso.Get(), IID_PPV_ARGS(&m_commandList));
-		// WARP_ASSERT(SUCCEEDED(hr), "Failed to create command list");
-
-		// Command lists are created in the recording state, but there is nothing
-		// to record yet. The main loop expects it to be closed, so close it now.
-		// m_commandList->Close();
+		m_pso = RHIGraphicsPipelineState(m_device, psoDesc);
 
 		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
 		struct Vertex
@@ -183,6 +137,7 @@ namespace Warp
 		}
 
 		Vertex* vertexData = m_vertexBuffer.GetCpuVirtualAddress<Vertex>();
+		WARP_ASSERT(vertexData);
 		memcpy(vertexData, triangleVertices, vertexBufferSize);
 
 		WaitForGfxToFinish();
@@ -203,7 +158,7 @@ namespace Warp
 	void Renderer::PopulateCommandList()
 	{
 		m_commandContext.Open();
-		m_commandContext->SetPipelineState(m_pso.Get());
+		m_commandContext.SetPipelineState(m_pso);
 
 		UINT width = m_swapchain->GetWidth();
 		UINT height = m_swapchain->GetHeight();
