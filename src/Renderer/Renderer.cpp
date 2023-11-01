@@ -146,7 +146,7 @@ namespace Warp
 			D3D12_HEAP_TYPE_DEFAULT, 
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
 			desc, 
-			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 1));
+			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0));
 
 		// Depth-stencil view
 		m_dsvHeap = std::make_unique<GpuDescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
@@ -208,8 +208,8 @@ namespace Warp
 
 		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
-		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc, eShaderCompilationFlag_StripDebug);
-		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc, eShaderCompilationFlag_StripDebug);
+		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);
+		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc);
 		return m_cubeMs.GetBinaryPointer() && m_cubePs.GetBinaryPointer();
 	}
 
@@ -233,7 +233,7 @@ namespace Warp
 
 		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
-		m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 1, 0, nullptr);
+		m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
 		m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
