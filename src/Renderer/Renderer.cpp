@@ -210,7 +210,7 @@ namespace Warp
 
 		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);
 		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc);
-		return m_cubeMs.GetBinaryPointer() && m_cubePs.GetBinaryPointer();
+		return m_cubeMs.HasBinary() && m_cubePs.HasBinary();
 	}
 
 	void Renderer::PopulateCommandList()

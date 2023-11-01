@@ -39,6 +39,8 @@ namespace Warp
 		inline constexpr EShaderType GetType() const { return m_shaderType; }
 		inline D3D12_SHADER_BYTECODE GetBinaryBytecode() { return CD3DX12_SHADER_BYTECODE(GetBinaryPointer(), GetBinarySize()); }
 
+		inline bool HasBinary() const { return m_binary != nullptr; }
+
 		void* GetBinaryPointer() const;
 		size_t GetBinarySize() const;
 

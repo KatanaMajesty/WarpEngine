@@ -118,8 +118,16 @@ namespace Warp
 			compilerArgs.GetAddressOf())
 		);
 
+		CompilationResult result{};
+		std::string strFilepath = WStringToString(filepath);
+
 		ComPtr<IDxcBlobEncoding> srcBlobEncoding;
-		WARP_RHI_VALIDATE(m_DxcUtils->LoadFile(filepath.data(), 0, srcBlobEncoding.GetAddressOf()));
+		HRESULT hr = m_DxcUtils->LoadFile(filepath.data(), 0, srcBlobEncoding.GetAddressOf());
+		if (FAILED(hr))
+		{
+			WARP_LOG_ERROR("[CShaderCompiler] Failed to load a shader at location {}. Compilation process will be aborted...", strFilepath);
+			return result;
+		}
 
 		const DxcBuffer srcBuffer = {
 			.Ptr = srcBlobEncoding->GetBufferPointer(),
@@ -128,14 +136,17 @@ namespace Warp
 		};
 
 		ComPtr<IDxcResult> compilationResult;
-		WARP_RHI_VALIDATE(m_DxcCompiler->Compile(&srcBuffer,
+		hr = m_DxcCompiler->Compile(&srcBuffer,
 			compilerArgs->GetArguments(),
 			compilerArgs->GetCount(),
 			m_DxcIncludeHandler.Get(),
-			IID_PPV_ARGS(compilationResult.GetAddressOf()))
-		);
-
-		CompilationResult result{};
+			IID_PPV_ARGS(compilationResult.GetAddressOf()));
+		if (FAILED(hr))
+		{
+			WARP_LOG_ERROR("[CShaderCompiler] Internal compilation error of a shader at location {}. Aborting...", strFilepath);
+			WARP_LOG_ERROR("[CShaderCompiler] This might be related with E_INVALID_ARGS error");
+			return result;
+		}
 
 		HRESULT status;
 		WARP_RHI_VALIDATE(compilationResult->GetStatus(&status));
