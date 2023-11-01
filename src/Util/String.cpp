@@ -5,15 +5,10 @@
 namespace Warp
 {
 
-	std::string WStringToString(const wchar_t* wstr) noexcept
+	std::string WStringToString(std::wstring_view view) noexcept
 	{
-		return WStringToString((std::wstring)wstr);
-	}
-
-	std::string WStringToString(const std::wstring& wstr) noexcept
-	{
-		std::string output = std::string(wstr.size(), 0);
-		std::ranges::transform(wstr, output.begin(), [](wchar_t c) { return static_cast<char>(c); });
+		std::string output = std::string(view.size(), 0);
+		std::ranges::transform(view, output.begin(), [](wchar_t c) { return static_cast<char>(c); });
 		return output;
 	}
 

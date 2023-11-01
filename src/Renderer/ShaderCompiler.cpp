@@ -2,6 +2,8 @@
 
 #pragma comment(lib, "dxcompiler.lib")
 
+#include <fstream>
+#include <filesystem>
 #include <array>
 #include "../Core/Defines.h"
 #include "../Core/Logger.h"
@@ -84,9 +86,24 @@ namespace Warp
 			L"-all_resources_bound", // Enables agressive flattening
 		};
 
+		std::string pdbPath = std::filesystem::path(WStringToString(filepath))
+			.replace_extension("pdb")
+			.string();
+
+		std::wstring wPdbPath = StringToWString(pdbPath);
+
 		std::vector<LPCWSTR> dxcArguments(dxcDefault.begin(), dxcDefault.end());
 		if (flags & eShaderCompilationFlag_StripDebug)
+		{
+			// If we want to strip PDB, we will write into a binary file later
 			dxcArguments.push_back(L"-Qstrip_debug");
+
+			// TODO: I wonder why -Fd flag won't write into the file on its own?
+			// Write debug information to the given file, or automatically named file in directory when ending in '\'
+			dxcArguments.push_back(L"-Fd");
+			dxcArguments.push_back(wPdbPath.c_str());
+		}
+		else dxcArguments.push_back(L"-Qembed_debug"); // If we do not strip, we embed it
 
 		if (flags & eShaderCompilationFlag_StripReflect)
 			dxcArguments.push_back(L"-Qstrip_reflect");
@@ -133,15 +150,20 @@ namespace Warp
 		WARP_RHI_VALIDATE(compilationResult->GetResult(result.Binary.GetAddressOf()));
 		WARP_ASSERT(result.Binary);
 
-		if (flags & eShaderCompilationFlag_StripDebug)
+		if (compilationResult->HasOutput(DXC_OUT_PDB))
 		{
-			WARP_RHI_VALIDATE(
-				compilationResult->GetOutput(
-					DXC_OUT_PDB, 
-					IID_PPV_ARGS(result.Pdb.GetAddressOf()), 
-					nullptr)
-			);
+			WARP_RHI_VALIDATE(compilationResult->GetOutput(
+				DXC_OUT_PDB,
+				IID_PPV_ARGS(result.Pdb.GetAddressOf()),
+				nullptr));
 			WARP_ASSERT(result.Pdb);
+
+			if (flags & eShaderCompilationFlag_StripDebug)
+			{
+				std::ofstream pdbFile = std::ofstream(pdbPath, std::ios::binary);
+				pdbFile.write((const char*)result.Pdb->GetBufferPointer(), result.Pdb->GetBufferSize());
+				pdbFile.close();
+			}
 		}
 
 		if (flags & eShaderCompilationFlag_StripReflect)

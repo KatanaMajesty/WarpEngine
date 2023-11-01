@@ -181,6 +181,7 @@ namespace Warp
 		cubePsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		m_cubePso = RHIMeshPipelineState(m_device, cubePsoDesc);
 
+		// TODO: Remvoe this
 		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
 		
 		ConstantBuffer cb;
@@ -207,8 +208,8 @@ namespace Warp
 
 		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
-		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);
-		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc);
+		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc, eShaderCompilationFlag_StripDebug);
+		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc, eShaderCompilationFlag_StripDebug);
 		return m_cubeMs.GetBinaryPointer() && m_cubePs.GetBinaryPointer();
 	}
 
