@@ -1,4 +1,4 @@
-#include "GpuPipelineState.h"
+#include "PipelineState.h"
 
 namespace Warp
 {
@@ -140,8 +140,8 @@ namespace Warp
 		}
 	};
 
-	RHIGraphicsPipelineState::RHIGraphicsPipelineState(GpuDevice* device, const RHIGraphicsPipelineDesc& desc)
-		: GpuPipelineState(device)
+	RHIGraphicsPipelineState::RHIGraphicsPipelineState(RHIDevice* device, const RHIGraphicsPipelineDesc& desc)
+		: RHIPipelineState(device)
 		, m_desc(desc)
 	{
 		auto stream = PipelineDescTraits<RHIGraphicsPipelineDesc>::ToRHIStream(desc);
@@ -152,8 +152,8 @@ namespace Warp
 		WARP_RHI_VALIDATE(device->GetD3D12Device()->CreatePipelineState(&StreamDesc, IID_PPV_ARGS(m_D3D12PipelineState.GetAddressOf())));
 	}
 
-	RHIMeshPipelineState::RHIMeshPipelineState(GpuDevice* device, const RHIMeshPipelineDesc& desc)
-		: GpuPipelineState(device)
+	RHIMeshPipelineState::RHIMeshPipelineState(RHIDevice* device, const RHIMeshPipelineDesc& desc)
+		: RHIPipelineState(device)
 		, m_desc(desc)
 	{
 		auto stream = PipelineDescTraits<RHIMeshPipelineDesc>::ToRHIStream(desc);
@@ -164,8 +164,8 @@ namespace Warp
 		WARP_RHI_VALIDATE(device->GetD3D12Device()->CreatePipelineState(&StreamDesc, IID_PPV_ARGS(m_D3D12PipelineState.GetAddressOf())));
 	}
 
-	RHIComputePipelineState::RHIComputePipelineState(GpuDevice* device, const RHIComputePipelineDesc& desc)
-		: GpuPipelineState(device)
+	RHIComputePipelineState::RHIComputePipelineState(RHIDevice* device, const RHIComputePipelineDesc& desc)
+		: RHIPipelineState(device)
 		, m_desc(desc)
 	{
 		auto stream = PipelineDescTraits<RHIComputePipelineDesc>::ToRHIStream(desc);

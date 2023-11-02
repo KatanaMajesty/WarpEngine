@@ -1,4 +1,4 @@
-#include "GpuCommandList.h"
+#include "CommandList.h"
 
 namespace Warp
 {
@@ -18,23 +18,23 @@ namespace Warp
 		m_pendingResourceBarriers.clear();
 	}
 
-	GpuResourceState& RHIResourceStateTracker::GetCachedState(GpuResource* resource)
+	CResourceState& RHIResourceStateTracker::GetCachedState(RHIResource* resource)
 	{
 		WARP_ASSERT(resource, "Resource cannot be nullptr");
 		// If there is none, default-constructed one will be stored, which should be set in a correct state
-		GpuResourceState& state = m_cachedResourceStates[resource];
+		CResourceState& state = m_cachedResourceStates[resource];
 		if (!state.IsValid())
 		{
-			state = GpuResourceState(resource->GetNumSubresources(), D3D12_RESOURCE_STATE_UNKNOWN);
+			state = CResourceState(resource->GetNumSubresources(), D3D12_RESOURCE_STATE_UNKNOWN);
 		}
 		return state;
 	}
 
 	// =======================
-	// GpuCommandList
+	// RHICommandList
 	// =======================
 
-	GpuCommandList::GpuCommandList(ID3D12Device9* device, D3D12_COMMAND_LIST_TYPE type)
+	RHICommandList::RHICommandList(ID3D12Device9* device, D3D12_COMMAND_LIST_TYPE type)
 		: m_type(type)
 		, m_numResourceBarriers(0)
 	{
@@ -43,10 +43,10 @@ namespace Warp
 		m_stateTracker.Reset();
 	}
 
-	void GpuCommandList::AddTransitionBarrier(GpuResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex)
+	void RHICommandList::AddTransitionBarrier(RHIResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex)
 	{
 		WARP_ASSERT(resource, "Cannot be nullptr");
-		GpuResourceState& trackedState = m_stateTracker.GetCachedState(resource);
+		CResourceState& trackedState = m_stateTracker.GetCachedState(resource);
 
 		// If we don't know the resource's state, then we should add it to a pending resource barrier list
 		if (trackedState.IsUnknown())
@@ -96,17 +96,17 @@ namespace Warp
 		trackedState.SetSubresourceState(subresourceIndex, state);
 	}
 
-	void GpuCommandList::AddAliasingBarrier(GpuResource* before, GpuResource* after)
+	void RHICommandList::AddAliasingBarrier(RHIResource* before, RHIResource* after)
 	{
 		WARP_YIELD_NOIMPL();
 	}
 
-	void GpuCommandList::AddUavBarrier(GpuResource* resource)
+	void RHICommandList::AddUavBarrier(RHIResource* resource)
 	{
 		WARP_YIELD_NOIMPL();
 	}
 
-	void GpuCommandList::FlushBatchedResourceBarriers()
+	void RHICommandList::FlushBatchedResourceBarriers()
 	{
 		if (m_numResourceBarriers > 0)
 		{
@@ -116,7 +116,7 @@ namespace Warp
 		}
 	}
 
-	WARP_ATTR_NODISCARD std::vector<D3D12_RESOURCE_BARRIER> GpuCommandList::ResolvePendingResourceBarriers()
+	WARP_ATTR_NODISCARD std::vector<D3D12_RESOURCE_BARRIER> RHICommandList::ResolvePendingResourceBarriers()
 	{
 		const auto& pendingBarriers = m_stateTracker.GetAllPendingBarriers();
 
@@ -127,7 +127,7 @@ namespace Warp
 		{
 			WARP_ASSERT(resource && state != D3D12_RESOURCE_STATE_INVALID, "Invalid PendingResourceBarrier entry");
 
-			GpuResourceState& resourceGlobalState = resource->GetState();
+			CResourceState& resourceGlobalState = resource->GetState();
 			D3D12_RESOURCE_STATES stateBefore = resourceGlobalState.GetSubresourceState(subresourceIndex);
 			D3D12_RESOURCE_STATES stateAfter = (state == D3D12_RESOURCE_STATE_UNKNOWN) ? stateBefore : state;
 
@@ -154,20 +154,20 @@ namespace Warp
 		return resolvedBarriers;
 	}
 
-	void GpuCommandList::Open(ID3D12CommandAllocator* allocator)
+	void RHICommandList::Open(ID3D12CommandAllocator* allocator)
 	{
 		WARP_RHI_VALIDATE(m_commandList->Reset(allocator, nullptr));
 		m_stateTracker.Reset();
 		m_numResourceBarriers = 0;
 	}
 
-	void GpuCommandList::Close()
+	void RHICommandList::Close()
 	{
 		FlushBatchedResourceBarriers();
 		WARP_RHI_VALIDATE(m_commandList->Close());
 	}
 
-	void GpuCommandList::AddResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier)
+	void RHICommandList::AddResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier)
 	{
 		if (m_numResourceBarriers + 1 >= NumResourceBarriersPerBatch)
 		{

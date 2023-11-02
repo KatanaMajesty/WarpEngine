@@ -1,22 +1,22 @@
 #pragma once
 
 #include "stdafx.h"
-#include "GpuResource.h"
-#include "GpuPhysicalDevice.h"
-#include "GpuDescriptorHeap.h"
+#include "Resource.h"
+#include "PhysicalDevice.h"
+#include "DescriptorHeap.h"
 
 namespace Warp
 {
 
 	// TODO: Sync is needed with GPU
-	// TODO: There are cases where the GpuPhysicalDevice represents the adapter that is not controlling the window associaction, thus
+	// TODO: There are cases where the RHIPhysicalDevice represents the adapter that is not controlling the window associaction, thus
 	// we need to determine a different adapter, that is in fact able to control the swapchain.
 	// This is usually a case for laptops with integrated + discrete GPUs
-	class RHISwapchain : public GpuPhysicalDeviceChild
+	class RHISwapchain : public RHIPhysicalDeviceChild
 	{
 	public:
 		RHISwapchain() = default;
-		RHISwapchain(GpuPhysicalDevice* physicalDevice);
+		RHISwapchain(RHIPhysicalDevice* physicalDevice);
 
 		RHISwapchain(const RHISwapchain&) = delete;
 		RHISwapchain& operator=(const RHISwapchain&) = delete;
@@ -30,8 +30,8 @@ namespace Warp
 		void Present(bool vsync);
 		void Resize(UINT width, UINT height);
 
-		WARP_ATTR_NODISCARD inline GpuTexture* GetBackbuffer(UINT backbufferIndex) { return &m_backbuffers[backbufferIndex]; }
-		WARP_ATTR_NODISCARD inline const GpuTexture* GetBackbuffer(UINT backbufferIndex) const { return &m_backbuffers[backbufferIndex]; }
+		WARP_ATTR_NODISCARD inline RHITexture* GetBackbuffer(UINT backbufferIndex) { return &m_backbuffers[backbufferIndex]; }
+		WARP_ATTR_NODISCARD inline const RHITexture* GetBackbuffer(UINT backbufferIndex) const { return &m_backbuffers[backbufferIndex]; }
 		WARP_ATTR_NODISCARD inline D3D12_CPU_DESCRIPTOR_HANDLE GetRtvDescriptor(UINT index) const { return m_backbufferRtvs.GetCpuAddress(index); }
 		inline UINT GetCurrentBackbufferIndex() const { return m_DXGISwapchain->GetCurrentBackBufferIndex(); }
 
@@ -46,10 +46,10 @@ namespace Warp
 		UINT m_width = 0;
 		UINT m_height = 0;
 		ComPtr<IDXGISwapChain4> m_DXGISwapchain;
-		GpuTexture m_backbuffers[BackbufferCount];
+		RHITexture m_backbuffers[BackbufferCount];
 		
 		// TODO: For now only it is just a handle
-		GpuDescriptorHeap m_rtvHeap;
+		RHIDescriptorHeap m_rtvHeap;
 		RHIDescriptorAllocation m_backbufferRtvs{};
 	};
 

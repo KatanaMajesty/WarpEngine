@@ -1,15 +1,15 @@
-#include "GpuCommandQueue.h"
+#include "CommandQueue.h"
 
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
 #include "../../Core/Logger.h"
-#include "GpuDevice.h"
+#include "Device.h"
 
 namespace Warp
 {
 
-	GpuCommandQueue::GpuCommandQueue(GpuDevice* device, D3D12_COMMAND_LIST_TYPE type)
-		: GpuDeviceChild(device)
+	RHICommandQueue::RHICommandQueue(RHIDevice* device, D3D12_COMMAND_LIST_TYPE type)
+		: RHIDeviceChild(device)
 		, m_queueType(type)
 		, m_barrierCommandList(device->GetD3D12Device(), type)
 		, m_barrierCommandAllocatorPool(this)
@@ -25,14 +25,14 @@ namespace Warp
 		desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 		desc.NodeMask = 0;
 		hr = D3D12Device->CreateCommandQueue(&desc, IID_PPV_ARGS(m_handle.ReleaseAndGetAddressOf()));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create D3D12 command queue for a GpuCommandQueue");
+		WARP_ASSERT(SUCCEEDED(hr), "Failed to create D3D12 command queue for a RHICommandQueue");
 
 		UINT64 FenceInitialValue = 0;
 		hr = D3D12Device->CreateFence(FenceInitialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to create a fence for a GpuCommandQueue");
+		WARP_ASSERT(SUCCEEDED(hr), "Failed to create a fence for a RHICommandQueue");
 	}
 
-	UINT64 GpuCommandQueue::Signal()
+	UINT64 RHICommandQueue::Signal()
 	{
 		UINT64 FenceValue = m_fenceNextValue;
 		WARP_MAYBE_UNUSED HRESULT hr = m_handle->Signal(m_fence.Get(), FenceValue);
@@ -42,7 +42,7 @@ namespace Warp
 		return FenceValue;
 	}
 
-	void GpuCommandQueue::WaitForValue(UINT64 fenceValue)
+	void RHICommandQueue::WaitForValue(UINT64 fenceValue)
 	{
 		if (IsFenceComplete(fenceValue))
 		{
@@ -53,7 +53,7 @@ namespace Warp
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (GPU-sided)");
 	}
 
-	void GpuCommandQueue::HostWaitForValue(UINT64 fenceValue)
+	void RHICommandQueue::HostWaitForValue(UINT64 fenceValue)
 	{
 		if (IsFenceComplete(fenceValue))
 		{
@@ -65,7 +65,7 @@ namespace Warp
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (CPU-sided)");
 	}
 
-	bool GpuCommandQueue::IsFenceComplete(UINT64 fenceValue) const
+	bool RHICommandQueue::IsFenceComplete(UINT64 fenceValue) const
 	{
 		if (fenceValue <= GetFenceLastCompletedValue())
 		{
@@ -75,19 +75,19 @@ namespace Warp
 		return fenceValue <= QueryFenceCompletedValue();
 	}
 
-	UINT64 GpuCommandQueue::ExecuteCommandLists(std::span<GpuCommandList* const> commandLists, bool waitForCompletion)
+	UINT64 RHICommandQueue::ExecuteCommandLists(std::span<RHICommandList* const> commandLists, bool waitForCompletion)
 	{
 		if (commandLists.empty())
 		{
 			// We do not want to return here actually, so we just warn about the issue
 			// return UINT(-1);
-			WARP_LOG_WARN("GpuCommandQueue::ExecuteCommandLists() was called with no command lists provided");
+			WARP_LOG_WARN("RHICommandQueue::ExecuteCommandLists() was called with no command lists provided");
 		}
 
 		UINT numCommandLists = 0;
 		UINT numBarrierCommandLists = 0;
 		ID3D12CommandList* D3D12CommandLists[32] = {};
-		for (GpuCommandList* const list : commandLists)
+		for (RHICommandList* const list : commandLists)
 		{
 			// Resolve pending resource barriers
 			auto resolvedBarriers = list->ResolvePendingResourceBarriers();
@@ -133,13 +133,13 @@ namespace Warp
 		return fenceValue;
 	}
 
-	UINT64 GpuCommandQueue::QueryFenceCompletedValue() const
+	UINT64 RHICommandQueue::QueryFenceCompletedValue() const
 	{
 		m_fenceLastCompletedValue = m_fence->GetCompletedValue();
 		return m_fenceLastCompletedValue;
 	}
 
-	void GpuCommandQueue::Reset(UINT64 fenceInitialValue)
+	void RHICommandQueue::Reset(UINT64 fenceInitialValue)
 	{
 		m_handle.Reset();
 		m_fence.Reset();

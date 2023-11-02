@@ -3,7 +3,7 @@
 #include <mutex>
 #include "../../Core/Defines.h"
 #include "stdafx.h"
-#include "GpuDeviceChild.h"
+#include "DeviceChild.h"
 
 namespace Warp
 {
@@ -24,18 +24,18 @@ namespace Warp
 		inline constexpr operator bool() const { return !IsNull(); }
 	};
 
-	// GpuDescriptorHeap represents a simple wrapper over ID3D12DescriptorHeap class
+	// RHIDescriptorHeap represents a simple wrapper over ID3D12DescriptorHeap class
 	// It acts somewhat simillar to LinearAllocator. Allocating a certain amount of descriptors makes it so
 	// that you shift the available range to the right by numDescriptors * size; More details in Allocate() method
-	class GpuDescriptorHeap : public GpuDeviceChild
+	class RHIDescriptorHeap : public RHIDeviceChild
 	{
 	public:
-		GpuDescriptorHeap() = default;
-		GpuDescriptorHeap(GpuDevice* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors, bool shaderVisible);
+		RHIDescriptorHeap() = default;
+		RHIDescriptorHeap(RHIDevice* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors, bool shaderVisible);
 
 		// We use mutex, thus no copies nor moves allowed
-		GpuDescriptorHeap(const GpuDescriptorHeap&) = delete;
-		GpuDescriptorHeap& operator=(const GpuDescriptorHeap&) = delete;
+		RHIDescriptorHeap(const RHIDescriptorHeap&) = delete;
+		RHIDescriptorHeap& operator=(const RHIDescriptorHeap&) = delete;
 
 		// Allocate() method requests a "reservation" of memory for numDescriptors descriptors in the heap
 		// If there is not enough of free memory in the heap, the null-allocation is returned (RHIDescriptorAllocation::IsNull() to check)

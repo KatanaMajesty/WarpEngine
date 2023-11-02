@@ -6,7 +6,7 @@
 namespace Warp
 {
 
-	class GpuCommandQueue;
+	class RHICommandQueue;
 
 	// We use CommandAllocator pool to retrieve valid command allocator, that can be used immediately after request
 	// AllocatorEntry contains command allocator itself and a FenceValue, associated with the command list, that has been executed
@@ -17,7 +17,7 @@ namespace Warp
 	{
 	public:
 		RHICommandAllocatorPool() = default;
-		RHICommandAllocatorPool(GpuCommandQueue* queue);
+		RHICommandAllocatorPool(RHICommandQueue* queue);
 
 		ComPtr<ID3D12CommandAllocator> GetCommandAllocator();
 		void DiscardCommandAllocator(ComPtr<ID3D12CommandAllocator> allocator, UINT64 fenceValue);
@@ -25,7 +25,7 @@ namespace Warp
 	private:
 		using AllocatorEntry = std::pair<ComPtr<ID3D12CommandAllocator>, UINT64>;
 
-		GpuCommandQueue* m_queue;
+		RHICommandQueue* m_queue;
 		std::queue<AllocatorEntry> m_activeAllocators;
 	};
 

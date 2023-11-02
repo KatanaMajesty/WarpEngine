@@ -1,14 +1,14 @@
-#include "GpuResource.h"
+#include "Resource.h"
 
 #include <cmath>
-#include "GpuDevice.h"
+#include "Device.h"
 
 #include "../../Core/Logger.h"
 
 namespace Warp
 {
 
-	GpuResourceState::GpuResourceState(UINT numSubresources, D3D12_RESOURCE_STATES initialState)
+	CResourceState::CResourceState(UINT numSubresources, D3D12_RESOURCE_STATES initialState)
 		: m_perSubresource(numSubresources > 1) // If there are more than 1 subresource, then resource state is perSubresource
 		, m_resourceState(initialState)
 		, m_subresourceStates(numSubresources, initialState)
@@ -16,7 +16,7 @@ namespace Warp
 	{
 	}
 
-	void GpuResourceState::SetSubresourceState(UINT subresourceIndex, D3D12_RESOURCE_STATES state)
+	void CResourceState::SetSubresourceState(UINT subresourceIndex, D3D12_RESOURCE_STATES state)
 	{
 		// If setting all subresources, or the resource only has a single subresource, set the per-resource state
 		if (subresourceIndex == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES || m_subresourceStates.size() == 1)
@@ -41,7 +41,7 @@ namespace Warp
 		}
 	}
 
-	WARP_ATTR_NODISCARD D3D12_RESOURCE_STATES GpuResourceState::GetSubresourceState(UINT subresourceIndex) const
+	WARP_ATTR_NODISCARD D3D12_RESOURCE_STATES CResourceState::GetSubresourceState(UINT subresourceIndex) const
 	{
 		if (IsPerSubresource())
 		{
@@ -51,7 +51,7 @@ namespace Warp
 		else return m_resourceState;
 	}
 
-	//inline constexpr bool GpuResourceState::IsValid() const
+	//inline constexpr bool RHIResourceState::IsValid() const
 	//{
 	//	if (IsPerSubresource())
 	//	{
@@ -60,12 +60,12 @@ namespace Warp
 	//	return m_numSubresources > 0; // Actually, only 1 is valid, but whatever
 	//}
 
-	GpuResource::GpuResource(GpuDevice* device,
+	RHIResource::RHIResource(RHIDevice* device,
 		D3D12_HEAP_TYPE heapType,
 		D3D12_RESOURCE_STATES initialState,
 		const D3D12_RESOURCE_DESC& desc, 
 		const D3D12_CLEAR_VALUE* optimizedClearValue)
-		: GpuDeviceChild(device)
+		: RHIDeviceChild(device)
 		, m_desc(desc)
 		, m_numPlanes(D3D12GetFormatPlaneCount(device->GetD3D12Device(), desc.Format))
 		, m_numSubresources(QueryNumSubresources())
@@ -86,8 +86,8 @@ namespace Warp
 		));
 	}
 
-	GpuResource::GpuResource(GpuDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
-		: GpuDeviceChild(device)
+	RHIResource::RHIResource(RHIDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
+		: RHIDeviceChild(device)
 		, m_D3D12Resource(resource)
 		, m_desc(resource->GetDesc())
 		, m_numPlanes(D3D12GetFormatPlaneCount(device->GetD3D12Device(), m_desc.Format))
@@ -96,19 +96,19 @@ namespace Warp
 	{
 	}
 
-	WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS GpuResource::GetGpuVirtualAddress() const
+	WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS RHIResource::GetGpuVirtualAddress() const
 	{
 		WARP_ASSERT(IsValid());
 		return GetD3D12Resource()->GetGPUVirtualAddress();
 	}
 
-	// ID3D12Resource* GpuResource::GetD3D12Resource() const
+	// ID3D12Resource* RHIResource::GetD3D12Resource() const
 	// {
 	// 	WARP_ASSERT(m_allocation);
 	// 	return m_allocation->GetResource();
 	// }
 
-	UINT GpuResource::QueryNumSubresources()
+	UINT RHIResource::QueryNumSubresources()
 	{
 		if (m_desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
 		{
@@ -123,14 +123,14 @@ namespace Warp
 		}
 	}
 
-	GpuBuffer::GpuBuffer(
-		GpuDevice* device,
+	RHIBuffer::RHIBuffer(
+		RHIDevice* device,
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState,
 		D3D12_RESOURCE_FLAGS flags,
 		UINT strideInBytes, 
 		UINT64 sizeInBytes)
-		: GpuResource(device,
+		: RHIResource(device,
 			heapType,
 			initialState,
 			D3D12_RESOURCE_DESC{
@@ -160,7 +160,7 @@ namespace Warp
 		}
 	}
 
-	D3D12_VERTEX_BUFFER_VIEW GpuBuffer::GetVertexBufferView() const
+	D3D12_VERTEX_BUFFER_VIEW RHIBuffer::GetVertexBufferView() const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(), 
 			"The resource is either invalid or is not allowed to be represented as shader resource");
@@ -172,7 +172,7 @@ namespace Warp
 		return vbv;
 	}
 
-	D3D12_INDEX_BUFFER_VIEW GpuBuffer::GetIndexBufferView(DXGI_FORMAT format) const
+	D3D12_INDEX_BUFFER_VIEW RHIBuffer::GetIndexBufferView(DXGI_FORMAT format) const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(),
 			"The resource is either invalid or is not allowed to be represented as shader resource");
@@ -186,12 +186,12 @@ namespace Warp
 		return ibv;
 	}
 
-	GpuTexture::GpuTexture(GpuDevice* device,
+	RHITexture::RHITexture(RHIDevice* device,
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState, 
 		const D3D12_RESOURCE_DESC& desc, 
 		const D3D12_CLEAR_VALUE& optimizedClearValue)
-		: GpuResource(device,
+		: RHIResource(device,
 			heapType,
 			initialState,
 			desc,
@@ -204,13 +204,13 @@ namespace Warp
 #endif
 	}
 
-	GpuTexture::GpuTexture(GpuDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
-		: GpuResource(device, resource, initialState)
+	RHITexture::RHITexture(RHIDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
+		: RHIResource(device, resource, initialState)
 	{
 		QueryNumMipLevels();
 	}
 
-	bool GpuTexture::IsViewableAsTextureCube() const
+	bool RHITexture::IsViewableAsTextureCube() const
 	{
 		if (!IsTexture2D())
 		{
@@ -220,12 +220,12 @@ namespace Warp
 		return GetDepthOrArraySize() % 6 == 0;
 	}
 
-	UINT GpuTexture::GetSubresourceIndex(UINT mipSlice, UINT arraySlice, UINT planeSlice) const
+	UINT RHITexture::GetSubresourceIndex(UINT mipSlice, UINT arraySlice, UINT planeSlice) const
 	{
 		return D3D12CalcSubresource(mipSlice, arraySlice, planeSlice, GetNumMipLevels(), GetDepthOrArraySize());
 	}
 
-	void GpuTexture::QueryNumMipLevels()
+	void RHITexture::QueryNumMipLevels()
 	{
 		if (m_desc.MipLevels == 0)
 		{
@@ -233,7 +233,7 @@ namespace Warp
 		}
 	}
 
-	UINT GpuTexture::GetNumMaxMipLevels()
+	UINT RHITexture::GetNumMaxMipLevels()
 	{
 		ULONG highBit;
 		_BitScanReverse(&highBit, GetWidth() | GetHeight());

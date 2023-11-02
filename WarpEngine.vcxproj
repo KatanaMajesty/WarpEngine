@@ -24,17 +24,17 @@
     <ClCompile Include="src\Core\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\Renderer.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuCommandList.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuCommandQueue.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuPhysicalDevice.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuPipelineState.cpp" />
-    <ClCompile Include="src\Renderer\RHI\GpuResource.cpp" />
-    <ClCompile Include="src\Renderer\RHI\RHISwapchain.cpp" />
-    <ClCompile Include="src\Renderer\RHI\RHICommandAllocatorPool.cpp" />
-    <ClCompile Include="src\Renderer\RHI\RHICommandContext.cpp" />
-    <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp" />
+    <ClCompile Include="src\Renderer\RHI\CommandList.cpp" />
+    <ClCompile Include="src\Renderer\RHI\CommandQueue.cpp" />
+    <ClCompile Include="src\Renderer\RHI\DescriptorHeap.cpp" />
+    <ClCompile Include="src\Renderer\RHI\Device.cpp" />
+    <ClCompile Include="src\Renderer\RHI\PhysicalDevice.cpp" />
+    <ClCompile Include="src\Renderer\RHI\PipelineState.cpp" />
+    <ClCompile Include="src\Renderer\RHI\Resource.cpp" />
+    <ClCompile Include="src\Renderer\RHI\Swapchain.cpp" />
+    <ClCompile Include="src\Renderer\RHI\CommandAllocatorPool.cpp" />
+    <ClCompile Include="src\Renderer\RHI\CommandContext.cpp" />
+    <ClCompile Include="src\Renderer\RHI\ValidationLayer.cpp" />
     <ClCompile Include="src\Renderer\RHI\RootSignature.cpp" />
     <ClCompile Include="src\Renderer\Shader.cpp" />
     <ClCompile Include="src\Renderer\ShaderCompiler.cpp" />
@@ -47,18 +47,18 @@
     <ClInclude Include="src\Core\Defines.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\Renderer\Renderer.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuCommandList.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuCommandQueue.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuDescriptorHeap.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuDevice.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuDeviceChild.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuPhysicalDevice.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuPipelineState.h" />
-    <ClInclude Include="src\Renderer\RHI\RHISwapchain.h" />
-    <ClInclude Include="src\Renderer\RHI\GpuResource.h" />
-    <ClInclude Include="src\Renderer\RHI\RHICommandAllocatorPool.h" />
-    <ClInclude Include="src\Renderer\RHI\RHICommandContext.h" />
-    <ClInclude Include="src\Renderer\RHI\RHIValidationLayer.h" />
+    <ClInclude Include="src\Renderer\RHI\CommandList.h" />
+    <ClInclude Include="src\Renderer\RHI\CommandQueue.h" />
+    <ClInclude Include="src\Renderer\RHI\DescriptorHeap.h" />
+    <ClInclude Include="src\Renderer\RHI\Device.h" />
+    <ClInclude Include="src\Renderer\RHI\DeviceChild.h" />
+    <ClInclude Include="src\Renderer\RHI\PhysicalDevice.h" />
+    <ClInclude Include="src\Renderer\RHI\PipelineState.h" />
+    <ClInclude Include="src\Renderer\RHI\Swapchain.h" />
+    <ClInclude Include="src\Renderer\RHI\Resource.h" />
+    <ClInclude Include="src\Renderer\RHI\CommandAllocatorPool.h" />
+    <ClInclude Include="src\Renderer\RHI\CommandContext.h" />
+    <ClInclude Include="src\Renderer\RHI\ValidationLayer.h" />
     <ClInclude Include="src\Renderer\RHI\stdafx.h" />
     <ClInclude Include="src\Renderer\RHI\RootSignature.h" />
     <ClInclude Include="src\Renderer\Shader.h" />
@@ -80,14 +80,6 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\Cube.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="shaders\Triangle.hlsl">
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

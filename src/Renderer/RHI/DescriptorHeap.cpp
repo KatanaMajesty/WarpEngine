@@ -1,6 +1,6 @@
-#include "GpuDescriptorHeap.h"
+#include "DescriptorHeap.h"
 
-#include "GpuDevice.h"
+#include "Device.h"
 #include "../../Core/Logger.h"
 
 namespace Warp
@@ -18,7 +18,7 @@ namespace Warp
         return CD3DX12_GPU_DESCRIPTOR_HANDLE(GpuHandle, index, DescriptorIncrementSize);
     }
 
-    GpuDescriptorHeap::GpuDescriptorHeap(GpuDevice* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors, bool shaderVisible)
+    RHIDescriptorHeap::RHIDescriptorHeap(RHIDevice* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT numDescriptors, bool shaderVisible)
         : m_type(type)
         , m_descriptorIncrementSize(device->GetD3D12Device()->GetDescriptorHandleIncrementSize(type))
         , m_numDescriptors(numDescriptors)
@@ -63,7 +63,7 @@ namespace Warp
             });
     }
 
-    RHIDescriptorAllocation GpuDescriptorHeap::Allocate(UINT numDescriptors)
+    RHIDescriptorAllocation RHIDescriptorHeap::Allocate(UINT numDescriptors)
     {
         std::lock_guard guard(m_allocationMutex);
 
@@ -126,7 +126,7 @@ namespace Warp
         return reservedAllocation;
     }
 
-    void GpuDescriptorHeap::Free(RHIDescriptorAllocation&& allocation)
+    void RHIDescriptorHeap::Free(RHIDescriptorAllocation&& allocation)
     {
         std::lock_guard guard(m_allocationMutex);
 
@@ -135,7 +135,7 @@ namespace Warp
         allocation = RHIDescriptorAllocation();
     }
 
-    bool GpuDescriptorHeap::IsValidAllocation(const RHIDescriptorAllocation& allocation)
+    bool RHIDescriptorHeap::IsValidAllocation(const RHIDescriptorAllocation& allocation)
     {
         UINT offsetScaledByIncrementSize = m_numDescriptors * m_descriptorIncrementSize;
         D3D12_CPU_DESCRIPTOR_HANDLE endCpuHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(m_baseCpuDescriptorHandle, offsetScaledByIncrementSize);
@@ -144,7 +144,7 @@ namespace Warp
             && allocation.CpuHandle.ptr <= endCpuHandle.ptr;
     }
 
-    bool GpuDescriptorHeap::IsTypeShaderVisible(D3D12_DESCRIPTOR_HEAP_TYPE type) const
+    bool RHIDescriptorHeap::IsTypeShaderVisible(D3D12_DESCRIPTOR_HEAP_TYPE type) const
     {
         switch (type)
         {

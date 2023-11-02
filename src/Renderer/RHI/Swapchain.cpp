@@ -1,13 +1,13 @@
-#include "RHISwapchain.h"
+#include "Swapchain.h"
 
 #include "../../Core/Assert.h"
-#include "GpuDevice.h"
+#include "Device.h"
 
 namespace Warp
 {
 
-	RHISwapchain::RHISwapchain(GpuPhysicalDevice* physicalDevice)
-		: GpuPhysicalDeviceChild(physicalDevice)
+	RHISwapchain::RHISwapchain(RHIPhysicalDevice* physicalDevice)
+		: RHIPhysicalDeviceChild(physicalDevice)
 		, m_rtvHeap(physicalDevice->GetAssociatedLogicalDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, BackbufferCount, false)
 	{
 		InitDXGISwapchain();
@@ -38,13 +38,13 @@ namespace Warp
 		m_width = width;
 		m_height = height;
 
-		GpuDevice* device = GetPhysicalDevice()->GetAssociatedLogicalDevice();
+		RHIDevice* device = GetPhysicalDevice()->GetAssociatedLogicalDevice();
 		for (uint32_t i = 0; i < BackbufferCount; ++i)
 		{
 			ComPtr<ID3D12Resource> buffer;
 			WARP_RHI_VALIDATE(m_DXGISwapchain->GetBuffer(i, IID_PPV_ARGS(buffer.GetAddressOf())));
 
-			m_backbuffers[i] = GpuTexture(device, buffer.Get(), D3D12_RESOURCE_STATE_PRESENT);
+			m_backbuffers[i] = RHITexture(device, buffer.Get(), D3D12_RESOURCE_STATE_PRESENT);
 
 			device->GetD3D12Device()->CreateRenderTargetView(
 				m_backbuffers[i].GetD3D12Resource(), 

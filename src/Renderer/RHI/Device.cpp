@@ -1,16 +1,16 @@
-#include "GpuDevice.h"
+#include "Device.h"
 
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
 #include "../../Core/Logger.h"
-#include "GpuPhysicalDevice.h"
+#include "PhysicalDevice.h"
 
-#include "RHIValidationLayer.h"
+#include "ValidationLayer.h"
 
 namespace Warp
 {
 
-	GpuDevice::GpuDevice(GpuPhysicalDevice* physicalDevice)
+	RHIDevice::RHIDevice(RHIPhysicalDevice* physicalDevice)
 		: m_physicalDevice(physicalDevice)
 		, m_frameID(0)
 	{
@@ -68,7 +68,7 @@ namespace Warp
 		InitCommandQueues();
 	}
 
-	GpuDevice::~GpuDevice()
+	RHIDevice::~RHIDevice()
 	{
 		m_graphicsQueue->HostWaitIdle();
 		m_computeQueue->HostWaitIdle();
@@ -88,17 +88,17 @@ namespace Warp
 		}
 	}
 
-	void GpuDevice::BeginFrame()
+	void RHIDevice::BeginFrame()
 	{
 	}
 
-	void GpuDevice::EndFrame()
+	void RHIDevice::EndFrame()
 	{
 		++m_frameID;
 		m_resourceAllocator->SetCurrentFrameIndex(m_frameID);
 	}
 
-	GpuCommandQueue* GpuDevice::GetQueue(D3D12_COMMAND_LIST_TYPE type) const
+	RHICommandQueue* RHIDevice::GetQueue(D3D12_COMMAND_LIST_TYPE type) const
 	{
 		switch (type)
 		{
@@ -109,12 +109,12 @@ namespace Warp
 		}
 	}
 
-	GpuBuffer GpuDevice::CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags)
+	RHIBuffer RHIDevice::CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags)
 	{
 		// Work remarks:
 		// Applications should stick to the heap type abstractions of UPLOAD, DEFAULT, and READBACK, 
 		// in order to support all adapter architectures reasonably well.
-		GpuBuffer buffer(this, 
+		RHIBuffer buffer(this,
 			D3D12_HEAP_TYPE_UPLOAD, 		   // TODO: Rewrite this, request a heap type from the user
 			D3D12_RESOURCE_STATE_GENERIC_READ, // TODO: Rewrite this, avoid using generic read, start using transitions
 			flags, 
@@ -124,11 +124,18 @@ namespace Warp
 		return buffer;
 	}
 
-	void GpuDevice::InitCommandQueues()
+	bool RHIDevice::CheckMeshShaderSupport() const
 	{
-		m_graphicsQueue.reset(new GpuCommandQueue(this, D3D12_COMMAND_LIST_TYPE_DIRECT));
-		m_computeQueue.reset(new GpuCommandQueue(this, D3D12_COMMAND_LIST_TYPE_COMPUTE));
-		m_copyQueue.reset(new GpuCommandQueue(this, D3D12_COMMAND_LIST_TYPE_COPY));
+		D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature;
+		WARP_RHI_VALIDATE(m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &feature, sizeof(decltype(feature))));
+		return feature.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1;
+	}
+
+	void RHIDevice::InitCommandQueues()
+	{
+		m_graphicsQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_computeQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+		m_copyQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_COPY));
 	}
 
 }

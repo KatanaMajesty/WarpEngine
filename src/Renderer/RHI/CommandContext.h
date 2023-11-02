@@ -6,10 +6,10 @@
 #include <unordered_map>
 
 #include "stdafx.h"
-#include "GpuResource.h"
-#include "GpuCommandList.h"
-#include "GpuCommandQueue.h"
-#include "GpuPipelineState.h"
+#include "Resource.h"
+#include "CommandList.h"
+#include "CommandQueue.h"
+#include "PipelineState.h"
 
 namespace Warp
 {
@@ -20,22 +20,22 @@ namespace Warp
 	{
 	public:
 		RHICommandContext() = default;
-		RHICommandContext(GpuCommandQueue* queue);
+		RHICommandContext(RHICommandQueue* queue);
 
 		inline constexpr D3D12_COMMAND_LIST_TYPE GetType() const { return m_queue->GetType(); }
 		inline ID3D12GraphicsCommandList6* GetD3D12CommandList() const { return m_commandList.GetD3D12CommandList(); }
 		inline ID3D12GraphicsCommandList6* operator->() const { return GetD3D12CommandList(); } // TODO: Will be removed
 
-		void AddTransitionBarrier(GpuResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-		void AddAliasingBarrier(GpuResource* before, GpuResource* after); // NOIMPL
-		void AddUavBarrier(GpuResource* resource); // NOIMPL
+		void AddTransitionBarrier(RHIResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		void AddAliasingBarrier(RHIResource* before, RHIResource* after); // NOIMPL
+		void AddUavBarrier(RHIResource* resource); // NOIMPL
 
 		// TODO: This might change from UINT to FLOAT
 		void SetViewport(UINT topLeftX, UINT topLeftY, UINT width, UINT height);
 		void SetScissorRect(UINT left, UINT top, UINT right, UINT bottom);
 		void SetGraphicsRootSignature(const RHIRootSignature& rootSignature);
 
-		void SetPipelineState(const GpuPipelineState& pso);
+		void SetPipelineState(const RHIPipelineState& pso);
 
 		void Open();
 		void Close();
@@ -66,8 +66,8 @@ namespace Warp
 	private:
 		static constexpr UINT NumResourceBarriersPerBatch = 16;
 
-		GpuCommandQueue* m_queue = nullptr;
-		GpuCommandList m_commandList;
+		RHICommandQueue* m_queue = nullptr;
+		RHICommandList m_commandList;
 		ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 		RHICommandAllocatorPool m_commandAllocatorPool;
 	};

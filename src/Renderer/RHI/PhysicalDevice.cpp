@@ -1,8 +1,8 @@
-#include "GpuPhysicalDevice.h"
+#include "PhysicalDevice.h"
 
 #include "../../Core/Assert.h"
 #include "../../Core/Logger.h"
-#include "GpuDevice.h"
+#include "Device.h"
 
 // https://pcisig.com/membership/member-companies?combine=&order=field_vendor_id&sort=asc
 #define WARP_PCI_VENDOR_ID_NVIDIA 0x10DE
@@ -11,7 +11,7 @@
 namespace Warp
 {
 
-	GpuPhysicalDevice::GpuPhysicalDevice(const GpuPhysicalDeviceDesc& desc)
+	RHIPhysicalDevice::RHIPhysicalDevice(const RHIPhysicalDeviceDesc& desc)
 		: m_HWND(desc.hwnd)
 	{
 		UINT dxgiFactoryFlags = 0;
@@ -37,12 +37,12 @@ namespace Warp
 		// Set the vendorID
 		switch (m_adapterDesc.VendorId)
 		{
-		case (WARP_PCI_VENDOR_ID_NVIDIA): m_vendorID = GpuVendor::Nvidia; break;
-		case (WARP_PCI_VENDOR_ID_AMD): m_vendorID = GpuVendor::Amd; break;
+		case (WARP_PCI_VENDOR_ID_NVIDIA): m_vendorID = RHIVendor::Nvidia; break;
+		case (WARP_PCI_VENDOR_ID_AMD): m_vendorID = RHIVendor::Amd; break;
 		default:
 		{
 			WARP_LOG_WARN("Failed to determine if the GPU vendor is AMD or Nvidia. GpuVendor is set to \"unknown\"");
-			m_vendorID = GpuVendor::Unknown;
+			m_vendorID = RHIVendor::Unknown;
 		}; break;
 		}
 
@@ -54,26 +54,26 @@ namespace Warp
 		}
 	}
 
-	bool GpuPhysicalDevice::IsValid() const
+	bool RHIPhysicalDevice::IsValid() const
 	{
 		// TODO: Maybe add more checks for adapter
 		return m_HWND && m_factory && m_adapter;
 	}
 
-	GpuDevice* GpuPhysicalDevice::GetAssociatedLogicalDevice()
+	RHIDevice* RHIPhysicalDevice::GetAssociatedLogicalDevice()
 	{
 		if (!m_linkedLogicalDevice)
 		{
-			m_linkedLogicalDevice = std::make_unique<GpuDevice>(this);
+			m_linkedLogicalDevice = std::make_unique<RHIDevice>(this);
 		}
 		return m_linkedLogicalDevice.get();
 	}
 
-	void GpuPhysicalDevice::InitDebugInterface(bool enableGpuBasedValidation)
+	void RHIPhysicalDevice::InitDebugInterface(bool enableGpuBasedValidation)
 	{
 		WARP_RHI_VALIDATE(D3D12GetDebugInterface(IID_PPV_ARGS(m_debugInterface.ReleaseAndGetAddressOf())));
 		WARP_ASSERT(m_debugInterface);
-		WARP_LOG_INFO("Enabling debug level for a GpuDevice");
+		WARP_LOG_INFO("Enabling debug level for a RHIDevice");
 		m_debugInterface->EnableDebugLayer();
 
 		if (enableGpuBasedValidation)
@@ -83,7 +83,7 @@ namespace Warp
 		}
 	}
 
-	// TODO: Maybe move this inside the GpuPhysicalDevice class?
+	// TODO: Maybe move this inside the RHIPhysicalDevice class?
 	static bool IsDXGIAdapterSuitable(IDXGIAdapter3* adapter, const DXGI_ADAPTER_DESC1& desc)
 	{
 		// Don't select render driver, provided by D3D12. We only use physical hardware
@@ -97,7 +97,7 @@ namespace Warp
 		return true;
 	}
 
-	bool GpuPhysicalDevice::SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference)
+	bool RHIPhysicalDevice::SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference)
 	{
 		WARP_ASSERT(m_factory, "Factory cannot be nullptr at this point");
 

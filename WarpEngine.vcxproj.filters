@@ -37,40 +37,40 @@
     <ClCompile Include="src\Renderer\Renderer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuCommandQueue.cpp">
+    <ClCompile Include="src\Renderer\RHI\CommandQueue.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuDevice.cpp">
+    <ClCompile Include="src\Renderer\RHI\Device.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
     <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp">
       <Filter>Vendor\D3D12MA</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuResource.cpp">
+    <ClCompile Include="src\Renderer\RHI\Resource.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\RHIValidationLayer.cpp">
+    <ClCompile Include="src\Renderer\RHI\ValidationLayer.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\RHISwapchain.cpp">
+    <ClCompile Include="src\Renderer\RHI\Swapchain.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuCommandList.cpp">
+    <ClCompile Include="src\Renderer\RHI\CommandList.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\RHICommandAllocatorPool.cpp">
+    <ClCompile Include="src\Renderer\RHI\CommandAllocatorPool.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\RHICommandContext.cpp">
+    <ClCompile Include="src\Renderer\RHI\CommandContext.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuPhysicalDevice.cpp">
+    <ClCompile Include="src\Renderer\RHI\PhysicalDevice.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuDescriptorHeap.cpp">
+    <ClCompile Include="src\Renderer\RHI\DescriptorHeap.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\GpuPipelineState.cpp">
+    <ClCompile Include="src\Renderer\RHI\PipelineState.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
     <ClCompile Include="src\Renderer\Shader.cpp">
@@ -108,43 +108,43 @@
     <ClInclude Include="vendor\d3dx12.h">
       <Filter>Vendor</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuCommandQueue.h">
+    <ClInclude Include="src\Renderer\RHI\CommandQueue.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuDevice.h">
+    <ClInclude Include="src\Renderer\RHI\Device.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\RHIValidationLayer.h">
+    <ClInclude Include="src\Renderer\RHI\ValidationLayer.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h">
       <Filter>Vendor\D3D12MA</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuResource.h">
+    <ClInclude Include="src\Renderer\RHI\Resource.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\RHISwapchain.h">
+    <ClInclude Include="src\Renderer\RHI\Swapchain.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuCommandList.h">
+    <ClInclude Include="src\Renderer\RHI\CommandList.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuDeviceChild.h">
+    <ClInclude Include="src\Renderer\RHI\DeviceChild.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\RHICommandAllocatorPool.h">
+    <ClInclude Include="src\Renderer\RHI\CommandAllocatorPool.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\RHICommandContext.h">
+    <ClInclude Include="src\Renderer\RHI\CommandContext.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuPhysicalDevice.h">
+    <ClInclude Include="src\Renderer\RHI\PhysicalDevice.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuDescriptorHeap.h">
+    <ClInclude Include="src\Renderer\RHI\DescriptorHeap.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\GpuPipelineState.h">
+    <ClInclude Include="src\Renderer\RHI\PipelineState.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\ShaderCompiler.h">
@@ -156,7 +156,9 @@
     <ClInclude Include="src\Renderer\RHI\RootSignature.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Util\Timer.h" />
+    <ClInclude Include="src\Util\Timer.h">
+      <Filter>Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
@@ -170,9 +172,6 @@
     </Natvis>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\Triangle.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
     <FxCompile Include="shaders\Cube.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>

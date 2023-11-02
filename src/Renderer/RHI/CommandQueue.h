@@ -4,24 +4,24 @@
 
 #include "stdafx.h"
 #include "../../Core/Defines.h"
-#include "GpuCommandList.h"
-#include "GpuDeviceChild.h"
-#include "RHICommandAllocatorPool.h"
+#include "CommandList.h"
+#include "CommandAllocatorPool.h"
+#include "DeviceChild.h"
 
 namespace Warp
 {
 
-	class GpuCommandQueue : public GpuDeviceChild
+	class RHICommandQueue : public RHIDeviceChild
 	{
 	public:
-		GpuCommandQueue() = default;
-		GpuCommandQueue(GpuDevice* device, D3D12_COMMAND_LIST_TYPE type);
+		RHICommandQueue() = default;
+		RHICommandQueue(RHIDevice* device, D3D12_COMMAND_LIST_TYPE type);
 
-		GpuCommandQueue(const GpuCommandQueue&) = default;
-		GpuCommandQueue& operator=(const GpuCommandQueue&) = default;
+		RHICommandQueue(const RHICommandQueue&) = default;
+		RHICommandQueue& operator=(const RHICommandQueue&) = default;
 
-		GpuCommandQueue(GpuCommandQueue&&) = default;
-		GpuCommandQueue& operator=(GpuCommandQueue&&) = default;
+		RHICommandQueue(RHICommandQueue&&) = default;
+		RHICommandQueue& operator=(RHICommandQueue&&) = default;
 
 		// Returns a pointer to the internally handled D3D12 command queue
 		inline ID3D12CommandQueue* GetInternalHandle() const { return m_handle.Get(); }
@@ -49,7 +49,7 @@ namespace Warp
 		// If waitForCompletion is TRUE, then the host will wait for the completion of the command list
 		// Otherwise, the host can manually wait for the completion using the WaitForValue() or HostWaitForValue() methods providing
 		// the returned fence value
-		UINT64 ExecuteCommandLists(std::span<GpuCommandList* const> commandLists, bool waitForCompletion);
+		UINT64 ExecuteCommandLists(std::span<RHICommandList* const> commandLists, bool waitForCompletion);
 
 		// Updates last completed value by the fence and stores it, effectively caching it, in m_fenceLastCompletedValue field
 		// This value can then be obtained by calling GetFenceLastCompletedValue method
@@ -68,7 +68,7 @@ namespace Warp
 		UINT64 m_fenceNextValue;
 		mutable UINT64 m_fenceLastCompletedValue; // We cache last completed value of fence
 
-		GpuCommandList m_barrierCommandList;
+		RHICommandList m_barrierCommandList;
 		RHICommandAllocatorPool m_barrierCommandAllocatorPool;
 		ComPtr<ID3D12CommandAllocator> m_barrierCommandAllocator;
 	};

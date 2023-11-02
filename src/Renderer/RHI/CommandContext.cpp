@@ -1,7 +1,7 @@
-#include "RHICommandContext.h"
+#include "CommandContext.h"
 
-#include "GpuCommandQueue.h"
-#include "GpuDevice.h"
+#include "CommandQueue.h"
+#include "Device.h"
 #include "RootSignature.h"
 
 namespace Warp
@@ -11,24 +11,24 @@ namespace Warp
 	// RHICommandContext
 	// =======================
 
-	RHICommandContext::RHICommandContext(GpuCommandQueue* queue)
+	RHICommandContext::RHICommandContext(RHICommandQueue* queue)
 		: m_queue(queue)
 		, m_commandList(queue->GetDevice()->GetD3D12Device(), queue->GetType())
 		, m_commandAllocatorPool(queue)
 	{
 	}
 
-	void RHICommandContext::AddTransitionBarrier(GpuResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex)
+	void RHICommandContext::AddTransitionBarrier(RHIResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex)
 	{
 		m_commandList.AddTransitionBarrier(resource, state, subresourceIndex);
 	}
 
-	void RHICommandContext::AddAliasingBarrier(GpuResource* before, GpuResource* after)
+	void RHICommandContext::AddAliasingBarrier(RHIResource* before, RHIResource* after)
 	{
 		m_commandList.AddAliasingBarrier(before, after);
 	}
 
-	void RHICommandContext::AddUavBarrier(GpuResource* resource)
+	void RHICommandContext::AddUavBarrier(RHIResource* resource)
 	{
 		m_commandList.AddUavBarrier(resource);
 	}
@@ -60,7 +60,7 @@ namespace Warp
 		m_commandList->SetGraphicsRootSignature(rootSignature.GetD3D12RootSignature());
 	}
 
-	void RHICommandContext::SetPipelineState(const GpuPipelineState& pso)
+	void RHICommandContext::SetPipelineState(const RHIPipelineState& pso)
 	{
 		m_commandList->SetPipelineState(pso.GetD3D12PipelineState());
 	}
@@ -69,7 +69,7 @@ namespace Warp
 	{
 		WARP_ASSERT(m_commandAllocator);
 
-		GpuCommandList* lists[] = { &m_commandList };
+		RHICommandList* lists[] = { &m_commandList };
 		UINT64 fenceValue = m_queue->ExecuteCommandLists(lists, waitForCompletion);
 
 		m_commandAllocatorPool.DiscardCommandAllocator(std::exchange(m_commandAllocator, nullptr), fenceValue);

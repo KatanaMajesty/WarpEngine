@@ -3,14 +3,13 @@
 #include "../../Core/Defines.h"
 
 #include "stdafx.h"
-#include "GpuDeviceChild.h"
-#include "GpuDevice.h"
+#include "DeviceChild.h"
+#include "Device.h"
 #include "RootSignature.h"
 
 namespace Warp
 {
 	
-
 	struct RHIGraphicsPipelineDesc
 	{
 		RHIRootSignature RootSignature;
@@ -50,12 +49,12 @@ namespace Warp
 		D3D12_PIPELINE_STATE_FLAGS Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 	};
 
-	class GpuPipelineState : public GpuDeviceChild
+	class RHIPipelineState : public RHIDeviceChild
 	{
 	public:
-		GpuPipelineState() = default;
-		explicit GpuPipelineState(GpuDevice* device)
-			: GpuDeviceChild(device)
+		RHIPipelineState() = default;
+		explicit RHIPipelineState(RHIDevice* device)
+			: RHIDeviceChild(device)
 		{
 		}
 
@@ -65,11 +64,11 @@ namespace Warp
 		ComPtr<ID3D12PipelineState> m_D3D12PipelineState;
 	};
 
-	class RHIGraphicsPipelineState final : public GpuPipelineState
+	class RHIGraphicsPipelineState final : public RHIPipelineState
 	{
 	public:
 		RHIGraphicsPipelineState() = default;
-		RHIGraphicsPipelineState(GpuDevice* device, const RHIGraphicsPipelineDesc& desc);
+		RHIGraphicsPipelineState(RHIDevice* device, const RHIGraphicsPipelineDesc& desc);
 		
 		WARP_ATTR_NODISCARD inline constexpr const RHIGraphicsPipelineDesc& GetDesc() const { return m_desc; }
 
@@ -77,11 +76,11 @@ namespace Warp
 		RHIGraphicsPipelineDesc m_desc;
 	};
 
-	class RHIMeshPipelineState final : public GpuPipelineState
+	class RHIMeshPipelineState final : public RHIPipelineState
 	{
 	public:
 		RHIMeshPipelineState() = default;
-		RHIMeshPipelineState(GpuDevice* device, const RHIMeshPipelineDesc& desc);
+		RHIMeshPipelineState(RHIDevice* device, const RHIMeshPipelineDesc& desc);
 
 		WARP_ATTR_NODISCARD inline constexpr const RHIMeshPipelineDesc& GetDesc() const { return m_desc; }
 
@@ -89,11 +88,11 @@ namespace Warp
 		RHIMeshPipelineDesc m_desc;
 	};
 
-	class RHIComputePipelineState final : public GpuPipelineState
+	class RHIComputePipelineState final : public RHIPipelineState
 	{
 	public:
 		RHIComputePipelineState() = default;
-		RHIComputePipelineState(GpuDevice* device, const RHIComputePipelineDesc& desc);
+		RHIComputePipelineState(RHIDevice* device, const RHIComputePipelineDesc& desc);
 
 		WARP_ATTR_NODISCARD inline constexpr const RHIComputePipelineDesc& GetDesc() const { return m_desc; }
 

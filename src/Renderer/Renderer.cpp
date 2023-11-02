@@ -21,9 +21,9 @@ namespace Warp
 
 	Renderer::Renderer(HWND hwnd)
 		: m_physicalDevice(
-			[hwnd]() -> std::unique_ptr<GpuPhysicalDevice>
+			[hwnd]() -> std::unique_ptr<RHIPhysicalDevice>
 			{
-				GpuPhysicalDeviceDesc physicalDeviceDesc;
+				RHIPhysicalDeviceDesc physicalDeviceDesc;
 				physicalDeviceDesc.hwnd = hwnd;
 #ifdef WARP_DEBUG
 				physicalDeviceDesc.EnableDebugLayer = true;
@@ -32,7 +32,7 @@ namespace Warp
 				physicalDeviceDesc.EnableDebugLayer = false;
 				physicalDeviceDesc.EnableGpuBasedValidation = false;
 #endif
-				return std::make_unique<GpuPhysicalDevice>(physicalDeviceDesc);
+				return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
 			}()
 				)
 		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
@@ -40,9 +40,7 @@ namespace Warp
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
 
-		D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature; 
-		m_device->CheckLogicalDeviceFeatureSupport<D3D12_FEATURE_D3D12_OPTIONS7>(feature);
-		WARP_ASSERT(feature.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1, "Cannot run with no mesh shader support");
+		WARP_ASSERT(m_device->CheckMeshShaderSupport(), "we only use mesh shaders");
 
 		// TODO: Temp, remove
 		if (!InitAssets())
@@ -142,14 +140,14 @@ namespace Warp
 		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 		// Create depth-stencil texture2d
-		m_depthStencil = std::make_unique<GpuTexture>(m_device, 
+		m_depthStencil = std::make_unique<RHITexture>(m_device, 
 			D3D12_HEAP_TYPE_DEFAULT, 
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
 			desc, 
 			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0));
 
 		// Depth-stencil view
-		m_dsvHeap = std::make_unique<GpuDescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
 		m_dsv = m_dsvHeap->Allocate(1);
 		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
 	}
@@ -225,7 +223,7 @@ namespace Warp
 
 		// Indicate that the back buffer will be used as a render target.
 		UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
-		GpuTexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
+		RHITexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
 		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 		D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);

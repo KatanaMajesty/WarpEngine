@@ -4,13 +4,13 @@
 
 #include "../Core/Defines.h"
 #include "RHI/stdafx.h"
-#include "RHI/GpuDevice.h"
-#include "RHI/GpuPhysicalDevice.h"
-#include "RHI/GpuResource.h"
-#include "RHI/RHICommandContext.h"
-#include "RHI/GpuPipelineState.h"
-#include "RHI/GpuDescriptorHeap.h"
-#include "RHI/RHISwapchain.h"
+#include "RHI/Device.h"
+#include "RHI/PhysicalDevice.h"
+#include "RHI/Resource.h"
+#include "RHI/CommandContext.h"
+#include "RHI/PipelineState.h"
+#include "RHI/DescriptorHeap.h"
+#include "RHI/Swapchain.h"
 #include "RHI/RootSignature.h"
 #include "ShaderCompiler.h"
 
@@ -44,8 +44,8 @@ namespace Warp
 		// Wait for graphics queue to finish executing all the commands on all frames
 		void WaitForGfxToFinish();
 
-		std::unique_ptr<GpuPhysicalDevice> m_physicalDevice;
-		GpuDevice* m_device;
+		std::unique_ptr<RHIPhysicalDevice> m_physicalDevice;
+		RHIDevice* m_device;
 
 		std::unique_ptr<RHISwapchain> m_swapchain;
 		RHICommandContext m_commandContext; // TODO: Make it unique_ptr after we implement whole functionality
@@ -54,11 +54,11 @@ namespace Warp
 
 		// TODO: Remove/move
 		void InitDepthStencil();
-		std::unique_ptr<GpuTexture> m_depthStencil;
-		std::unique_ptr<GpuDescriptorHeap> m_dsvHeap;
+		std::unique_ptr<RHITexture> m_depthStencil;
+		std::unique_ptr<RHIDescriptorHeap> m_dsvHeap;
 		RHIDescriptorAllocation m_dsv;
 
-		GpuBuffer m_constantBuffer;
+		RHIBuffer m_constantBuffer;
 		CShaderCompiler m_shaderCompiler;
 
 		float m_timeElapsed = 0.0f;

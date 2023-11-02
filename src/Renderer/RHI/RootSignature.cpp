@@ -2,7 +2,7 @@
 
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
-#include "GpuDevice.h"
+#include "Device.h"
 
 namespace Warp
 {
@@ -129,8 +129,8 @@ namespace Warp
 		return *this;
 	}
 
-	RHIRootSignature::RHIRootSignature(GpuDevice* device, const RHIRootSignatureDesc& desc)
-		: GpuDeviceChild(device)
+	RHIRootSignature::RHIRootSignature(RHIDevice* device, const RHIRootSignatureDesc& desc)
+		: RHIDeviceChild(device)
 	{
 		D3D12_ROOT_SIGNATURE_DESC1 rootDesc
 		{

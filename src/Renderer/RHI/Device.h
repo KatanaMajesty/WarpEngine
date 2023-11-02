@@ -5,33 +5,33 @@
 #include "D3D12MA/D3D12MemAlloc.h"
 
 #include "stdafx.h"
-#include "GpuResource.h"
-#include "GpuCommandQueue.h"
-#include "GpuPhysicalDevice.h"
+#include "Resource.h"
+#include "CommandQueue.h"
+#include "PhysicalDevice.h"
 
 namespace Warp
 {
 	
 	// Warp uses an approach somewhat similar to Vulkan's. There are two types of device representations: physical and logical.
-	// GpuDevice is a logical representation of a GPU device, which is responsible for:
+	// RHIDevice is a logical representation of a GPU device, which is responsible for:
 	//	- Command Queue creation
 	//	- Performance querying and Profiling
 	//	- Querying device's features and retrieving information about the physical device's capabilities
 	//	- Frame management
 	//
 	// TODO: Implement feature querying and adapter infromation querying
-	class GpuDevice
+	class RHIDevice
 	{
 	public:
-		GpuDevice() = default;
-		GpuDevice(GpuPhysicalDevice* physicalDevice);
+		RHIDevice() = default;
+		RHIDevice(RHIPhysicalDevice* physicalDevice);
 
 		// No need to copy logical device, as two different logical devices of the same physical device will in fact
 		// be in the same memory, thus making them unnecessary or even unsafe in some cases
-		GpuDevice(const GpuDevice&) = delete;
-		GpuDevice& operator=(const GpuDevice&) = delete;
+		RHIDevice(const RHIDevice&) = delete;
+		RHIDevice& operator=(const RHIDevice&) = delete;
 
-		~GpuDevice();
+		~RHIDevice();
 
 		void BeginFrame();
 		void EndFrame();
@@ -39,25 +39,20 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline ID3D12Device9* GetD3D12Device() const { return m_device.Get(); }
 		WARP_ATTR_NODISCARD inline constexpr UINT GetFrameID() const { return m_frameID; }
 
-		WARP_ATTR_NODISCARD GpuCommandQueue* GetQueue(D3D12_COMMAND_LIST_TYPE type) const;
-		WARP_ATTR_NODISCARD inline GpuCommandQueue* GetGraphicsQueue() const { return m_graphicsQueue.get(); }
-		WARP_ATTR_NODISCARD inline GpuCommandQueue* GetComputeQueue() const { return m_computeQueue.get(); }
-		WARP_ATTR_NODISCARD inline GpuCommandQueue* GetCopyQueue() const { return m_copyQueue.get(); }
+		WARP_ATTR_NODISCARD RHICommandQueue* GetQueue(D3D12_COMMAND_LIST_TYPE type) const;
+		WARP_ATTR_NODISCARD inline RHICommandQueue* GetGraphicsQueue() const { return m_graphicsQueue.get(); }
+		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() const { return m_computeQueue.get(); }
+		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() const { return m_copyQueue.get(); }
 
 		// TODO: We should not return by value!
-		WARP_ATTR_NODISCARD GpuBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
+		WARP_ATTR_NODISCARD RHIBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
 
-		template<D3D12_FEATURE Feature, typename FeatureType>
-		void CheckLogicalDeviceFeatureSupport(FeatureType& feature) const
-		{
-			// TODO: Add FeatureType concept?
-			WARP_RHI_VALIDATE(m_device->CheckFeatureSupport(Feature, &feature, sizeof(FeatureType)));
-		}
+		bool CheckMeshShaderSupport() const;
 
 	private:
-		GpuPhysicalDevice* m_physicalDevice;
+		RHIPhysicalDevice* m_physicalDevice;
 
 		ComPtr<ID3D12Device9> m_device;
 		ComPtr<ID3D12DebugDevice> m_debugDevice;
@@ -68,9 +63,9 @@ namespace Warp
 		ComPtr<D3D12MA::Allocator> m_resourceAllocator;
 
 		void InitCommandQueues();
-		std::unique_ptr<GpuCommandQueue> m_graphicsQueue;
-		std::unique_ptr<GpuCommandQueue> m_computeQueue;
-		std::unique_ptr<GpuCommandQueue> m_copyQueue;
+		std::unique_ptr<RHICommandQueue> m_graphicsQueue;
+		std::unique_ptr<RHICommandQueue> m_computeQueue;
+		std::unique_ptr<RHICommandQueue> m_copyQueue;
 	};
 
 }

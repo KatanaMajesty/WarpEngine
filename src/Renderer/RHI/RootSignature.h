@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "stdafx.h"
-#include "GpuDeviceChild.h"
+#include "DeviceChild.h"
 
 namespace Warp
 {
@@ -69,11 +69,11 @@ namespace Warp
 		std::vector<D3D12_STATIC_SAMPLER_DESC> m_staticSamplers;
 	};
 
-	class RHIRootSignature : public GpuDeviceChild
+	class RHIRootSignature : public RHIDeviceChild
 	{
 	public:
 		RHIRootSignature() = default;
-		RHIRootSignature(GpuDevice* device, const RHIRootSignatureDesc& desc);
+		RHIRootSignature(RHIDevice* device, const RHIRootSignatureDesc& desc);
 
 		WARP_ATTR_NODISCARD inline ID3D12RootSignature* GetD3D12RootSignature() const { return m_D3D12RootSignature.Get(); }
 

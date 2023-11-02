@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "stdafx.h"
-#include "GpuResource.h"
+#include "Resource.h"
 #include "../../Core/Defines.h"
 
 namespace Warp
@@ -15,7 +15,7 @@ namespace Warp
 	{
 		struct PendingResourceBarrier
 		{
-			GpuResource* Resource;
+			RHIResource* Resource;
 			UINT SubresourceIndex;
 			D3D12_RESOURCE_STATES State;
 		};
@@ -33,34 +33,34 @@ namespace Warp
 		// If the state of the resource has not been yet cached, it will be added to the cache in UNKNOWN state
 		// 
 		// The command list is then able to change the cached resource state returned by the function
-		GpuResourceState& GetCachedState(GpuResource* resource);
+		CResourceState& GetCachedState(RHIResource* resource);
 
 		inline constexpr const auto& GetAllPendingBarriers() const { return m_pendingResourceBarriers; }
 
 	private:
-		std::unordered_map<GpuResource*, GpuResourceState> m_cachedResourceStates;
+		std::unordered_map<RHIResource*, CResourceState> m_cachedResourceStates;
 		std::vector<PendingResourceBarrier> m_pendingResourceBarriers;
 	};
 
-	class GpuCommandList
+	class RHICommandList
 	{
 	public:
-		GpuCommandList() = default;
-		GpuCommandList(ID3D12Device9* device, D3D12_COMMAND_LIST_TYPE type);
+		RHICommandList() = default;
+		RHICommandList(ID3D12Device9* device, D3D12_COMMAND_LIST_TYPE type);
 
-		GpuCommandList(const GpuCommandList&) = default;
-		GpuCommandList& operator=(const GpuCommandList&) = default;
+		RHICommandList(const RHICommandList&) = default;
+		RHICommandList& operator=(const RHICommandList&) = default;
 
-		GpuCommandList(GpuCommandList&&) = default;
-		GpuCommandList& operator=(GpuCommandList&&) = default;
+		RHICommandList(RHICommandList&&) = default;
+		RHICommandList& operator=(RHICommandList&&) = default;
 
 		inline constexpr D3D12_COMMAND_LIST_TYPE GetType() const { return m_type; }
 		inline ID3D12GraphicsCommandList6* GetD3D12CommandList() const { return m_commandList.Get(); }
 		inline ID3D12GraphicsCommandList6* operator->() const { return GetD3D12CommandList(); } // TODO: Will be removed
 
-		void AddTransitionBarrier(GpuResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
-		void AddAliasingBarrier(GpuResource* before, GpuResource* after); // NOIMPL
-		void AddUavBarrier(GpuResource* resource); // NOIMPL
+		void AddTransitionBarrier(RHIResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+		void AddAliasingBarrier(RHIResource* before, RHIResource* after); // NOIMPL
+		void AddUavBarrier(RHIResource* resource); // NOIMPL
 
 		void FlushBatchedResourceBarriers();
 		WARP_ATTR_NODISCARD std::vector<D3D12_RESOURCE_BARRIER> ResolvePendingResourceBarriers();

@@ -8,7 +8,7 @@
 namespace Warp
 {
 
-	struct GpuPhysicalDeviceDesc
+	struct RHIPhysicalDeviceDesc
 	{
 		HWND hwnd = nullptr;
 
@@ -30,40 +30,40 @@ namespace Warp
 		bool EnableGpuBasedValidation = false;
 	};
 
-	enum class GpuVendor
+	enum class RHIVendor
 	{
 		Unknown = 0,
 		Nvidia,
 		Amd,
 	};
 
-	class GpuDevice;
+	class RHIDevice;
 
 	// Warp uses an approach somewhat similar to Vulkan's. There are two types of device representations: physical and logical.
-	// GpuPhysicalDevice is a physical representation of a GPU device, which is responsible for:
+	// RHIPhysicalDevice is a physical representation of a GPU device, which is responsible for:
 	//	- Adapter information
 	//	- Debug Layers and GPU Validation
 	//	- Storing and querying driver information
-	class GpuPhysicalDevice
+	class RHIPhysicalDevice
 	{
 	public:
-		GpuPhysicalDevice() = default;
-		GpuPhysicalDevice(const GpuPhysicalDeviceDesc& desc);
+		RHIPhysicalDevice() = default;
+		RHIPhysicalDevice(const RHIPhysicalDeviceDesc& desc);
 
 		// We do not want to allow copying physical device, as it is a singleton on a hardware-level anyway
-		GpuPhysicalDevice(const GpuPhysicalDevice&) = delete;
-		GpuPhysicalDevice& operator=(const GpuPhysicalDevice&) = delete;
+		RHIPhysicalDevice(const RHIPhysicalDevice&) = delete;
+		RHIPhysicalDevice& operator=(const RHIPhysicalDevice&) = delete;
 
 		// Queries if the physical device is valid and was initialized correctly
 		WARP_ATTR_NODISCARD bool IsValid() const;
-		WARP_ATTR_NODISCARD inline constexpr GpuVendor GetDeviceVendor() const { return m_vendorID; }
+		WARP_ATTR_NODISCARD inline constexpr RHIVendor GetDeviceVendor() const { return m_vendorID; }
 
 		WARP_ATTR_NODISCARD inline HWND GetWindowHandle() const { return m_HWND; }
 		WARP_ATTR_NODISCARD inline IDXGIFactory7* GetFactory() const { return m_factory.Get(); }
 		WARP_ATTR_NODISCARD inline IDXGIAdapter1* GetAdapter() const { return m_adapter.Get(); }
 		WARP_ATTR_NODISCARD inline bool IsDebugLayerEnabled() const { return m_debugInterface != nullptr; }
 
-		GpuDevice* GetAssociatedLogicalDevice();
+		RHIDevice* GetAssociatedLogicalDevice();
 
 	private:
 		void InitDebugInterface(bool enableGpuBasedValidation);
@@ -73,29 +73,29 @@ namespace Warp
 		ComPtr<IDXGIFactory7> m_factory;
 		ComPtr<IDXGIAdapter3> m_adapter;
 		DXGI_ADAPTER_DESC1 m_adapterDesc;
-		GpuVendor m_vendorID = GpuVendor::Unknown;
+		RHIVendor m_vendorID = RHIVendor::Unknown;
 
 		ComPtr<ID3D12Debug3> m_debugInterface;
 
 		// Direct3D 12 devices are singletons per adapter. If a Direct3D 12 device already exists in the current process for a given adapter, 
 		// then a subsequent call to D3D12CreateDevice returns the existing device
-		std::unique_ptr<GpuDevice> m_linkedLogicalDevice;
+		std::unique_ptr<RHIDevice> m_linkedLogicalDevice;
 	};
 
-	class GpuPhysicalDeviceChild
+	class RHIPhysicalDeviceChild
 	{
 	public:
-		GpuPhysicalDeviceChild() = default;
-		explicit GpuPhysicalDeviceChild(GpuPhysicalDevice* physicalDevice)
+		RHIPhysicalDeviceChild() = default;
+		explicit RHIPhysicalDeviceChild(RHIPhysicalDevice* physicalDevice)
 			: m_physicalDevice(physicalDevice)
 		{
 		}
 
 		// Returns a physical device, associated with the child
-		WARP_ATTR_NODISCARD inline constexpr GpuPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }
+		WARP_ATTR_NODISCARD inline constexpr RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }
 
 	protected:
-		GpuPhysicalDevice* m_physicalDevice;
+		RHIPhysicalDevice* m_physicalDevice;
 	};
 
 }

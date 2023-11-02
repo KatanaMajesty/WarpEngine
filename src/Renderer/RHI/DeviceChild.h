@@ -6,23 +6,23 @@
 namespace Warp
 {
 
-	class GpuDevice;
+	class RHIDevice;
 
-	class GpuDeviceChild
+	class RHIDeviceChild
 	{
 	public:
-		GpuDeviceChild() = default;
-		explicit GpuDeviceChild(GpuDevice* device)
+		RHIDeviceChild() = default;
+		explicit RHIDeviceChild(RHIDevice* device)
 			: m_device(device)
 		{
 			WARP_ASSERT(device);
 		}
 
 		// Returns a logical device, associated with the child
-		WARP_ATTR_NODISCARD inline constexpr GpuDevice* GetDevice() const { return m_device; }
+		WARP_ATTR_NODISCARD inline constexpr RHIDevice* GetDevice() const { return m_device; }
 
 	protected:
-		GpuDevice* m_device;
+		RHIDevice* m_device;
 	};
 
 }

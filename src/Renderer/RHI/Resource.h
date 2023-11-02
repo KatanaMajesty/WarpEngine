@@ -7,7 +7,7 @@
 #include "stdafx.h"
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
-#include "GpuDeviceChild.h"
+#include "DeviceChild.h"
 
 namespace Warp
 {
@@ -16,13 +16,13 @@ namespace Warp
 	constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INVALID = static_cast<D3D12_RESOURCE_STATES>(-2);
 
 	// https://microsoft.github.io/DirectX-Specs/d3d/CPUEfficiency.html#subresource-state-tracking
-	class GpuResourceState
+	class CResourceState
 	{
 	public:
-		// The default-constructed GpuResourceState object should not be considered valid, as it tracks 0 subresources
+		// The default-constructed CResourceState object should not be considered valid, as it tracks 0 subresources
 		// Although, it is guaranteed to store D3D12_RESOURCE_STATE_UNKNOWN as a tracked state
-		GpuResourceState() = default;
-		GpuResourceState(UINT numSubresources, D3D12_RESOURCE_STATES initialState);
+		CResourceState() = default;
+		CResourceState(UINT numSubresources, D3D12_RESOURCE_STATES initialState);
 
 		// If subresourceIndex is D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, then all subresources will be updated
 		void SetSubresourceState(UINT subresourceIndex, D3D12_RESOURCE_STATES state);
@@ -43,24 +43,24 @@ namespace Warp
 		UINT m_numSubresources = 0;
 	};
 
-	class GpuResource : public GpuDeviceChild
+	class RHIResource : public RHIDeviceChild
 	{
 	public:
-		GpuResource() = default;
-		GpuResource(GpuDevice* device,
+		RHIResource() = default;
+		RHIResource(RHIDevice* device,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			const D3D12_RESOURCE_DESC& desc,
 			const D3D12_CLEAR_VALUE* optimizedClearValue);
-		GpuResource(GpuDevice* device,
+		RHIResource(RHIDevice* device,
 			ID3D12Resource* resource,
 			D3D12_RESOURCE_STATES initialState);
 
-		GpuResource(const GpuResource&) = default;
-		GpuResource& operator=(const GpuResource&) = default;
+		RHIResource(const RHIResource&) = default;
+		RHIResource& operator=(const RHIResource&) = default;
 
-		GpuResource(GpuResource&&) = default;
-		GpuResource& operator=(GpuResource&&) = default;
+		RHIResource(RHIResource&&) = default;
+		RHIResource& operator=(RHIResource&&) = default;
 
 		inline ID3D12Resource* GetD3D12Resource() const { return m_D3D12Resource.Get(); }
 		inline bool IsValid() const { return GetD3D12Resource() != nullptr; }
@@ -68,8 +68,8 @@ namespace Warp
 		// Returns a virtual address of a resource in GPU memory
 		WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const;
 
-		WARP_ATTR_NODISCARD inline constexpr GpuResourceState& GetState() { return m_state; }
-		WARP_ATTR_NODISCARD inline constexpr const GpuResourceState& GetState() const { return m_state; }
+		WARP_ATTR_NODISCARD inline constexpr CResourceState& GetState() { return m_state; }
+		WARP_ATTR_NODISCARD inline constexpr const CResourceState& GetState() const { return m_state; }
 		WARP_ATTR_NODISCARD inline constexpr UINT GetNumSubresources() const { return m_numSubresources; }
 
 	protected:
@@ -80,25 +80,25 @@ namespace Warp
 		D3D12_RESOURCE_DESC m_desc{};
 		UINT m_numPlanes = 0;
 		UINT m_numSubresources = 0;
-		GpuResourceState m_state;
+		CResourceState m_state;
 	};
 
-	class GpuBuffer final : public GpuResource
+	class RHIBuffer final : public RHIResource
 	{
 	public:
-		GpuBuffer() = default;
-		GpuBuffer(GpuDevice* device,
+		RHIBuffer() = default;
+		RHIBuffer(RHIDevice* device,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			D3D12_RESOURCE_FLAGS flags,
 			UINT strideInBytes,
 			UINT64 sizeInBytes);
 
-		GpuBuffer(const GpuBuffer&) = default;
-		GpuBuffer& operator=(const GpuBuffer&) = default;
+		RHIBuffer(const RHIBuffer&) = default;
+		RHIBuffer& operator=(const RHIBuffer&) = default;
 
-		GpuBuffer(GpuBuffer&&) = default;
-		GpuBuffer& operator=(GpuBuffer&&) = default;
+		RHIBuffer(RHIBuffer&&) = default;
+		RHIBuffer& operator=(RHIBuffer&&) = default;
 
 		inline constexpr UINT GetStrideInBytes() const { return m_strideInBytes; }
 		inline constexpr UINT64 GetSizeInBytes() const { return m_sizeInBytes; }
@@ -123,24 +123,24 @@ namespace Warp
 		void* m_cpuMapping = nullptr;
 	};
 
-	class GpuTexture final : public GpuResource
+	class RHITexture final : public RHIResource
 	{
 	public:
-		GpuTexture() = default;
-		GpuTexture(GpuDevice* device,
+		RHITexture() = default;
+		RHITexture(RHIDevice* device,
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			const D3D12_RESOURCE_DESC& desc,
 			const D3D12_CLEAR_VALUE& optimizedClearValue = CD3DX12_CLEAR_VALUE());
-		GpuTexture(GpuDevice* device,
+		RHITexture(RHIDevice* device,
 			ID3D12Resource* resource,
 			D3D12_RESOURCE_STATES initialState);
 
-		GpuTexture(const GpuTexture&) = default;
-		GpuTexture& operator=(const GpuTexture&) = default;
+		RHITexture(const RHITexture&) = default;
+		RHITexture& operator=(const RHITexture&) = default;
 
-		GpuTexture(GpuTexture&&) = default;
-		GpuTexture& operator=(GpuTexture&&) = default;
+		RHITexture(RHITexture&&) = default;
+		RHITexture& operator=(RHITexture&&) = default;
 
 		inline constexpr UINT GetWidth() const { return static_cast<UINT>(m_desc.Width); }
 		inline constexpr UINT GetHeight() const { return m_desc.Height; }
