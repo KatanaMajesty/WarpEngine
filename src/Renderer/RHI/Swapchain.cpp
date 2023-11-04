@@ -38,6 +38,11 @@ namespace Warp
 		m_width = width;
 		m_height = height;
 
+		ReleaseAllDXGIReferences();
+		UINT swapchainFlags = 0; // No swapchain flags for now. Be aware of this when they are added tho
+		WARP_RHI_VALIDATE(m_DXGISwapchain->ResizeBuffers(BackbufferCount, width, height, DXGI_FORMAT_UNKNOWN, swapchainFlags));
+
+		// We assume that the client already issued a wait for graphics queue to finish executing all frames
 		RHIDevice* device = GetPhysicalDevice()->GetAssociatedLogicalDevice();
 		for (uint32_t i = 0; i < BackbufferCount; ++i)
 		{
@@ -86,6 +91,16 @@ namespace Warp
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to represent swapchain correctly");
 
 		m_backbufferRtvs = m_rtvHeap.Allocate(BackbufferCount);
+	}
+
+	void RHISwapchain::ReleaseAllDXGIReferences()
+	{
+		// No need to reallocate descriptors for now
+		// WARP_ASSERT(m_backbufferRtvs.IsValid());
+		// m_rtvHeap.Free(std::move(m_backbufferRtvs));
+
+		for (uint32_t i = 0; i < BackbufferCount; ++i)
+			m_backbuffers[i] = RHITexture();
 	}
 
 }

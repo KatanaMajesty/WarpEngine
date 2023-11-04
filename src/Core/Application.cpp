@@ -8,18 +8,19 @@
 namespace Warp
 {
 
-	Application::Application(const std::filesystem::path& workingDirectory)
+	Application::Application(const ApplicationDesc& desc)
 		// TODO: This is a temporary workaround in order to make our SolutionDir a working directory
-		: m_workingDirectory(workingDirectory)
+		: m_workingDirectory(desc.WorkingDirectory)
+		, m_flags(desc.Flags)
 	{
 	}
 
-	bool Application::Create(const std::filesystem::path& workingDirectory)
+	bool Application::Create(const ApplicationDesc& desc)
 	{
 		if (s_instance)
 			Delete();
 
-		s_instance = new Application(workingDirectory);
+		s_instance = new Application(desc);
 		return true;
 	}
 
@@ -39,13 +40,31 @@ namespace Warp
 		m_renderer = std::make_unique<Renderer>(hwnd);
 	}
 
-	void Application::Resize(uint32_t width, uint32_t height)
+	void Application::RequestResize(uint32_t width, uint32_t height)
 	{
-		m_renderer->Resize(width, height);
+		m_width = width;
+		m_height = height;
+		if (m_flags & EApplicationFlag_InstantResize)
+		{
+			// Do all the resizing
+			Resize();
+		}
+		else m_scheduledResize = true; // Else schedule the resize for the next Tick() call
+	}
+
+	void Application::Resize()
+	{
+		m_renderer->Resize(m_width, m_height);
 	}
 
 	void Application::Tick()
 	{
+		if (m_scheduledResize)
+		{
+			m_scheduledResize = false;
+			Resize();
+		}
+
 		double elapsed = m_appTimer.GetElapsedSeconds();
 		double timestep = elapsed - m_lastFrameTime;
 		m_lastFrameTime = elapsed;

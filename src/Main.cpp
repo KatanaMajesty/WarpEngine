@@ -81,7 +81,10 @@ auto WINAPI wWinMain(
         return -1;
     }
 
-    if (!Warp::Application::Create(GetWorkingDirectory()))
+    Warp::ApplicationDesc appDesc;
+    appDesc.WorkingDirectory = GetWorkingDirectory();
+    appDesc.Flags = Warp::EApplicationFlag_None;
+    if (!Warp::Application::Create(appDesc))
     {
         // We failed to create application
         WARP_LOG_FATAL("Failed to create Application");
@@ -156,7 +159,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_SIZE:
         if (wParam != SIZE_MINIMIZED)
         {
-            application.Resize(LOWORD(lParam), HIWORD(lParam));
+            application.RequestResize(LOWORD(lParam), HIWORD(lParam));
         }
         return 0;
     case WM_KILLFOCUS:

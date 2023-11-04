@@ -10,19 +10,36 @@
 namespace Warp
 {
 
+	using EApplicationFlags = uint32_t;
+	enum EApplicationFlag
+	{
+		EApplicationFlag_None = 0,
+
+		// Allows for multiple resize callbacks when a window is resized
+		// If this flag is not specified, resize callback will only be sent after the resizing has finished
+		// and unblocked the main thread, after which the Application::Tick() method will be called
+		EApplicationFlag_InstantResize = 1,
+	};
+
+	struct ApplicationDesc
+	{
+		std::filesystem::path WorkingDirectory;
+		EApplicationFlags Flags = EApplicationFlag_None;
+	};
+
 	class Renderer;
 
 	class Application
 	{
 	private:
-		Application(const std::filesystem::path& workingDirectory);
+		Application(const ApplicationDesc& desc);
 
 	public:
 		Application(const Application&) = delete;
 		Application& operator=(const Application&) = delete;
 
 		// Creates an application, allocating memory for it
-		static bool Create(const std::filesystem::path& workingDirectory);
+		static bool Create(const ApplicationDesc& desc);
 
 		// Shuts the application down, deallocates the memory and invalidates all pointers
 		static void Delete();
@@ -33,7 +50,7 @@ namespace Warp
 
 		// Initialize (or reinitialize) the Application
 		void Init(HWND hwnd);
-		void Resize(uint32_t width, uint32_t height);
+		void RequestResize(uint32_t width, uint32_t height);
 
 		void Tick();
 		void Update(float timestep);
@@ -54,6 +71,9 @@ namespace Warp
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
 
 	private:
+		// Moved to private after Application::RequestResize() was introduced
+		void Resize();
+
 		static inline Application* s_instance = nullptr;
 
 		Timer m_appTimer;
@@ -64,6 +84,11 @@ namespace Warp
 		std::filesystem::path m_shaderPath;
 		std::filesystem::path m_assetsPath;
 		bool m_isWindowFocused = true;
+
+		EApplicationFlags m_flags;
+		bool m_scheduledResize = false;
+		uint32_t m_width = 0;
+		uint32_t m_height = 0;
 	};
 
 }

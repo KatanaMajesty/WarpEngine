@@ -42,13 +42,12 @@ namespace Warp
 
 	private:
 		void InitDXGISwapchain();
+		void ReleaseAllDXGIReferences();
 
 		UINT m_width = 0;
 		UINT m_height = 0;
 		ComPtr<IDXGISwapChain4> m_DXGISwapchain;
 		RHITexture m_backbuffers[BackbufferCount];
-		
-		// TODO: For now only it is just a handle
 		RHIDescriptorHeap m_rtvHeap;
 		RHIDescriptorAllocation m_backbufferRtvs{};
 	};
