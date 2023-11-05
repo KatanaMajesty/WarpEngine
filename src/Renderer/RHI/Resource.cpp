@@ -76,12 +76,11 @@ namespace Warp
 			.HeapType = heapType
 		};
 
-		ComPtr<D3D12MA::Allocation> allocation;
 		WARP_RHI_VALIDATE(device->GetResourceAllocator()->CreateResource(&allocDesc,
 			&desc,
 			initialState,
 			optimizedClearValue,
-			allocation.GetAddressOf(),
+			m_D3D12Allocation.GetAddressOf(),
 			IID_PPV_ARGS(m_D3D12Resource.ReleaseAndGetAddressOf())
 		));
 	}
@@ -96,6 +95,26 @@ namespace Warp
 	{
 	}
 
+	void RHIResource::RecreateInPlace(D3D12_RESOURCE_STATES initialState,
+		const D3D12_RESOURCE_DESC& desc,
+		const D3D12_CLEAR_VALUE* optimizedClearValue)
+	{
+		// This will always be the case when RHIResource(RHIDevice* device, ID3D12Resource* resource, D3D12_RESOURCE_STATES initialState)
+		// constructor was used. In other words, if existing resource was attached to the RHIResource interface, you cannot use RecreateInPlace()
+		WARP_ASSERT(m_D3D12Allocation, "Cannot recreate a resource as placed, as the RHI is not managing the allocation");
+
+		HRESULT hr = GetDevice()->GetD3D12Device()->CreatePlacedResource(
+			m_D3D12Allocation->GetHeap(),
+			m_D3D12Allocation->GetOffset(),
+			&desc,
+			initialState,
+			optimizedClearValue,
+			IID_PPV_ARGS(m_D3D12Resource.ReleaseAndGetAddressOf())
+		);
+
+		WARP_ASSERT(SUCCEEDED(hr));
+	}
+
 	WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS RHIResource::GetGpuVirtualAddress() const
 	{
 		WARP_ASSERT(IsValid());
@@ -107,6 +126,12 @@ namespace Warp
 	// 	WARP_ASSERT(m_allocation);
 	// 	return m_allocation->GetResource();
 	// }
+
+	void RHIResource::SetName(std::wstring_view name)
+	{
+		WARP_ASSERT(IsValid());
+		WARP_SET_RHI_NAME(m_D3D12Resource.Get(), name);
+	}
 
 	UINT RHIResource::QueryNumSubresources()
 	{

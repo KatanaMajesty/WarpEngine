@@ -167,6 +167,11 @@ namespace Warp
 		WARP_RHI_VALIDATE(m_commandList->Close());
 	}
 
+	void RHICommandList::SetName(std::wstring_view name)
+	{
+		WARP_SET_RHI_NAME(m_commandList.Get(), name);
+	}
+
 	void RHICommandList::AddResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier)
 	{
 		if (m_numResourceBarriers + 1 >= NumResourceBarriersPerBatch)

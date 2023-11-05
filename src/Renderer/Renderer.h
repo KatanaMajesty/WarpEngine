@@ -54,6 +54,7 @@ namespace Warp
 
 		// TODO: Remove/move
 		void InitDepthStencil();
+		void ResizeDepthStencil();
 		std::unique_ptr<RHITexture> m_depthStencil;
 		std::unique_ptr<RHIDescriptorHeap> m_dsvHeap;
 		RHIDescriptorAllocation m_dsv;

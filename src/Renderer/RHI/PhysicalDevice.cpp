@@ -73,7 +73,7 @@ namespace Warp
 	{
 		WARP_RHI_VALIDATE(D3D12GetDebugInterface(IID_PPV_ARGS(m_debugInterface.ReleaseAndGetAddressOf())));
 		WARP_ASSERT(m_debugInterface);
-		WARP_LOG_INFO("Enabling debug level for a RHIDevice");
+		WARP_LOG_INFO("Enabling debug level for an RHIDevice");
 		m_debugInterface->EnableDebugLayer();
 
 		if (enableGpuBasedValidation)

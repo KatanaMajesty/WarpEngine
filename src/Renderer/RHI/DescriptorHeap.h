@@ -51,6 +51,8 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline constexpr UINT GetDescriptorIncrementSize() const { return m_descriptorIncrementSize; }
 		WARP_ATTR_NODISCARD inline constexpr bool IsShaderVisible() const { return m_shaderVisible; }
 
+		void SetName(std::wstring_view name);
+
 	private:
 		bool IsValidAllocation(const RHIDescriptorAllocation& allocation);
 		bool IsTypeShaderVisible(D3D12_DESCRIPTOR_HEAP_TYPE type) const;

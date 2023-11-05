@@ -60,6 +60,8 @@ namespace Warp
 
 		WARP_ATTR_NODISCARD inline ID3D12PipelineState* GetD3D12PipelineState() const { return m_D3D12PipelineState.Get(); }
 
+		void SetName(std::wstring_view name);
+
 	protected:
 		ComPtr<ID3D12PipelineState> m_D3D12PipelineState;
 	};

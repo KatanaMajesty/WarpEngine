@@ -23,7 +23,12 @@
 #include <DirectXMath.h>
 
 #include <string>
+#include <string_view>
+#include <format> // TODO: Currently here, will be removed tho
 #include <wrl.h>
+
+// Must be included for WARP_DEBUG to be defined
+#include "../../Core/Defines.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -40,3 +45,12 @@ using Microsoft::WRL::ComPtr;
 	} while(false) // use do-while to enforce semicolon (?)
 
 #define WARP_COM_SAFE_RELEASE(ptr) if (ptr) { ptr->Release(); ptr = nullptr; }
+
+#ifdef WARP_DEBUG
+#define WARP_SET_RHI_NAME(Ptr, NAME) if (Ptr) \
+	{ \
+		Ptr->SetName(std::wstring(L"WARP_").append(NAME).data()); \
+	}
+#else
+#define WARP_SET_RHI_NAME(objectPtr, NAME)
+#endif

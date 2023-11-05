@@ -139,6 +139,13 @@ namespace Warp
 		return m_fenceLastCompletedValue;
 	}
 
+	void RHICommandQueue::SetName(const std::wstring& name)
+	{
+		WARP_ASSERT(IsValid());
+		WARP_SET_RHI_NAME(m_handle.Get(), name);
+		WARP_SET_RHI_NAME(m_fence.Get(), L"Fence_" + name);
+	}
+
 	void RHICommandQueue::Reset(UINT64 fenceInitialValue)
 	{
 		m_handle.Reset();

@@ -60,7 +60,7 @@ static const uint3 g_Indices[] =
 };
 
 [outputtopology("triangle")]
-[numthreads(12, 1, 1)] // we are only using 1 thread, thus this is very bad for GPUs SIMD
+[numthreads(12, 1, 1)]
 void MSMain(
     in uint groupThreadID : SV_GroupThreadID,
 	out vertices Vertex outVerts[MAX_OUTPUT_VERTICES],

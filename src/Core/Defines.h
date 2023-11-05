@@ -39,3 +39,6 @@
 #define WARP_MAYBE_UNUSED
 
 #endif
+
+// Additions for stdafx.h mostly
+#define WARP_STRINGIFY(x) #x

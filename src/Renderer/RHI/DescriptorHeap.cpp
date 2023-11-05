@@ -135,6 +135,11 @@ namespace Warp
         allocation = RHIDescriptorAllocation();
     }
 
+    void RHIDescriptorHeap::SetName(std::wstring_view name)
+    {
+        WARP_SET_RHI_NAME(m_D3D12DescriptorHeap.Get(), name);
+    }
+
     bool RHIDescriptorHeap::IsValidAllocation(const RHIDescriptorAllocation& allocation)
     {
         UINT offsetScaledByIncrementSize = m_numDescriptors * m_descriptorIncrementSize;

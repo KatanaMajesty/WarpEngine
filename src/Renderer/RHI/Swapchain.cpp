@@ -16,6 +16,7 @@ namespace Warp
 		WARP_RHI_VALIDATE(m_DXGISwapchain->GetDesc1(&desc));
 		Resize(desc.Width, desc.Height);
 
+		m_rtvHeap.SetName(L"RHIDescriptorHeap_RTVHeap");
 	}
 
 	void RHISwapchain::Present(bool vsync)
@@ -50,6 +51,7 @@ namespace Warp
 			WARP_RHI_VALIDATE(m_DXGISwapchain->GetBuffer(i, IID_PPV_ARGS(buffer.GetAddressOf())));
 
 			m_backbuffers[i] = RHITexture(device, buffer.Get(), D3D12_RESOURCE_STATE_PRESENT);
+			m_backbuffers[i].SetName(std::format(L"RHITexture_RTVBackbuffer_{}", i));
 
 			device->GetD3D12Device()->CreateRenderTargetView(
 				m_backbuffers[i].GetD3D12Resource(), 

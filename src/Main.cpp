@@ -50,8 +50,8 @@ auto WINAPI wWinMain(
 
     uint32_t desktopWidth = desktopRect.right - desktopRect.left;
     uint32_t desktopHeight = desktopRect.bottom - desktopRect.top;
-    uint32_t clientWidth = 1280;
-    uint32_t clientHeight = 720;
+    uint32_t clientWidth = 800;
+    uint32_t clientHeight = 600;
 
     RECT windowRect = RECT{ 0, 0, (LONG)clientWidth, (LONG)clientHeight };
     AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);

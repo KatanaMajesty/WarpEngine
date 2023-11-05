@@ -12,6 +12,8 @@
 namespace Warp
 {
 	
+	// TODO: Implement implicit state decay/promotion
+
 	constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_UNKNOWN = static_cast<D3D12_RESOURCE_STATES>(-1);
 	constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INVALID = static_cast<D3D12_RESOURCE_STATES>(-2);
 
@@ -62,6 +64,10 @@ namespace Warp
 		RHIResource(RHIResource&&) = default;
 		RHIResource& operator=(RHIResource&&) = default;
 
+		void RecreateInPlace(D3D12_RESOURCE_STATES initialState,
+			const D3D12_RESOURCE_DESC& desc,
+			const D3D12_CLEAR_VALUE* optimizedClearValue);
+
 		inline ID3D12Resource* GetD3D12Resource() const { return m_D3D12Resource.Get(); }
 		inline bool IsValid() const { return GetD3D12Resource() != nullptr; }
 
@@ -71,12 +77,16 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline constexpr CResourceState& GetState() { return m_state; }
 		WARP_ATTR_NODISCARD inline constexpr const CResourceState& GetState() const { return m_state; }
 		WARP_ATTR_NODISCARD inline constexpr UINT GetNumSubresources() const { return m_numSubresources; }
+		WARP_ATTR_NODISCARD inline constexpr const D3D12_RESOURCE_DESC& GetDesc() const { return m_desc; }
+
+		void SetName(std::wstring_view name);
 
 	protected:
 		// https://learn.microsoft.com/en-us/windows/win32/direct3d12/subresources
 		WARP_ATTR_NODISCARD UINT QueryNumSubresources();
 
 		ComPtr<ID3D12Resource> m_D3D12Resource;
+		ComPtr<D3D12MA::Allocation> m_D3D12Allocation; // may be null, should always be checked!
 		D3D12_RESOURCE_DESC m_desc{};
 		UINT m_numPlanes = 0;
 		UINT m_numSubresources = 0;

@@ -58,6 +58,8 @@ namespace Warp
 		// so it is safe to change it in constant context
 		UINT64 QueryFenceCompletedValue() const;
 
+		void SetName(const std::wstring& name);
+
 	private:
 		void Reset(UINT64 fenceInitialValue = 0);
 

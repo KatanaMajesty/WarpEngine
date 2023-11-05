@@ -68,6 +68,8 @@ namespace Warp
 		void Open(ID3D12CommandAllocator* allocator);
 		void Close();
 
+		void SetName(std::wstring_view name);
+
 	private:
 		void AddResourceBarrier(const D3D12_RESOURCE_BARRIER& barrier);
 		

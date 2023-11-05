@@ -134,8 +134,13 @@ namespace Warp
 	void RHIDevice::InitCommandQueues()
 	{
 		m_graphicsQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_DIRECT));
+		m_graphicsQueue->SetName(L"RHIDevice_GraphicsQueue");
+
 		m_computeQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_COMPUTE));
+		m_computeQueue->SetName(L"RHIDevice_ComputeQueue");
+
 		m_copyQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_COPY));
+		m_copyQueue->SetName(L"RHIDevice_CopyQueue");
 	}
 
 }

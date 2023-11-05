@@ -20,7 +20,7 @@ namespace Warp
 	{
 	public:
 		RHICommandContext() = default;
-		RHICommandContext(RHICommandQueue* queue);
+		RHICommandContext(std::wstring_view name, RHICommandQueue* queue);
 
 		inline constexpr D3D12_COMMAND_LIST_TYPE GetType() const { return m_queue->GetType(); }
 		inline ID3D12GraphicsCommandList6* GetD3D12CommandList() const { return m_commandList.GetD3D12CommandList(); }

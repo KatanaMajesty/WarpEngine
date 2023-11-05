@@ -77,6 +77,8 @@ namespace Warp
 
 		WARP_ATTR_NODISCARD inline ID3D12RootSignature* GetD3D12RootSignature() const { return m_D3D12RootSignature.Get(); }
 
+		void SetName(std::wstring_view name);
+
 	private:
 		ComPtr<ID3D12RootSignature> m_D3D12RootSignature;
 		ComPtr<ID3D10Blob> m_D3D12BlobWithRootSignature;

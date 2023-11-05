@@ -11,11 +11,12 @@ namespace Warp
 	// RHICommandContext
 	// =======================
 
-	RHICommandContext::RHICommandContext(RHICommandQueue* queue)
+	RHICommandContext::RHICommandContext(std::wstring_view name, RHICommandQueue* queue)
 		: m_queue(queue)
 		, m_commandList(queue->GetDevice()->GetD3D12Device(), queue->GetType())
 		, m_commandAllocatorPool(queue)
 	{
+		m_commandList.SetName(name);
 	}
 
 	void RHICommandContext::AddTransitionBarrier(RHIResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex)

@@ -156,4 +156,9 @@ namespace Warp
 		));
 	}
 
+	void RHIRootSignature::SetName(std::wstring_view name)
+	{
+		WARP_SET_RHI_NAME(m_D3D12RootSignature.Get(), name);
+	}
+
 }

@@ -36,7 +36,7 @@ namespace Warp
 			}()
 				)
 		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
-		, m_commandContext(m_device->GetGraphicsQueue())
+		, m_commandContext(L"RHICommandContext_Renderer", m_device->GetGraphicsQueue())
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
 
@@ -68,7 +68,7 @@ namespace Warp
 		WaitForGfxToFinish();
 		m_swapchain->Resize(width, height);
 
-		InitDepthStencil();
+		ResizeDepthStencil();
 	}
 
 	void Renderer::RenderFrame()
@@ -152,6 +152,18 @@ namespace Warp
 		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
 	}
 
+	void Renderer::ResizeDepthStencil()
+	{
+		D3D12_RESOURCE_DESC desc = m_depthStencil->GetDesc();
+		// these are the only changes after resize (for now atleast)
+		desc.Width = m_swapchain->GetWidth();
+		desc.Height = m_swapchain->GetHeight();
+
+		CD3DX12_CLEAR_VALUE optimizedClearValue(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0);
+		m_depthStencil->RecreateInPlace(D3D12_RESOURCE_STATE_DEPTH_WRITE, desc, &optimizedClearValue);
+		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
+	}
+
 	bool Renderer::InitAssets()
 	{
 		// TODO: Temporary
@@ -163,8 +175,9 @@ namespace Warp
 			return false;
 		}
 
-		m_rootSignature = RHIRootSignature(m_device, 
-			RHIRootSignatureDesc(1, 0).AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)); // TODO: Figure out why MESH visibility wont work
+		// TODO: Figure out why MESH visibility wont work
+		m_rootSignature = RHIRootSignature(m_device, RHIRootSignatureDesc(1, 0).AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)); 
+		m_rootSignature.SetName(L"RHIRootSign_Cube");
 
 		RHIMeshPipelineDesc cubePsoDesc = {};
 		cubePsoDesc.RootSignature = m_rootSignature;
@@ -178,6 +191,7 @@ namespace Warp
 		cubePsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		cubePsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		m_cubePso = RHIMeshPipelineState(m_device, cubePsoDesc);
+		m_cubePso.SetName(L"RHIMeshPso_Cube");
 
 		// TODO: Remvoe this
 		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
@@ -188,7 +202,7 @@ namespace Warp
 		cb.proj = DirectX::XMMatrixIdentity();
 
 		m_constantBuffer = m_device->CreateBuffer(sizeof(ConstantBuffer), sizeof(ConstantBuffer));
-		WARP_ASSERT(m_constantBuffer.IsValid());
+		m_constantBuffer.SetName(L"RHIBuffer_CubeCBV");
 
 		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
 		memcpy(data, &cb, sizeof(ConstantBuffer));

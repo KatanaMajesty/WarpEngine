@@ -176,4 +176,9 @@ namespace Warp
 		WARP_RHI_VALIDATE(device->GetD3D12Device()->CreatePipelineState(&StreamDesc, IID_PPV_ARGS(m_D3D12PipelineState.GetAddressOf())));
 	}
 
+	void RHIPipelineState::SetName(std::wstring_view name)
+	{
+		WARP_SET_RHI_NAME(m_D3D12PipelineState.Get(), name);
+	}
+
 }
