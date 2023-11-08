@@ -83,6 +83,9 @@ namespace Warp
 		// Application should also batch multiple transitions into a single call whenever possible.
 		UINT m_numResourceBarriers = 0;
 		std::array<D3D12_RESOURCE_BARRIER, NumResourceBarriersPerBatch> m_resourceBarrierBatch{};
+
+		// TODO: Maybe remove this as it is only used for PIX runtime
+		std::string m_name;
 	};
 
 }

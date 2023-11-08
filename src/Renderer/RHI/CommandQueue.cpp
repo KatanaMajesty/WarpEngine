@@ -5,6 +5,8 @@
 #include "../../Core/Logger.h"
 #include "Device.h"
 
+#include "PIXRuntime.h"
+
 namespace Warp
 {
 
@@ -60,9 +62,12 @@ namespace Warp
 			return;
 		}
 
-		// By providing NULL for HANDLE event we basically just start waiting immediately
-		WARP_MAYBE_UNUSED HRESULT hr = m_fence->SetEventOnCompletion(fenceValue, NULL);
+		HANDLE event = CreateEvent(NULL, FALSE, FALSE, L"RHICommandQueue::HostWaitForValue");
+		WARP_MAYBE_UNUSED HRESULT hr = m_fence->SetEventOnCompletion(fenceValue, event);
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (CPU-sided)");
+
+		WaitForSingleObject(event, INFINITE);
+		// Pix::NotifyWakeFromSignal(event);
 	}
 
 	bool RHICommandQueue::IsFenceComplete(UINT64 fenceValue) const

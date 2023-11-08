@@ -69,6 +69,5 @@ namespace Warp
 
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed
-		void PopulateCommandList(); // TODO: Temp, will be removed
 	};
 }

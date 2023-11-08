@@ -82,6 +82,9 @@
     <ClCompile Include="src\Renderer\RHI\RootSignature.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\PIXRuntime.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -158,6 +161,9 @@
     </ClInclude>
     <ClInclude Include="src\Util\Timer.h">
       <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\PIXRuntime.h">
+      <Filter>Renderer\RHI</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

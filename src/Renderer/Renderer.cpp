@@ -8,6 +8,7 @@
 
 // TODO: Temp, remove
 #include <DirectXMath.h>
+#include "RHI/PIXRuntime.h"
 
 namespace Warp
 {
@@ -78,14 +79,48 @@ namespace Warp
 		WaitForGfxOnFrameToFinish(frameIndex);
 
 		m_device->BeginFrame();
+		m_commandContext.Open();
 		{
-			// Populate command lists
-			// TODO: Remove this
-			PopulateCommandList();
+			WARP_SCOPED_EVENT(&m_commandContext, fmt::format("Renderer::RenderFrame{}", frameIndex + 1));
 
-			m_frameFenceValues[frameIndex] = m_commandContext.Execute(false);
-			m_swapchain->Present(true);
+			m_commandContext.SetPipelineState(m_cubePso);
+
+			UINT width = m_swapchain->GetWidth();
+			UINT height = m_swapchain->GetHeight();
+			m_commandContext.SetViewport(0, 0, width, height);
+			m_commandContext.SetScissorRect(0, 0, width, height);
+			
+			UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
+			RHITexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
+
+			// Indicate that the back buffer will be used as a render target.
+			m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			{
+				WARP_SCOPED_EVENT(&m_commandContext, "Renderer::SetRTVs");
+
+				D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
+				m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
+
+				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+				m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
+				m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+			}
+			
+			{
+				WARP_SCOPED_EVENT(&m_commandContext, "Renderer::DispatchMesh");
+
+				m_commandContext.SetGraphicsRootSignature(m_rootSignature);
+				m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
+				m_commandContext.DispatchMesh(1, 1, 1);
+			}
+			// Indicate that the back buffer will now be used to present.
+			m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
 		}
+		m_commandContext.Close();
+
+		m_frameFenceValues[frameIndex] = m_commandContext.Execute(false);
+		m_swapchain->Present(false);
+
 		m_device->EndFrame();
 	}
 
@@ -223,37 +258,6 @@ namespace Warp
 		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);
 		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc);
 		return m_cubeMs.HasBinary() && m_cubePs.HasBinary();
-	}
-
-	void Renderer::PopulateCommandList()
-	{
-		m_commandContext.Open();
-		m_commandContext.SetPipelineState(m_cubePso);
-
-		UINT width = m_swapchain->GetWidth();
-		UINT height = m_swapchain->GetHeight();
-		m_commandContext.SetViewport(0, 0, width, height);
-		m_commandContext.SetScissorRect(0, 0, width, height);
-
-		// Indicate that the back buffer will be used as a render target.
-		UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
-		RHITexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
-		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
-		D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
-		m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
-
-		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-		m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
-		m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
-
-		m_commandContext.SetGraphicsRootSignature(m_rootSignature);
-		m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
-		m_commandContext.DispatchMesh(1, 1, 1);
-
-		// Indicate that the back buffer will now be used to present.
-		m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
-		m_commandContext.Close();
 	}
 
 }

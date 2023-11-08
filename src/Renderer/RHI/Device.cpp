@@ -6,6 +6,7 @@
 #include "PhysicalDevice.h"
 
 #include "ValidationLayer.h"
+#include "PIXRuntime.h"
 
 namespace Warp
 {

@@ -30,6 +30,7 @@
     <ClCompile Include="src\Renderer\RHI\Device.cpp" />
     <ClCompile Include="src\Renderer\RHI\PhysicalDevice.cpp" />
     <ClCompile Include="src\Renderer\RHI\PipelineState.cpp" />
+    <ClCompile Include="src\Renderer\RHI\PIXRuntime.cpp" />
     <ClCompile Include="src\Renderer\RHI\Resource.cpp" />
     <ClCompile Include="src\Renderer\RHI\Swapchain.cpp" />
     <ClCompile Include="src\Renderer\RHI\CommandAllocatorPool.cpp" />
@@ -54,6 +55,7 @@
     <ClInclude Include="src\Renderer\RHI\DeviceChild.h" />
     <ClInclude Include="src\Renderer\RHI\PhysicalDevice.h" />
     <ClInclude Include="src\Renderer\RHI\PipelineState.h" />
+    <ClInclude Include="src\Renderer\RHI\PIXRuntime.h" />
     <ClInclude Include="src\Renderer\RHI\Swapchain.h" />
     <ClInclude Include="src\Renderer\RHI\Resource.h" />
     <ClInclude Include="src\Renderer\RHI\CommandAllocatorPool.h" />
@@ -212,6 +214,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
+    <Import Project="packages\WinPixEventRuntime.1.0.231030001\build\WinPixEventRuntime.targets" Condition="Exists('packages\WinPixEventRuntime.1.0.231030001\build\WinPixEventRuntime.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -219,5 +222,6 @@
     </PropertyGroup>
     <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
     <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.220531.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('packages\WinPixEventRuntime.1.0.231030001\build\WinPixEventRuntime.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\WinPixEventRuntime.1.0.231030001\build\WinPixEventRuntime.targets'))" />
   </Target>
 </Project>

@@ -40,5 +40,8 @@
 
 #endif
 
-// Additions for stdafx.h mostly
-#define WARP_STRINGIFY(x) #x
+#ifdef WARP_DEBUG
+#define WARP_EXPAND_DEBUG_ONLY(x) x
+#else
+#define WARP_EXPAND_DEBUG_ONLY(x)
+#endif

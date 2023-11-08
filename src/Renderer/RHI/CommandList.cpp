@@ -1,5 +1,7 @@
 #include "CommandList.h"
 
+#include "../../Util/String.h"
+
 namespace Warp
 {
 
@@ -169,6 +171,7 @@ namespace Warp
 
 	void RHICommandList::SetName(std::wstring_view name)
 	{
+		m_name = WStringToString(name);
 		WARP_SET_RHI_NAME(m_commandList.Get(), name);
 	}
 

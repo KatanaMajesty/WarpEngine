@@ -11,7 +11,7 @@
 #include <Windows.h>
 
 // #pragma comment(lib, "DirectXTK.lib")
-// #pragma comment(lib, "dxguid.lib")
+#pragma comment(lib, "dxguid.lib") // for guids such as WKPDID_D3DDebugObjectName
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "D3DCompiler.lib")
@@ -24,7 +24,7 @@
 
 #include <string>
 #include <string_view>
-#include <format> // TODO: Currently here, will be removed tho
+#include <fmt/format.h> // TODO: Currently here, will be removed tho
 #include <wrl.h>
 
 // Must be included for WARP_DEBUG to be defined
