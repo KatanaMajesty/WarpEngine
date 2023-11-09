@@ -10,14 +10,17 @@ namespace Warp::Pix
 	void BeginEvent(RHICommandContext* commandContext, std::string_view name)
 	{
 		static BYTE ColorIndex = 0;
-		WARP_EXPAND_DEBUG_ONLY(
-			PIXBeginEvent(commandContext->GetD3D12CommandList(), PIX_COLOR_INDEX(ColorIndex++), name.data()));
+		PIXBeginEvent(commandContext->GetD3D12CommandList(), PIX_COLOR_INDEX(ColorIndex++), name.data());
 	}
 
 	void EndEvent(RHICommandContext* commandContext)
 	{
-		WARP_EXPAND_DEBUG_ONLY(
-			PIXEndEvent(commandContext->GetD3D12CommandList()));
+		PIXEndEvent(commandContext->GetD3D12CommandList());
+	}
+
+	void NotifyWakeFromSignal(HANDLE event)
+	{
+		PIXNotifyWakeFromFenceSignal(event);
 	}
 
 }

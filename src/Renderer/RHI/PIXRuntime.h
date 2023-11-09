@@ -30,7 +30,7 @@ namespace Warp::Pix
 
 	// TODO: Replace this with HANDLE. I was to lazy to figure-out includes
 	// Smhw pix3.h wants stdafx.h to be included before itself
-	// void NotifyWakeFromSignal(void* event);
+	void NotifyWakeFromSignal(HANDLE event);
 }
 
 #define WARP_CONCAT(a, b) a##b
