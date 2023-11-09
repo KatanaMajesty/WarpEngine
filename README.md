@@ -7,6 +7,7 @@ tl;dr
 - [x] DXC shader compiler interface for easy shader retrieval
 - [x] Preferred Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline
 - [x] Simple mesh shader example of a rotating cube, all done inside renderer(
+- [x] Barebone PIX integration
 
 ## hello cube
 ![HelloCubeImage](images/WE_Img_HelloCube.jpg)
