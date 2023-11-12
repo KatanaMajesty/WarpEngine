@@ -28,6 +28,9 @@
     <Filter Include="Math">
       <UniqueIdentifier>{a03c8722-d9a4-42b3-b45a-ba662eaa8bed}</UniqueIdentifier>
     </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{ba5bd2a8-9bb6-4d2d-b137-683b1cd9b873}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -91,7 +94,9 @@
     <ClCompile Include="src\Renderer\RHI\PIXRuntime.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\World\World.cpp" />
+    <ClCompile Include="src\World\World.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -178,10 +183,16 @@
     <ClInclude Include="src\Math\Math.h">
       <Filter>Math</Filter>
     </ClInclude>
-    <ClInclude Include="src\World\World.h" />
-    <ClInclude Include="src\World\Entity.h" />
-    <ClInclude Include="src\World\Components.h" />
     <ClInclude Include="src\WinAPI.h" />
+    <ClInclude Include="src\World\World.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Entity.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Components.h">
+      <Filter>World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">

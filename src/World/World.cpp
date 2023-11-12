@@ -56,10 +56,8 @@ namespace Warp
 	{
 		for (auto& [ID, entity] : m_entityContainer)
 		{
-			WARP_ASSERT(entity.HasComponents<NametagComponent>()))
-			{
-				WARP_LOG_INFO("Destroying entity \"{}\"", entity.GetComponent<NametagComponent>().Nametag);
-			}
+			WARP_ASSERT(entity.HasComponents<NametagComponent>());
+			WARP_LOG_INFO("Destroying entity \"{}\"", entity.GetComponent<NametagComponent>().Nametag);
 
 			DestroyEntity(entity);
 		}
