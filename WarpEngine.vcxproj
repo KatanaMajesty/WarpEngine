@@ -44,6 +44,7 @@
     <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\Assets\AssetManager.h" />
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />
@@ -71,6 +72,9 @@
     <ClInclude Include="src\Util\Timer.h" />
     <ClInclude Include="src\WinAPI.h" />
     <ClInclude Include="src\World\Components.h" />
+    <ClInclude Include="src\World\Components\CameraComponent.h" />
+    <ClInclude Include="src\World\Components\NametagComponent.h" />
+    <ClInclude Include="src\World\Components\TransformComponent.h" />
     <ClInclude Include="src\World\Entity.h" />
     <ClInclude Include="src\World\World.h" />
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
