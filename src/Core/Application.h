@@ -3,8 +3,8 @@
 #include <memory>
 #include <string>
 #include <filesystem>
-#include <Windows.h>
 
+#include "../WinAPI.h"
 #include "../Util/Timer.h"
 
 namespace Warp
@@ -28,6 +28,7 @@ namespace Warp
 	};
 
 	class Renderer;
+	class World;
 
 	class Application
 	{
@@ -89,6 +90,9 @@ namespace Warp
 		bool m_scheduledResize = false;
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;
+
+		// TODO: currently we store world in Application. This should be changed though
+		std::unique_ptr<World> m_world;
 	};
 
 }

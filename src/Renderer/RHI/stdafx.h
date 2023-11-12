@@ -1,14 +1,16 @@
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
-#endif
+// 12/11/23 moved these to WinAPI.h, should not bother anymore
+//#ifndef WIN32_LEAN_AND_MEAN
+//#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers.
+//#endif
+//
+//#ifndef NOMINMAX
+//#define NOMINMAX
+//#endif					// Exclude rarely-used stuff from Windows headers.
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif					// Exclude rarely-used stuff from Windows headers.
-
-#include <Windows.h>
+//#include <Windows.h>
+#include "../../WinAPI.h"
 
 // #pragma comment(lib, "DirectXTK.lib")
 #pragma comment(lib, "dxguid.lib") // for guids such as WKPDID_D3DDebugObjectName

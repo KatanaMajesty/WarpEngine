@@ -67,6 +67,9 @@ namespace Warp
 		WARP_RHI_VALIDATE(D3D12MA::CreateAllocator(&resourceAllocatorDesc, m_resourceAllocator.ReleaseAndGetAddressOf()));
 
 		InitCommandQueues();
+
+		// Associate a logical device with physical device!
+		physicalDevice->AssociateLogicalDevice(this);
 	}
 
 	RHIDevice::~RHIDevice()

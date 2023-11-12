@@ -40,6 +40,7 @@
     <ClCompile Include="src\Renderer\Shader.cpp" />
     <ClCompile Include="src\Renderer\ShaderCompiler.cpp" />
     <ClCompile Include="src\Util\String.cpp" />
+    <ClCompile Include="src\World\World.cpp" />
     <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -47,6 +48,7 @@
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />
     <ClInclude Include="src\Core\Logger.h" />
+    <ClInclude Include="src\Math\Math.h" />
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\RHI\CommandList.h" />
     <ClInclude Include="src\Renderer\RHI\CommandQueue.h" />
@@ -67,8 +69,13 @@
     <ClInclude Include="src\Renderer\ShaderCompiler.h" />
     <ClInclude Include="src\Util\String.h" />
     <ClInclude Include="src\Util\Timer.h" />
+    <ClInclude Include="src\WinAPI.h" />
+    <ClInclude Include="src\World\Components.h" />
+    <ClInclude Include="src\World\Entity.h" />
+    <ClInclude Include="src\World\World.h" />
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
     <ClInclude Include="vendor\d3dx12.h" />
+    <ClInclude Include="vendor\DirectXTK\SimpleMath.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -79,6 +86,7 @@
     <CopyFileToFolders Include="vendor\dxil.dll">
       <FileType>Document</FileType>
     </CopyFileToFolders>
+    <None Include="vendor\DirectXTK\SimpleMath.inl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\Cube.hlsl">

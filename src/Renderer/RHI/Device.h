@@ -7,11 +7,12 @@
 #include "stdafx.h"
 #include "Resource.h"
 #include "CommandQueue.h"
-#include "PhysicalDevice.h"
 
 namespace Warp
 {
 	
+	class RHIPhysicalDevice;
+
 	// Warp uses an approach somewhat similar to Vulkan's. There are two types of device representations: physical and logical.
 	// RHIDevice is a logical representation of a GPU device, which is responsible for:
 	//	- Command Queue creation
@@ -48,6 +49,7 @@ namespace Warp
 		WARP_ATTR_NODISCARD RHIBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
+		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }
 
 		bool CheckMeshShaderSupport() const;
 

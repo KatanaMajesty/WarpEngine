@@ -7,7 +7,7 @@
 #include "../Core/Application.h"
 
 // TODO: Temp, remove
-#include <DirectXMath.h>
+#include "../Math/Math.h"
 #include "RHI/PIXRuntime.h"
 
 namespace Warp
@@ -15,9 +15,9 @@ namespace Warp
 
 	struct alignas(256) ConstantBuffer
 	{
-		DirectX::XMMATRIX model;
-		DirectX::XMMATRIX view;
-		DirectX::XMMATRIX proj;
+		Math::Matrix model;
+		Math::Matrix view;
+		Math::Matrix proj;
 	};
 
 	Renderer::Renderer(HWND hwnd)
@@ -34,13 +34,11 @@ namespace Warp
 				physicalDeviceDesc.EnableGpuBasedValidation = false;
 #endif
 				return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
-			}()
-				)
-		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
+			}())
+		, m_device(std::make_unique<RHIDevice>(GetPhysicalDevice()))
 		, m_commandContext(L"RHICommandContext_Renderer", m_device->GetGraphicsQueue())
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
-
 		WARP_ASSERT(m_device->CheckMeshShaderSupport(), "we only use mesh shaders");
 
 		// TODO: Temp, remove
@@ -127,8 +125,25 @@ namespace Warp
 	void Renderer::Update(float timestep)
 	{
 		m_timeElapsed += timestep;
+
+		float yaw = m_timeElapsed * 0.5f;
+		float pitch = m_timeElapsed * 1.0f;
+		float roll = m_timeElapsed * 0.75f;
+		Math::Quaternion rotQuat = Math::Quaternion::CreateFromYawPitchRoll(Math::Vector3(yaw, pitch, roll));
+
+		Math::Matrix translation = Math::Matrix::CreateTranslation(Math::Vector3(0.0f, 0.0f, -2.0f));
+		Math::Matrix rotation = Math::Matrix::CreateFromQuaternion(rotQuat);
+		Math::Matrix scale = Math::Matrix::CreateScale(1.0f);
+
+		uint32_t width = m_swapchain->GetWidth();
+		uint32_t height = m_swapchain->GetHeight();
+		float aspectRatio = static_cast<float>(width) / height;
+
 		ConstantBuffer cb;
-		cb.model = DirectX::XMMatrixAffineTransformation(
+		cb.model = scale * rotation * translation;
+		cb.view = Math::Matrix();
+		cb.proj = Math::Matrix::CreatePerspectiveFieldOfView(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
+		/*cb.model = DirectX::XMMatrixAffineTransformation(
 			DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f),
 			DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
 			DirectX::XMQuaternionRotationRollPitchYaw(
@@ -143,7 +158,7 @@ namespace Warp
 		uint32_t width = m_swapchain->GetWidth();
 		uint32_t height = m_swapchain->GetHeight();
 		float aspectRatio = static_cast<float>(width) / height;
-		cb.proj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
+		cb.proj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);*/
 
 		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
 		memcpy(data, &cb, sizeof(ConstantBuffer));
@@ -175,14 +190,14 @@ namespace Warp
 		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 		// Create depth-stencil texture2d
-		m_depthStencil = std::make_unique<RHITexture>(m_device, 
+		m_depthStencil = std::make_unique<RHITexture>(GetDevice(),
 			D3D12_HEAP_TYPE_DEFAULT, 
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
 			desc, 
 			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0));
 
 		// Depth-stencil view
-		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
 		m_dsv = m_dsvHeap->Allocate(1);
 		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
 	}
@@ -201,9 +216,6 @@ namespace Warp
 
 	bool Renderer::InitAssets()
 	{
-		// TODO: Temporary
-		ID3D12Device* d3dDevice = m_device->GetD3D12Device();
-
 		if (!InitShaders())
 		{
 			WARP_LOG_ERROR("Failed to init shaders");
@@ -211,7 +223,7 @@ namespace Warp
 		}
 
 		// TODO: Figure out why MESH visibility wont work
-		m_rootSignature = RHIRootSignature(m_device, RHIRootSignatureDesc(1, 0).AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)); 
+		m_rootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc(1, 0).AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL));
 		m_rootSignature.SetName(L"RHIRootSign_Cube");
 
 		RHIMeshPipelineDesc cubePsoDesc = {};
@@ -225,7 +237,7 @@ namespace Warp
 		cubePsoDesc.NumRTVs = 1;
 		cubePsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		cubePsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		m_cubePso = RHIMeshPipelineState(m_device, cubePsoDesc);
+		m_cubePso = RHIMeshPipelineState(GetDevice(), cubePsoDesc);
 		m_cubePso.SetName(L"RHIMeshPso_Cube");
 
 		// TODO: Remvoe this

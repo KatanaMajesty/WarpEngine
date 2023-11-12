@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 
 #include "../Core/Defines.h"
 #include "RHI/stdafx.h"
@@ -36,6 +37,7 @@ namespace Warp
 		void Update(float timestep);
 
 		static constexpr uint32_t SimultaneousFrames = RHISwapchain::BackbufferCount;
+		static constexpr uint32_t NumDescriptorHeapTypes = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 
 	private:
 		// Waits for graphics queue to finish executing on the particular specified frame
@@ -44,13 +46,18 @@ namespace Warp
 		// Wait for graphics queue to finish executing all the commands on all frames
 		void WaitForGfxToFinish();
 
-		std::unique_ptr<RHIPhysicalDevice> m_physicalDevice;
-		RHIDevice* m_device;
+		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice.get(); }
+		inline RHIDevice* GetDevice() const { return m_device.get(); }
 
-		std::unique_ptr<RHISwapchain> m_swapchain;
+		std::unique_ptr<RHIPhysicalDevice>	m_physicalDevice;
+		std::unique_ptr<RHIDevice>			m_device;
+		std::unique_ptr<RHISwapchain>		m_swapchain;
+
 		RHICommandContext m_commandContext; // TODO: Make it unique_ptr after we implement whole functionality
 		RHIRootSignature m_rootSignature;
 		UINT64 m_frameFenceValues[SimultaneousFrames];
+
+		std::array<std::unique_ptr<RHIDescriptorHeap>, NumDescriptorHeapTypes> m_descriptorHeaps;
 
 		// TODO: Remove/move
 		void InitDepthStencil();

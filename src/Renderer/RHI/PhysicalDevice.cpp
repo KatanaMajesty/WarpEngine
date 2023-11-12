@@ -60,13 +60,22 @@ namespace Warp
 		return m_HWND && m_factory && m_adapter;
 	}
 
+	void RHIPhysicalDevice::AssociateLogicalDevice(RHIDevice* device)
+	{
+		if (m_associatedLogicalDevice)
+		{
+			WARP_LOG_FATAL("Cannot reset logical device once it was already associated!");
+			throw std::runtime_error("Cannot reset logical device once it was already associated!");
+			return;
+		}
+
+		m_associatedLogicalDevice = device;
+	}
+
 	RHIDevice* RHIPhysicalDevice::GetAssociatedLogicalDevice()
 	{
-		if (!m_linkedLogicalDevice)
-		{
-			m_linkedLogicalDevice = std::make_unique<RHIDevice>(this);
-		}
-		return m_linkedLogicalDevice.get();
+		WARP_ASSERT(m_associatedLogicalDevice, "Cannot retrieve associated logical device before it was created");
+		return m_associatedLogicalDevice;
 	}
 
 	void RHIPhysicalDevice::InitDebugInterface(bool enableGpuBasedValidation)

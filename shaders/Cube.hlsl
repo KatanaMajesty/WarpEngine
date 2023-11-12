@@ -21,14 +21,14 @@ float4 TransformPosition(float3 xyz, in matrix mvp)
 
 static const float3 g_Positions[] = 
 {
+    float3(-0.5, -0.5, +0.5),
     float3(-0.5, -0.5, -0.5),
-    float3(-0.5, -0.5, 0.5),
+    float3(-0.5, 0.5, +0.5),
     float3(-0.5, 0.5, -0.5),
-    float3(-0.5, 0.5, 0.5),
+    float3(0.5, -0.5, +0.5),
     float3(0.5, -0.5, -0.5),
-    float3(0.5, -0.5, 0.5),
-    float3(0.5, 0.5, -0.5),
-    float3(0.5, 0.5, 0.5)
+    float3(0.5, 0.5, +0.5),
+    float3(0.5, 0.5, -0.5)
 };
 
 static const float3 g_Colors[] =

@@ -4,6 +4,7 @@
 #include "Defines.h"
 #include "Assert.h"
 #include "../Renderer/Renderer.h"
+#include "../World/World.h"
 
 namespace Warp
 {
@@ -38,6 +39,7 @@ namespace Warp
 	void Application::Init(HWND hwnd)
 	{
 		m_renderer = std::make_unique<Renderer>(hwnd);
+		m_world = std::make_unique<World>();
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)
@@ -75,6 +77,7 @@ namespace Warp
 
 	void Application::Update(float timestep)
 	{
+		m_world->Update(timestep);
 		m_renderer->Update(timestep);
 	}
 
