@@ -27,7 +27,7 @@ namespace Warp
 		// The proxy should be stored and can be passed in-and-out in functions as it is a light-weight object
 		// Assets are queried from AssetManager on the fly using AssetManager::GetAs member function
 		template<ValidAssetType T>
-		AssetProxy CreateAsset()
+		WARP_ATTR_NODISCARD AssetProxy CreateAsset()
 		{
 			Registry<T>* registry = this->GetRegistry<T>();
 			AssetProxy proxy = registry->AllocateAsset();
@@ -36,7 +36,7 @@ namespace Warp
 
 		// Destroys an asset with the associated proxy
 		// returns an updated proxy, that will 
-		AssetProxy DestroyAsset(AssetProxy proxy);
+		WARP_ATTR_NODISCARD AssetProxy DestroyAsset(AssetProxy proxy);
 
 		// A very quick search of an asset (linear O(1) essentially, just an array lookup). In release configuration performs no checks on whether the asset proxy is valid
 		// In debug configuration only assertions are performed to check whether to proxy is valid and can be used to retrieve an asset
@@ -54,6 +54,7 @@ namespace Warp
 		// but instead should free the place for the asset handles that will be created later
 
 		// TODO: Need a way to retrieve AssetProxy after it was created smhw.
+		// TODO: Rewrite registry to use memorypools instead of vectors
 		template<ValidAssetType T>
 		class Registry
 		{
@@ -155,7 +156,15 @@ namespace Warp
 	template<ValidAssetType T>
 	inline T* AssetManager::Registry<T>::GetAsset(AssetProxy proxy) const
 	{
-		WARP_ASSERT(proxy.IsValid() && proxy.Index < AssetContainer.size() && AssetContainer[proxy.Index])
+		WARP_EXPAND_DEBUG_ONLY(
+			if (!proxy.IsValid() || proxy.Index < AssetContainer.size() || !AssetContainer[proxy.Index])
+			{
+				WARP_LOG_ERROR("Tried to access asset using invalid proxy AssetProxy(Type: {}, Index: {})!",
+					GetAssetTypeName(proxy.Type), proxy.Index);
+
+				return nullptr;
+			}
+		);
 		return AssetContainer[proxy.Index].get();
 	}
 
