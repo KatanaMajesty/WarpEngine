@@ -202,21 +202,10 @@
     <ClInclude Include="src\World\Components.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="src\World\Components\TransformComponent.h">
-      <Filter>World\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="src\World\Components\NametagComponent.h">
-      <Filter>World\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="src\World\Components\CameraComponent.h">
-      <Filter>World\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\AssetManager.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\Asset.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
+    <ClInclude Include="src\World\Components\NametagComponent.h" />
+    <ClInclude Include="src\World\Components\TransformComponent.h" />
+    <ClInclude Include="src\World\Components\CameraComponent.h" />
+    <ClInclude Include="src\Assets\AssetManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
