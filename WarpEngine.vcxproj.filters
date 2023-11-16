@@ -97,6 +97,7 @@
     <ClCompile Include="src\World\World.cpp">
       <Filter>World</Filter>
     </ClCompile>
+    <ClCompile Include="src\Assets\AssetManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -197,6 +198,7 @@
     <ClInclude Include="src\World\Components\TransformComponent.h" />
     <ClInclude Include="src\World\Components\CameraComponent.h" />
     <ClInclude Include="src\Assets\AssetManager.h" />
+    <ClInclude Include="src\Assets\Asset.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
