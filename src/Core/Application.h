@@ -7,6 +7,8 @@
 #include "../WinAPI.h"
 #include "../Util/Timer.h"
 
+#include "../Assets/AssetManager.h"
+
 namespace Warp
 {
 
@@ -93,6 +95,8 @@ namespace Warp
 
 		// TODO: currently we store world in Application. This should be changed though
 		std::unique_ptr<World> m_world;
+
+		std::unique_ptr<AssetManager> m_assetManager;
 	};
 
 }

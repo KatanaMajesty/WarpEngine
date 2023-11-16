@@ -40,6 +40,8 @@ namespace Warp
 	{
 		m_renderer = std::make_unique<Renderer>(hwnd);
 		m_world = std::make_unique<World>();
+
+		m_assetManager = std::make_unique<AssetManager>();
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)

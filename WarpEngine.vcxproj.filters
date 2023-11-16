@@ -31,6 +31,12 @@
     <Filter Include="World">
       <UniqueIdentifier>{ba5bd2a8-9bb6-4d2d-b137-683b1cd9b873}</UniqueIdentifier>
     </Filter>
+    <Filter Include="World\Components">
+      <UniqueIdentifier>{354dfba0-3b04-4901-a314-f00b710baaa1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{0e4c5c3c-4bd9-46f5-804d-3824d5960a95}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -96,6 +102,9 @@
     </ClCompile>
     <ClCompile Include="src\World\World.cpp">
       <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetManager.cpp">
+      <Filter>Assets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -193,10 +202,21 @@
     <ClInclude Include="src\World\Components.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="src\World\Components\NametagComponent.h" />
-    <ClInclude Include="src\World\Components\TransformComponent.h" />
-    <ClInclude Include="src\World\Components\CameraComponent.h" />
-    <ClInclude Include="src\Assets\AssetManager.h" />
+    <ClInclude Include="src\World\Components\TransformComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Components\NametagComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Components\CameraComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetManager.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Asset.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
