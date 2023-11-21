@@ -174,6 +174,7 @@ namespace Warp
 		, m_strideInBytes(strideInBytes)
 		, m_sizeInBytes(sizeInBytes)
 	{
+		// TODO: Add HEAP_TYPE_READBACK aswell
 		if (heapType == D3D12_HEAP_TYPE_UPLOAD)
 		{
 			WARP_MAYBE_UNUSED HRESULT hr = GetD3D12Resource()->Map(0, nullptr, &m_cpuMapping);
@@ -185,7 +186,7 @@ namespace Warp
 		}
 	}
 
-	D3D12_VERTEX_BUFFER_VIEW RHIBuffer::GetVertexBufferView() const
+	RHIVertexBufferView RHIBuffer::GetVertexBufferView() const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(), 
 			"The resource is either invalid or is not allowed to be represented as shader resource");
@@ -197,7 +198,7 @@ namespace Warp
 		return vbv;
 	}
 
-	D3D12_INDEX_BUFFER_VIEW RHIBuffer::GetIndexBufferView(DXGI_FORMAT format) const
+	RHIIndexBufferView RHIBuffer::GetIndexBufferView(DXGI_FORMAT format) const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(),
 			"The resource is either invalid or is not allowed to be represented as shader resource");

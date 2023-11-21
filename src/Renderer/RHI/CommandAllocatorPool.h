@@ -25,7 +25,7 @@ namespace Warp
 	private:
 		using AllocatorEntry = std::pair<ComPtr<ID3D12CommandAllocator>, UINT64>;
 
-		RHICommandQueue* m_queue;
+		RHICommandQueue* m_queue = nullptr;
 		std::queue<AllocatorEntry> m_activeAllocators;
 	};
 

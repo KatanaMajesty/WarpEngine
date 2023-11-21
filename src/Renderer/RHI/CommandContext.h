@@ -25,6 +25,7 @@ namespace Warp
 		inline constexpr D3D12_COMMAND_LIST_TYPE GetType() const { return m_queue->GetType(); }
 		inline ID3D12GraphicsCommandList6* GetD3D12CommandList() const { return m_commandList.GetD3D12CommandList(); }
 		inline ID3D12GraphicsCommandList6* operator->() const { return GetD3D12CommandList(); } // TODO: Will be removed
+		inline RHICommandQueue* GetQueue() const { return m_queue; }
 
 		void AddTransitionBarrier(RHIResource* resource, D3D12_RESOURCE_STATES state, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
 		void AddAliasingBarrier(RHIResource* before, RHIResource* after); // NOIMPL
@@ -40,6 +41,8 @@ namespace Warp
 		void Open();
 		void Close();
 		UINT64 Execute(bool waitForCompletion);
+
+		void FlushBatchedResourceBarriers();
 
 		// In D3D12 there is no non-instanced draw calls
 		// Application should always prefer calling these draw call functions in order to avoid manually flushing batched resource barriers
@@ -62,6 +65,8 @@ namespace Warp
 			UINT numThreadGroupsX,
 			UINT numThreadGroupsY,
 			UINT numThreadGroupsZ);
+
+		void CopyResource(RHIResource* dest, RHIResource* src);
 
 	private:
 		static constexpr UINT NumResourceBarriersPerBatch = 16;

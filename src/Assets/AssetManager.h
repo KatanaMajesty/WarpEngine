@@ -7,6 +7,7 @@
 #include <concepts>
 
 #include "Asset.h"
+#include "ModelAsset.h"
 
 #include "../Core/Assert.h"
 #include "../Core/Logger.h"
@@ -157,10 +158,11 @@ namespace Warp
 	inline T* AssetManager::Registry<T>::GetAsset(AssetProxy proxy) const
 	{
 		WARP_EXPAND_DEBUG_ONLY(
-			if (!proxy.IsValid() || proxy.Index < AssetContainer.size() || !AssetContainer[proxy.Index])
+			if (!proxy.IsValid() || proxy.Index >= AssetContainer.size() || !AssetContainer[proxy.Index])
 			{
 				WARP_LOG_ERROR("Tried to access asset using invalid proxy AssetProxy(Type: {}, Index: {})!",
 					GetAssetTypeName(proxy.Type), proxy.Index);
+				WARP_ASSERT(false);
 
 				return nullptr;
 			}

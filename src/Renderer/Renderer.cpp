@@ -36,7 +36,9 @@ namespace Warp
 				return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
 			}())
 		, m_device(std::make_unique<RHIDevice>(GetPhysicalDevice()))
-		, m_commandContext(L"RHICommandContext_Renderer", m_device->GetGraphicsQueue())
+		, m_graphicsContext(RHICommandContext(L"RHICommandContext_Graphics", m_device->GetGraphicsQueue()))
+		, m_copyContext(RHICommandContext(L"RHICommandContext_Copy", m_device->GetCopyQueue()))
+		, m_computeContext(RHICommandContext(L"RHICommandContext_Compute", m_device->GetComputeQueue()))
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
 		WARP_ASSERT(m_device->CheckMeshShaderSupport(), "we only use mesh shaders");
@@ -56,8 +58,8 @@ namespace Warp
 	Renderer::~Renderer()
 	{
 		WaitForGfxToFinish();
-		m_device->GetComputeQueue()->HostWaitIdle();
-		m_device->GetCopyQueue()->HostWaitIdle();
+		m_graphicsContext.GetQueue()->HostWaitIdle();
+		m_copyContext.GetQueue()->HostWaitIdle();
 	}
 
 	void Renderer::Resize(uint32_t width, uint32_t height)
@@ -70,53 +72,54 @@ namespace Warp
 		ResizeDepthStencil();
 	}
 
-	void Renderer::RenderFrame()
+	void Renderer::RenderFrame(ModelAsset* model)
 	{
 		// Wait for inflight frame of the currently used backbuffer
 		UINT frameIndex = m_swapchain->GetCurrentBackbufferIndex();
 		WaitForGfxOnFrameToFinish(frameIndex);
 
 		m_device->BeginFrame();
-		m_commandContext.Open();
-		{
-			WARP_SCOPED_EVENT(&m_commandContext, fmt::format("Renderer::RenderFrame{}", frameIndex + 1));
 
-			m_commandContext.SetPipelineState(m_cubePso);
+		m_graphicsContext.Open();
+		{
+			WARP_SCOPED_EVENT(&m_graphicsContext, fmt::format("Renderer::RenderFrame{}", frameIndex + 1));
+
+			m_graphicsContext.SetPipelineState(m_cubePso);
 
 			UINT width = m_swapchain->GetWidth();
 			UINT height = m_swapchain->GetHeight();
-			m_commandContext.SetViewport(0, 0, width, height);
-			m_commandContext.SetScissorRect(0, 0, width, height);
+			m_graphicsContext.SetViewport(0, 0, width, height);
+			m_graphicsContext.SetScissorRect(0, 0, width, height);
 			
 			UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
 			RHITexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
 
 			// Indicate that the back buffer will be used as a render target.
-			m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			{
-				WARP_SCOPED_EVENT(&m_commandContext, "Renderer::SetRTVs");
+				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer::SetRTVs");
 
 				D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
-				m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
+				m_graphicsContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
 
 				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-				m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
-				m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				m_graphicsContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
+				m_graphicsContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 			}
 			
 			{
-				WARP_SCOPED_EVENT(&m_commandContext, "Renderer::DispatchMesh");
+				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer::DispatchMesh");
 
-				m_commandContext.SetGraphicsRootSignature(m_rootSignature);
-				m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
-				m_commandContext.DispatchMesh(1, 1, 1);
+				m_graphicsContext.SetGraphicsRootSignature(m_rootSignature);
+				m_graphicsContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
+				m_graphicsContext.DispatchMesh(1, 1, 1);
 			}
 			// Indicate that the back buffer will now be used to present.
-			m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
+			m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
 		}
-		m_commandContext.Close();
+		m_graphicsContext.Close();
 
-		m_frameFenceValues[frameIndex] = m_commandContext.Execute(false);
+		m_frameFenceValues[frameIndex] = m_graphicsContext.Execute(false);
 		m_swapchain->Present(false);
 
 		m_device->EndFrame();
@@ -143,22 +146,6 @@ namespace Warp
 		cb.model = scale * rotation * translation;
 		cb.view = Math::Matrix();
 		cb.proj = Math::Matrix::CreatePerspectiveFieldOfView(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
-		/*cb.model = DirectX::XMMatrixAffineTransformation(
-			DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f),
-			DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
-			DirectX::XMQuaternionRotationRollPitchYaw(
-				m_timeElapsed * 0.5f,
-				m_timeElapsed * 1.0f,
-				m_timeElapsed * 0.75f
-			),
-			DirectX::XMVectorSet(0.0f, 0.0f, 2.0f, 0.0f)
-		);
-		cb.view = DirectX::XMMatrixIdentity();
-
-		uint32_t width = m_swapchain->GetWidth();
-		uint32_t height = m_swapchain->GetHeight();
-		float aspectRatio = static_cast<float>(width) / height;
-		cb.proj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);*/
 
 		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
 		memcpy(data, &cb, sizeof(ConstantBuffer));
@@ -166,12 +153,12 @@ namespace Warp
 
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{
-		m_device->GetGraphicsQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
+		m_graphicsContext.GetQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
 	}
 
 	void Renderer::WaitForGfxToFinish()
 	{
-		m_device->GetGraphicsQueue()->HostWaitIdle();
+		m_graphicsContext.GetQueue()->HostWaitIdle();
 	}
 
 	void Renderer::InitDepthStencil()

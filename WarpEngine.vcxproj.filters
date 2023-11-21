@@ -106,6 +106,9 @@
     <ClCompile Include="src\Assets\AssetManager.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
+    <ClCompile Include="src\Assets\ModelLoader.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -202,10 +205,36 @@
     <ClInclude Include="src\World\Components.h">
       <Filter>World</Filter>
     </ClInclude>
-    <ClInclude Include="src\World\Components\NametagComponent.h" />
-    <ClInclude Include="src\World\Components\TransformComponent.h" />
-    <ClInclude Include="src\World\Components\CameraComponent.h" />
-    <ClInclude Include="src\Assets\AssetManager.h" />
+    <ClInclude Include="src\World\Components\CameraComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Components\NametagComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Components\TransformComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Asset.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\AssetManager.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\ModelLoader.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\ModelAsset.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Loader.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Util\ArrayView.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Mesh.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">

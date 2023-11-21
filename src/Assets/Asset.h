@@ -12,6 +12,7 @@ namespace Warp
 		Unknown = 0,
 		Model,
 		Texture,
+		NumTypes,
 		// Scene,
 	};
 
@@ -41,15 +42,6 @@ namespace Warp
 
 	protected:
 		EAssetType m_type;
-	};
-
-	struct ModelAsset final : public Asset
-	{
-		static constexpr EAssetType StaticType = EAssetType::Model;
-
-		ModelAsset() : Asset(StaticType) {}
-
-		std::string Name = "Unknown";
 	};
 
 	struct TextureAsset final : public Asset

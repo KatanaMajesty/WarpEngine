@@ -6,6 +6,8 @@
 #include "../Renderer/Renderer.h"
 #include "../World/World.h"
 
+#include "../Assets/ModelLoader.h"
+
 namespace Warp
 {
 
@@ -40,8 +42,10 @@ namespace Warp
 	{
 		m_renderer = std::make_unique<Renderer>(hwnd);
 		m_world = std::make_unique<World>();
-
 		m_assetManager = std::make_unique<AssetManager>();
+
+		ModelLoader loader(m_assetManager.get());
+		m_tempModelProxy = loader.Load((GetAssetsPath() / "cube" / "cube.gltf").string());
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)
@@ -85,7 +89,9 @@ namespace Warp
 
 	void Application::Render()
 	{
-		m_renderer->RenderFrame();
+		// TODO: Temporarily using Model asset here. Will be removed asap
+		ModelAsset* model = m_assetManager->GetAs<ModelAsset>(m_tempModelProxy);
+		m_renderer->RenderFrame(model);
 	}
 
 }

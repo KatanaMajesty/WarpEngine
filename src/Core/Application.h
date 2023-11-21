@@ -66,7 +66,7 @@ namespace Warp
 
 		// Getters and setters for absolute Shader and Assets paths
 		inline constexpr const std::filesystem::path& GetShaderPath() const { return m_shaderPath; }
-		inline constexpr const std::filesystem::path& GetAssetsPath() const { return m_assetsPath;  }
+		inline constexpr const std::filesystem::path& GetAssetsPath() const { return m_assetsPath; }
 		inline constexpr void SetShaderPath(const std::filesystem::path& path) { m_shaderPath = path; }
 		inline constexpr void SetAssetsPath(const std::filesystem::path& path) { m_assetsPath = path; }
 
@@ -97,6 +97,7 @@ namespace Warp
 		std::unique_ptr<World> m_world;
 
 		std::unique_ptr<AssetManager> m_assetManager;
+		AssetProxy m_tempModelProxy;
 	};
 
 }

@@ -11,8 +11,50 @@
 
 namespace Warp
 {
-	
+
 	// TODO: Implement implicit state decay/promotion
+
+	struct RHIVertexBufferView
+	{
+		RHIVertexBufferView() = default;
+		RHIVertexBufferView(D3D12_GPU_VIRTUAL_ADDRESS bufferLocation, UINT sizeInBytes, UINT strideInBytes)
+			: Handle(D3D12_VERTEX_BUFFER_VIEW{
+					.BufferLocation = bufferLocation,
+					.SizeInBytes = sizeInBytes,
+					.StrideInBytes = strideInBytes
+				})
+		{
+		}
+		RHIVertexBufferView(D3D12_VERTEX_BUFFER_VIEW vbv)
+			: Handle(vbv)
+		{
+		}
+
+		operator D3D12_VERTEX_BUFFER_VIEW() const { return Handle; }
+
+		D3D12_VERTEX_BUFFER_VIEW Handle = D3D12_VERTEX_BUFFER_VIEW();
+	};
+
+	struct RHIIndexBufferView
+	{
+		RHIIndexBufferView() = default;
+		RHIIndexBufferView(D3D12_GPU_VIRTUAL_ADDRESS bufferLocation, UINT sizeInBytes, DXGI_FORMAT format)
+			: Handle(D3D12_INDEX_BUFFER_VIEW{
+					.BufferLocation = bufferLocation,
+					.SizeInBytes = sizeInBytes,
+					.Format = format
+				})
+		{
+		}
+		RHIIndexBufferView(D3D12_INDEX_BUFFER_VIEW ibv)
+			: Handle(ibv)
+		{
+		}
+
+		operator D3D12_INDEX_BUFFER_VIEW() const { return Handle; }
+
+		D3D12_INDEX_BUFFER_VIEW Handle = D3D12_INDEX_BUFFER_VIEW();
+	};
 
 	constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_UNKNOWN = static_cast<D3D12_RESOURCE_STATES>(-1);
 	constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INVALID = static_cast<D3D12_RESOURCE_STATES>(-2);
@@ -116,8 +158,8 @@ namespace Warp
 		inline constexpr bool IsUavAllowed() const { return m_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; }
 		inline constexpr bool IsSrvAllowed() const { return !(m_desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE); }
 
-		D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView() const;
-		D3D12_INDEX_BUFFER_VIEW GetIndexBufferView(DXGI_FORMAT format = DXGI_FORMAT_R32_UINT) const;
+		RHIVertexBufferView GetVertexBufferView() const;
+		RHIIndexBufferView	GetIndexBufferView(DXGI_FORMAT format = DXGI_FORMAT_R32_UINT) const;
 
 		// It may be nullptr, if the type of the HEAP where the buffer resides is not UPLOAD_HEAP
 		template<typename T>

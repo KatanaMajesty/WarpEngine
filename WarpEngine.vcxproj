@@ -21,6 +21,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Assets\AssetManager.cpp" />
+    <ClCompile Include="src\Assets\ModelLoader.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -47,11 +48,15 @@
   <ItemGroup>
     <ClInclude Include="src\Assets\Asset.h" />
     <ClInclude Include="src\Assets\AssetManager.h" />
+    <ClInclude Include="src\Assets\Loader.h" />
+    <ClInclude Include="src\Assets\ModelAsset.h" />
+    <ClInclude Include="src\Assets\ModelLoader.h" />
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\Math\Math.h" />
+    <ClInclude Include="src\Renderer\Mesh.h" />
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\RHI\CommandList.h" />
     <ClInclude Include="src\Renderer\RHI\CommandQueue.h" />
@@ -70,6 +75,7 @@
     <ClInclude Include="src\Renderer\RHI\RootSignature.h" />
     <ClInclude Include="src\Renderer\Shader.h" />
     <ClInclude Include="src\Renderer\ShaderCompiler.h" />
+    <ClInclude Include="src\Util\ArrayView.h" />
     <ClInclude Include="src\Util\String.h" />
     <ClInclude Include="src\Util\Timer.h" />
     <ClInclude Include="src\WinAPI.h" />
@@ -190,11 +196,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ShowIncludes>false</ShowIncludes>
       <AdditionalIncludeDirectories>$(SolutionDir)vendor/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -209,12 +217,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <ShowIncludes>false</ShowIncludes>
       <AdditionalIncludeDirectories>$(SolutionDir)vendor/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

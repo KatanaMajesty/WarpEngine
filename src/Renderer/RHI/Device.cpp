@@ -102,7 +102,7 @@ namespace Warp
 		m_resourceAllocator->SetCurrentFrameIndex(m_frameID);
 	}
 
-	RHICommandQueue* RHIDevice::GetQueue(D3D12_COMMAND_LIST_TYPE type) const
+	RHICommandQueue* RHIDevice::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type)
 	{
 		switch (type)
 		{
