@@ -150,6 +150,16 @@ namespace Warp
 			numThreadGroupsZ);
 	}
 
+	void RHICommandContext::ClearRtv(const RHIRenderTargetView& descriptor, const float* rgba, UINT numDirtyRects, const D3D12_RECT* dirtyRects)
+	{
+		m_commandList->ClearRenderTargetView(descriptor.GetCpuAddress(), rgba, numDirtyRects, dirtyRects);
+	}
+
+	void RHICommandContext::ClearDsv(const RHIDepthStencilView& descriptor, D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil, UINT numDirtyRects, const D3D12_RECT* dirtyRects)
+	{
+		m_commandList->ClearDepthStencilView(descriptor.GetCpuAddress(), flags, depth, stencil, numDirtyRects, dirtyRects);
+	}
+
 	void RHICommandContext::CopyResource(RHIResource* dest, RHIResource* src)
 	{
 		WARP_EXPAND_DEBUG_ONLY(

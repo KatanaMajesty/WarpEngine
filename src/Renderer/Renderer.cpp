@@ -99,12 +99,14 @@ namespace Warp
 			{
 				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer::SetRTVs");
 
-				D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
-				m_graphicsContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
+				// TODO: We do not change this to new API yet, although we want to
+				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_swapchain->GetCurrentRtv().GetCpuAddress();
+				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_depthStencilView.GetCpuAddress();
+				m_graphicsContext->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-				m_graphicsContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
-				m_graphicsContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearColor, 0, nullptr);
+				m_graphicsContext.ClearDsv(m_depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 			}
 			
 			{
@@ -185,8 +187,7 @@ namespace Warp
 
 		// Depth-stencil view
 		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
-		m_dsv = m_dsvHeap->Allocate(1);
-		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
+		m_depthStencilView = RHIDepthStencilView(m_device.get(), m_depthStencil.get(), nullptr, m_dsvHeap->Allocate(1));
 	}
 
 	void Renderer::ResizeDepthStencil()
@@ -198,7 +199,7 @@ namespace Warp
 
 		CD3DX12_CLEAR_VALUE optimizedClearValue(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0);
 		m_depthStencil->RecreateInPlace(D3D12_RESOURCE_STATE_DEPTH_WRITE, desc, &optimizedClearValue);
-		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
+		m_depthStencilView.RecreateDescriptor(m_depthStencil.get());
 	}
 
 	bool Renderer::InitAssets()

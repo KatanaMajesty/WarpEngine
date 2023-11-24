@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include "Resource.h"
 #include "PhysicalDevice.h"
+#include "Descriptor.h"
 #include "DescriptorHeap.h"
 
 namespace Warp
@@ -32,7 +33,8 @@ namespace Warp
 
 		WARP_ATTR_NODISCARD inline RHITexture* GetBackbuffer(UINT backbufferIndex) { return &m_backbuffers[backbufferIndex]; }
 		WARP_ATTR_NODISCARD inline const RHITexture* GetBackbuffer(UINT backbufferIndex) const { return &m_backbuffers[backbufferIndex]; }
-		WARP_ATTR_NODISCARD inline D3D12_CPU_DESCRIPTOR_HANDLE GetRtvDescriptor(UINT index) const { return m_backbufferRtvs.GetCpuAddress(index); }
+		WARP_ATTR_NODISCARD inline const RHIRenderTargetView& GetRtv(UINT index) const { return m_backbufferRtvs[index]; }
+		WARP_ATTR_NODISCARD inline const RHIRenderTargetView& GetCurrentRtv() const { return GetRtv(GetCurrentBackbufferIndex()); }
 		inline UINT GetCurrentBackbufferIndex() const { return m_DXGISwapchain->GetCurrentBackBufferIndex(); }
 
 		inline IDXGISwapChain* GetDXGISwapchain() const { return m_DXGISwapchain.Get(); }
@@ -49,7 +51,8 @@ namespace Warp
 		ComPtr<IDXGISwapChain4> m_DXGISwapchain;
 		RHITexture m_backbuffers[BackbufferCount];
 		RHIDescriptorHeap m_rtvHeap;
-		RHIDescriptorAllocation m_backbufferRtvs{};
+		RHIDescriptorAllocation m_backbufferRtvsAllocation;
+		RHIRenderTargetView m_backbufferRtvs[BackbufferCount];
 	};
 
 }

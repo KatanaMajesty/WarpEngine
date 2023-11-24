@@ -1,15 +1,11 @@
 #pragma once
 
-#include <queue>
-#include <array>
-#include <vector>
-#include <unordered_map>
-
 #include "stdafx.h"
 #include "Resource.h"
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "PipelineState.h"
+#include "Descriptor.h"
 
 namespace Warp
 {
@@ -65,6 +61,9 @@ namespace Warp
 			UINT numThreadGroupsX,
 			UINT numThreadGroupsY,
 			UINT numThreadGroupsZ);
+
+		void ClearRtv(const RHIRenderTargetView& descriptor, const float* rgba, UINT numDirtyRects, const D3D12_RECT* dirtyRects);
+		void ClearDsv(const RHIDepthStencilView& descriptor, D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil, UINT numDirtyRects, const D3D12_RECT* dirtyRects);
 
 		void CopyResource(RHIResource* dest, RHIResource* src);
 

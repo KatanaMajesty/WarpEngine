@@ -6,11 +6,12 @@
 #include "../Core/Defines.h"
 #include "RHI/stdafx.h"
 #include "RHI/Device.h"
+#include "RHI/Descriptor.h"
+#include "RHI/DescriptorHeap.h"
 #include "RHI/PhysicalDevice.h"
 #include "RHI/Resource.h"
 #include "RHI/CommandContext.h"
 #include "RHI/PipelineState.h"
-#include "RHI/DescriptorHeap.h"
 #include "RHI/Swapchain.h"
 #include "RHI/RootSignature.h"
 #include "ShaderCompiler.h"
@@ -72,7 +73,7 @@ namespace Warp
 		void ResizeDepthStencil();
 		std::unique_ptr<RHITexture> m_depthStencil;
 		std::unique_ptr<RHIDescriptorHeap> m_dsvHeap;
-		RHIDescriptorAllocation m_dsv;
+		RHIDepthStencilView m_depthStencilView;
 
 		RHICommandContext m_graphicsContext;
 		RHICommandContext m_copyContext;
@@ -88,5 +89,10 @@ namespace Warp
 
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed
+
+		RHIShaderResource m_meshletView;
+		RHIShaderResource m_vertexView;
+		RHIShaderResource m_uvIndicesView;
+		RHIShaderResource m_primitiveIndicesView;
 	};
 }
