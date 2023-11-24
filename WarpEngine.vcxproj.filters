@@ -109,6 +109,9 @@
     <ClCompile Include="src\Assets\ModelLoader.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
+    <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
+      <Filter>Renderer\RHI</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -235,6 +238,9 @@
     <ClInclude Include="src\Renderer\Mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\Descriptor.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
@@ -252,6 +258,9 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\Cube.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\Model.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

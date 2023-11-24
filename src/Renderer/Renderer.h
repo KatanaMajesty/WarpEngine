@@ -16,12 +16,12 @@
 #include "RHI/RootSignature.h"
 #include "ShaderCompiler.h"
 
+// TODO: Remove these asap
 #include "../Assets/ModelAsset.h"
 
 namespace Warp
 {
 
-	// TODO: Remove singleton, its annoying
 	class Renderer
 	{
 	public:
@@ -52,6 +52,7 @@ namespace Warp
 		inline RHICommandContext& GetCopyContext() { return m_copyContext; }
 		inline RHICommandContext& GetComputeContext() { return m_computeContext; }
 
+		void InitStupidBuffers(ModelAsset* asset);
 	private:
 		// Waits for graphics queue to finish executing on the particular specified frame
 		void WaitForGfxOnFrameToFinish(uint32_t frameIndex);
@@ -90,9 +91,11 @@ namespace Warp
 		bool InitAssets(); // TODO: Temp, will be removed
 		bool InitShaders(); // TODO: Temp, will be removed
 
-		RHIShaderResource m_meshletView;
-		RHIShaderResource m_vertexView;
-		RHIShaderResource m_uvIndicesView;
-		RHIShaderResource m_primitiveIndicesView;
+		std::unique_ptr<RHIDescriptorHeap> m_cubeDescriptorHeap;
+		RHIDescriptorAllocation m_cubeDescriptors;
+		StaticMesh::VertexStream::AttributeArray<RHIShaderResourceView> m_attributeViews;
+		RHIShaderResourceView m_meshletView;
+		RHIShaderResourceView m_uvIndicesView;
+		RHIShaderResourceView m_primitiveIndicesView;
 	};
 }

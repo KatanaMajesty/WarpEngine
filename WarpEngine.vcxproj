@@ -28,6 +28,7 @@
     <ClCompile Include="src\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Renderer\RHI\CommandList.cpp" />
     <ClCompile Include="src\Renderer\RHI\CommandQueue.cpp" />
+    <ClCompile Include="src\Renderer\RHI\Descriptor.cpp" />
     <ClCompile Include="src\Renderer\RHI\DescriptorHeap.cpp" />
     <ClCompile Include="src\Renderer\RHI\Device.cpp" />
     <ClCompile Include="src\Renderer\RHI\PhysicalDevice.cpp" />
@@ -60,6 +61,7 @@
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\RHI\CommandList.h" />
     <ClInclude Include="src\Renderer\RHI\CommandQueue.h" />
+    <ClInclude Include="src\Renderer\RHI\Descriptor.h" />
     <ClInclude Include="src\Renderer\RHI\DescriptorHeap.h" />
     <ClInclude Include="src\Renderer\RHI\Device.h" />
     <ClInclude Include="src\Renderer\RHI\DeviceChild.h" />
@@ -102,6 +104,10 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\Cube.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\Model.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

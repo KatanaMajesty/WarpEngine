@@ -370,11 +370,9 @@ namespace Warp
 				
 				copyContext.CopyResource(&mesh.PrimitiveIndicesBuffer, &uploadPrimitiveIndicesBuffer);
 				copyContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_COMMON);
-
-				copyContext.FlushBatchedResourceBarriers();
 			}
 			copyContext.Close();
-			copyContext.Execute(true); // We wait for completion
+			copyContext.Execute(true); // TODO: We wait for completion, though shouldnt
 		}
 
 		// Process all its children

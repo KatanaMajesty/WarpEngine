@@ -182,7 +182,7 @@ namespace Warp
 	
 	using RHIDepthStencilView = RHIDescriptor<D3D12_DEPTH_STENCIL_VIEW_DESC>;
 	using RHIRenderTargetView = RHIDescriptor<D3D12_RENDER_TARGET_VIEW_DESC>;
-	using RHIShaderResource = RHIDescriptor<D3D12_SHADER_RESOURCE_VIEW_DESC>;
-	using RHIUnorderedAccess = RHIDescriptor<D3D12_UNORDERED_ACCESS_VIEW_DESC>;
+	using RHIShaderResourceView = RHIDescriptor<D3D12_SHADER_RESOURCE_VIEW_DESC>;
+	using RHIUnorderedAccessView = RHIDescriptor<D3D12_UNORDERED_ACCESS_VIEW_DESC>;
 
 }
