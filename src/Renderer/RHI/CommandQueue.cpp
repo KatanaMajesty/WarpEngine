@@ -95,7 +95,7 @@ namespace Warp
 		for (RHICommandList* const list : commandLists)
 		{
 			// Resolve pending resource barriers
-			auto resolvedBarriers = list->ResolvePendingResourceBarriers();
+			std::vector<D3D12_RESOURCE_BARRIER> resolvedBarriers = list->ResolvePendingResourceBarriers();
 			UINT numBarriers = static_cast<UINT>(resolvedBarriers.size());
 			if (numBarriers > 0)
 			{

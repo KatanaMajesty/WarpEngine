@@ -188,12 +188,14 @@ namespace Warp
 
 					// TODO: Calculate center of the mesh, calculate the length of the mesh for AABB
 				};  break;
-				case cgltf_attribute_type_normal:	FillBytesFromAccessor<Math::Vector3, cgltf_component_type_r_32f>(
+				case cgltf_attribute_type_normal: FillBytesFromAccessor<Math::Vector3, cgltf_component_type_r_32f>(
 					mesh.StreamOfVertices.Attributes[EVertexAttributes::Normals],
 					mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Normals], accessor); break;
+
 				case cgltf_attribute_type_texcoord: FillBytesFromAccessor<Math::Vector2, cgltf_component_type_r_32f>(
 					mesh.StreamOfVertices.Attributes[EVertexAttributes::TextureCoords], 
 					mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::TextureCoords], accessor); break;
+
 				case cgltf_attribute_type_tangent: FillFromAccessor<Math::Vector4, cgltf_component_type_r_32f>(gltfTangents, accessor); break;
 				default: break; // just skip
 				}
@@ -281,7 +283,7 @@ namespace Warp
 			std::memcpy(uploadIndexBuffer.GetCpuVirtualAddress<std::byte>(), mesh.Indices.data(), indicesInBytes);
 
 			// Asset that we have indices
-			mesh.IndexBuffer = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
+			mesh.IndexBuffer = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
 
 			StaticMesh::VertexStream::AttributeArray<RHIBuffer> uploadResources;
 			for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
@@ -298,7 +300,7 @@ namespace Warp
 
 				std::memcpy(uploadResources[i].GetCpuVirtualAddress<std::byte>(), mesh.StreamOfVertices.Attributes[i].data(), sizeInBytes);
 
-				mesh.StreamOfVertices.Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
+				mesh.StreamOfVertices.Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
 			}
 
 			static constexpr uint32_t MeshletStride = sizeof(Meshlet);
@@ -326,21 +328,24 @@ namespace Warp
 			std::memcpy(uploadUniqueVertexIndicesBuffer.GetCpuVirtualAddress<std::byte>(), mesh.UniqueVertexIndices.data(), uniqueVertexIndicesInBytes);
 			std::memcpy(uploadPrimitiveIndicesBuffer.GetCpuVirtualAddress<std::byte>(), mesh.PrimitiveIndices.data(), primitiveIndicesInBytes);
 
+			// Note of the FIX with "Wrong resource state"
+			// The COPY flags (COPY_DEST and COPY_SOURCE) used as initial states represent states in the 3D/Compute type class. 
+			// To use a resource initially on a Copy queue it should start in the COMMON state. 
+			// The COMMON state can be used for all usages on a Copy queue using the implicit state transitions. 
 			mesh.MeshletBuffer = RHIBuffer(Device,
 				D3D12_HEAP_TYPE_DEFAULT,
-				D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_COMMON,
 				D3D12_RESOURCE_FLAG_NONE, MeshletStride, meshletsInBytes);
 			mesh.UniqueVertexIndicesBuffer = RHIBuffer(Device,
 				D3D12_HEAP_TYPE_DEFAULT,
-				D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_COMMON,
 				D3D12_RESOURCE_FLAG_NONE, UVIndexStride, uniqueVertexIndicesInBytes);
 			mesh.PrimitiveIndicesBuffer = RHIBuffer(Device,
 				D3D12_HEAP_TYPE_DEFAULT,
-				D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_COMMON,
 				D3D12_RESOURCE_FLAG_NONE, PrimitiveIndicesStride, primitiveIndicesInBytes);
 
 			// Now perform resource copying from UPLOAD heap to DEFAULT heap (our mesh resource)
-
 			RHICommandContext& copyContext = renderer->GetCopyContext();
 			copyContext.Open();
 			{
@@ -348,8 +353,6 @@ namespace Warp
 				// Specifically, a resource must be in the COMMON state before being used on DIRECT/COMPUTE (when previously used on COPY). 
 				// This restriction doesn't exist when accessing data between DIRECT and COMPUTE queues.
 				copyContext.CopyResource(&mesh.IndexBuffer, &uploadIndexBuffer);
-				copyContext.AddTransitionBarrier(&mesh.IndexBuffer, D3D12_RESOURCE_STATE_COMMON);
-
 				for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
 				{
 					// Skip if no attribute
@@ -359,17 +362,11 @@ namespace Warp
 					}
 
 					copyContext.CopyResource(&mesh.StreamOfVertices.Resources[i], &uploadResources[i]);
-					copyContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_COMMON);
 				}
 
 				copyContext.CopyResource(&mesh.MeshletBuffer, &uploadMeshletBuffer);
-				copyContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_COMMON);
-
 				copyContext.CopyResource(&mesh.UniqueVertexIndicesBuffer, &uploadUniqueVertexIndicesBuffer);
-				copyContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_COMMON);
-				
 				copyContext.CopyResource(&mesh.PrimitiveIndicesBuffer, &uploadPrimitiveIndicesBuffer);
-				copyContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_COMMON);
 			}
 			copyContext.Close();
 			copyContext.Execute(true); // TODO: We wait for completion, though shouldnt

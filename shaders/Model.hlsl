@@ -56,7 +56,7 @@ OutVertex GetVertex(uint vertexIndex, matrix mvp)
     
     OutVertex v;
     v.pos = mul(float4(pos, 1.0), mvp);
-    v.color = float3(1.0, 0.0, 0.5);
+    v.color = pos * 0.5 + 0.5;
     return v;
 }
 
