@@ -9,5 +9,5 @@ tl;dr
 - [x] glTF model loader using cgltf (WIP)
 - [x] Meshlet rendering using Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline (still very unfinished)
 
-## hello cube
-![HelloCubeImage](images/WE_Img_HelloCube.jpg)
+## Meshlet Visualization
+![HelloCubeImage](images/WE_Img_MeshletVisualization.jpg)
