@@ -8,6 +8,7 @@
 #include "../Core/Defines.h"
 
 struct cgltf_node;
+struct cgltf_primitive;
 
 namespace Warp
 {
@@ -24,6 +25,9 @@ namespace Warp
 
 	private:
 		void ProcessStaticMeshNode(ModelAsset* model, cgltf_node* node);
+		void ProcessStaticMeshAttributes(StaticMesh& mesh, cgltf_primitive* primitive);
+		void ComputeMeshletsAndOptimize(StaticMesh& mesh);
+		void UploadMeshResources(StaticMesh& mesh);
 
 		AssetManager* m_assetManager;
 	};

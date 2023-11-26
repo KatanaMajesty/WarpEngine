@@ -27,6 +27,8 @@ namespace Warp
 
 	struct StaticMesh
 	{
+		std::string Name;
+
 		// SoA representation of mesh vertices
 		struct VertexStream
 		{
@@ -44,6 +46,7 @@ namespace Warp
 
 		std::vector<uint32_t> Indices;
 		RHIBuffer IndexBuffer;
+		uint32_t NumIndices;
 
 		std::vector<Meshlet> Meshlets;
 		std::vector<uint8_t> UniqueVertexIndices;
