@@ -3,9 +3,11 @@
 #include <memory>
 #include <string>
 #include <filesystem>
-#include <Windows.h>
 
+#include "../WinAPI.h"
 #include "../Util/Timer.h"
+
+#include "../Assets/AssetManager.h"
 
 namespace Warp
 {
@@ -28,6 +30,7 @@ namespace Warp
 	};
 
 	class Renderer;
+	class World;
 
 	class Application
 	{
@@ -63,7 +66,7 @@ namespace Warp
 
 		// Getters and setters for absolute Shader and Assets paths
 		inline constexpr const std::filesystem::path& GetShaderPath() const { return m_shaderPath; }
-		inline constexpr const std::filesystem::path& GetAssetsPath() const { return m_assetsPath;  }
+		inline constexpr const std::filesystem::path& GetAssetsPath() const { return m_assetsPath; }
 		inline constexpr void SetShaderPath(const std::filesystem::path& path) { m_shaderPath = path; }
 		inline constexpr void SetAssetsPath(const std::filesystem::path& path) { m_assetsPath = path; }
 
@@ -89,6 +92,12 @@ namespace Warp
 		bool m_scheduledResize = false;
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;
+
+		// TODO: currently we store world in Application. This should be changed though
+		std::unique_ptr<World> m_world;
+
+		std::unique_ptr<AssetManager> m_assetManager;
+		AssetProxy m_tempModelProxy;
 	};
 
 }

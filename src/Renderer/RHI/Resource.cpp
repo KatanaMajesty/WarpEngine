@@ -121,11 +121,81 @@ namespace Warp
 		return GetD3D12Resource()->GetGPUVirtualAddress();
 	}
 
-	// ID3D12Resource* RHIResource::GetD3D12Resource() const
-	// {
-	// 	WARP_ASSERT(m_allocation);
-	// 	return m_allocation->GetResource();
-	// }
+	bool RHIResource::IsStateImplicitlyPromotableTo(D3D12_RESOURCE_STATES states, UINT subresourceIndex) const
+	{
+		// For more info, we chill here 
+		// https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12#common-state-promotion
+
+		WARP_ASSERT(IsValid());
+
+		// 1) In D3D12_RESOURCE_STATE_COMMON at the moment of calling
+		if (GetState().GetSubresourceState(subresourceIndex) != D3D12_RESOURCE_STATE_COMMON)
+		{
+			return false;
+		}
+
+		// 2) If it is buffer or a non-depth SimultanousAccess texture
+		if (GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+		{
+			return true;
+		}
+		else // Textures
+		{
+			if (GetDesc().Flags & D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS)
+			{
+				static constexpr D3D12_RESOURCE_STATES depthStates = D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_DEPTH_WRITE;
+				return !(states & depthStates);
+			}
+			else // 3) If it is a non-SimultaneousAccess NON_PIXEL_SHADER_RESOURCE, PIXEL_SHADER_RESOURCE, COPY_DEST or COPY_SOURCE
+			{
+				static constexpr D3D12_RESOURCE_STATES implicitStates =
+					D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+					D3D12_RESOURCE_STATE_COPY_DEST |
+					D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+				// Ensure that we have promotable state flags AND we do not have any other non-promotable flags
+				return (states & implicitStates) && !(states & ~implicitStates);
+			}
+		}
+	}
+
+	bool RHIResource::IsStateImplicitlyDecayableFrom(D3D12_RESOURCE_STATES states, D3D12_COMMAND_LIST_TYPE type, UINT subresourceIndex) const
+	{
+		// For more info, we chill here 
+		// https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-resource-barriers-to-synchronize-resource-states-in-direct3d-12#state-decay-to-common
+
+		WARP_ASSERT(IsValid());
+
+		// 1) Resource is being accessed on a copy queue
+		if (type == D3D12_COMMAND_LIST_TYPE_COPY)
+		{
+			return true;
+		}
+
+		// 2) Buffer resource on any queue type
+		if (GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+		{
+			return true;
+		}
+		// 3) Texture resources on any queue type that have the D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS flag set
+		else if (GetDesc().Flags & D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS)
+		{
+			return true;
+		}
+		else // 4) Any resource implicitly promoted to a read-only state
+		{
+			// Now we are left with the READ states that are non-buffer and are only implicitly promotable in 
+			// non-SimultaneousAccess textures. Those are:
+			static constexpr D3D12_RESOURCE_STATES readOnlyNonSimultaneousAccessStates =
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE |
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+				D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+			// Ensure that we have read-only decayable flags AND we do not have any other non-decayable flags
+			return ((states & readOnlyNonSimultaneousAccessStates) && !(states & ~readOnlyNonSimultaneousAccessStates));
+		}
+	}
 
 	void RHIResource::SetName(std::wstring_view name)
 	{
@@ -174,6 +244,7 @@ namespace Warp
 		, m_strideInBytes(strideInBytes)
 		, m_sizeInBytes(sizeInBytes)
 	{
+		// TODO: Add HEAP_TYPE_READBACK aswell
 		if (heapType == D3D12_HEAP_TYPE_UPLOAD)
 		{
 			WARP_MAYBE_UNUSED HRESULT hr = GetD3D12Resource()->Map(0, nullptr, &m_cpuMapping);
@@ -185,7 +256,7 @@ namespace Warp
 		}
 	}
 
-	D3D12_VERTEX_BUFFER_VIEW RHIBuffer::GetVertexBufferView() const
+	RHIVertexBufferView RHIBuffer::GetVertexBufferView() const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(), 
 			"The resource is either invalid or is not allowed to be represented as shader resource");
@@ -197,7 +268,7 @@ namespace Warp
 		return vbv;
 	}
 
-	D3D12_INDEX_BUFFER_VIEW RHIBuffer::GetIndexBufferView(DXGI_FORMAT format) const
+	RHIIndexBufferView RHIBuffer::GetIndexBufferView(DXGI_FORMAT format) const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(),
 			"The resource is either invalid or is not allowed to be represented as shader resource");

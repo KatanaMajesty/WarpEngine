@@ -7,11 +7,12 @@
 #include "stdafx.h"
 #include "Resource.h"
 #include "CommandQueue.h"
-#include "PhysicalDevice.h"
 
 namespace Warp
 {
 	
+	class RHIPhysicalDevice;
+
 	// Warp uses an approach somewhat similar to Vulkan's. There are two types of device representations: physical and logical.
 	// RHIDevice is a logical representation of a GPU device, which is responsible for:
 	//	- Command Queue creation
@@ -38,16 +39,17 @@ namespace Warp
 
 		WARP_ATTR_NODISCARD inline ID3D12Device9* GetD3D12Device() const { return m_device.Get(); }
 		WARP_ATTR_NODISCARD inline constexpr UINT GetFrameID() const { return m_frameID; }
-
-		WARP_ATTR_NODISCARD RHICommandQueue* GetQueue(D3D12_COMMAND_LIST_TYPE type) const;
-		WARP_ATTR_NODISCARD inline RHICommandQueue* GetGraphicsQueue() const { return m_graphicsQueue.get(); }
-		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() const { return m_computeQueue.get(); }
-		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() const { return m_copyQueue.get(); }
+	
+		WARP_ATTR_NODISCARD RHICommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
+		WARP_ATTR_NODISCARD inline RHICommandQueue* GetGraphicsQueue() { return m_graphicsQueue.get(); }
+		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() { return m_computeQueue.get(); }
+		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() { return m_copyQueue.get(); }
 
 		// TODO: We should not return by value!
 		WARP_ATTR_NODISCARD RHIBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
 
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
+		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }
 
 		bool CheckMeshShaderSupport() const;
 
@@ -63,6 +65,7 @@ namespace Warp
 		ComPtr<D3D12MA::Allocator> m_resourceAllocator;
 
 		void InitCommandQueues();
+		// TODO: Make them non-ptr types. Just store as value; Doing that invalidates them due to problems with copy-constructor
 		std::unique_ptr<RHICommandQueue> m_graphicsQueue;
 		std::unique_ptr<RHICommandQueue> m_computeQueue;
 		std::unique_ptr<RHICommandQueue> m_copyQueue;

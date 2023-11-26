@@ -95,7 +95,7 @@ namespace Warp
 		for (RHICommandList* const list : commandLists)
 		{
 			// Resolve pending resource barriers
-			auto resolvedBarriers = list->ResolvePendingResourceBarriers();
+			std::vector<D3D12_RESOURCE_BARRIER> resolvedBarriers = list->ResolvePendingResourceBarriers();
 			UINT numBarriers = static_cast<UINT>(resolvedBarriers.size());
 			if (numBarriers > 0)
 			{
@@ -119,9 +119,14 @@ namespace Warp
 
 		WARP_ASSERT(numCommandLists <= 32, "Max amount of simultaneous command lists is 32 (including barrier command lists)");
 
-		// TODO: Resolve resource barriers
 		m_handle->ExecuteCommandLists(numCommandLists, D3D12CommandLists);
 		UINT64 fenceValue = Signal();
+
+		// Resolve all decayable transitions only after we executeed command lists
+		for (RHICommandList* const list : commandLists)
+		{
+			list->ResolveDecayableResourceStates();
+		}
 
 		// If we resolved any barriers, we need to discard command allocator, as we no longer use it
 		if (numBarrierCommandLists > 0)

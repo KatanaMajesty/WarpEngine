@@ -7,7 +7,7 @@
 #include "../Core/Application.h"
 
 // TODO: Temp, remove
-#include <DirectXMath.h>
+#include "../Math/Math.h"
 #include "RHI/PIXRuntime.h"
 
 namespace Warp
@@ -15,9 +15,14 @@ namespace Warp
 
 	struct alignas(256) ConstantBuffer
 	{
-		DirectX::XMMATRIX model;
-		DirectX::XMMATRIX view;
-		DirectX::XMMATRIX proj;
+		Math::Matrix model;
+		Math::Matrix view;
+		Math::Matrix proj;
+	};
+
+	struct alignas(256) MeshletInfoCB
+	{
+		uint32_t MeshletIndex;
 	};
 
 	Renderer::Renderer(HWND hwnd)
@@ -34,13 +39,13 @@ namespace Warp
 				physicalDeviceDesc.EnableGpuBasedValidation = false;
 #endif
 				return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
-			}()
-				)
-		, m_device(m_physicalDevice->GetAssociatedLogicalDevice())
-		, m_commandContext(L"RHICommandContext_Renderer", m_device->GetGraphicsQueue())
+			}())
+		, m_device(std::make_unique<RHIDevice>(GetPhysicalDevice()))
+		, m_graphicsContext(RHICommandContext(L"RHICommandContext_Graphics", m_device->GetGraphicsQueue()))
+		, m_copyContext(RHICommandContext(L"RHICommandContext_Copy", m_device->GetCopyQueue()))
+		, m_computeContext(RHICommandContext(L"RHICommandContext_Compute", m_device->GetComputeQueue()))
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
-
 		WARP_ASSERT(m_device->CheckMeshShaderSupport(), "we only use mesh shaders");
 
 		// TODO: Temp, remove
@@ -58,8 +63,8 @@ namespace Warp
 	Renderer::~Renderer()
 	{
 		WaitForGfxToFinish();
-		m_device->GetComputeQueue()->HostWaitIdle();
-		m_device->GetCopyQueue()->HostWaitIdle();
+		m_computeContext.GetQueue()->HostWaitIdle();
+		m_copyContext.GetQueue()->HostWaitIdle();
 	}
 
 	void Renderer::Resize(uint32_t width, uint32_t height)
@@ -72,53 +77,81 @@ namespace Warp
 		ResizeDepthStencil();
 	}
 
-	void Renderer::RenderFrame()
+	void Renderer::RenderFrame(ModelAsset* model)
 	{
 		// Wait for inflight frame of the currently used backbuffer
 		UINT frameIndex = m_swapchain->GetCurrentBackbufferIndex();
 		WaitForGfxOnFrameToFinish(frameIndex);
 
 		m_device->BeginFrame();
-		m_commandContext.Open();
-		{
-			WARP_SCOPED_EVENT(&m_commandContext, fmt::format("Renderer::RenderFrame{}", frameIndex + 1));
 
-			m_commandContext.SetPipelineState(m_cubePso);
+		m_graphicsContext.Open();
+		{
+			WARP_SCOPED_EVENT(&m_graphicsContext, fmt::format("Renderer::RenderFrame{}", frameIndex + 1));
+
+			m_graphicsContext.SetPipelineState(m_cubePso);
 
 			UINT width = m_swapchain->GetWidth();
 			UINT height = m_swapchain->GetHeight();
-			m_commandContext.SetViewport(0, 0, width, height);
-			m_commandContext.SetScissorRect(0, 0, width, height);
+			m_graphicsContext.SetViewport(0, 0, width, height);
+			m_graphicsContext.SetScissorRect(0, 0, width, height);
 			
 			UINT currentBackbufferIndex = m_swapchain->GetCurrentBackbufferIndex();
 			RHITexture* backbuffer = m_swapchain->GetBackbuffer(currentBackbufferIndex);
 
 			// Indicate that the back buffer will be used as a render target.
-			m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+			m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 			{
-				WARP_SCOPED_EVENT(&m_commandContext, "Renderer::SetRTVs");
+				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer::SetRTVs");
 
-				D3D12_CPU_DESCRIPTOR_HANDLE backbufferRtv = m_swapchain->GetRtvDescriptor(currentBackbufferIndex);
-				m_commandContext->OMSetRenderTargets(1, &backbufferRtv, FALSE, &m_dsv.CpuHandle);
+				// TODO: We do not change this to new API yet, although we want to
+				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_swapchain->GetCurrentRtv().GetCpuAddress();
+				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_depthStencilView.GetCpuAddress();
+				m_graphicsContext->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
 
 				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-				m_commandContext->ClearRenderTargetView(backbufferRtv, clearColor, 0, nullptr);
-				m_commandContext->ClearDepthStencilView(m_dsv.GetCpuAddress(0), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearColor, 0, nullptr);
+				m_graphicsContext.ClearDsv(m_depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 			}
 			
 			{
-				WARP_SCOPED_EVENT(&m_commandContext, "Renderer::DispatchMesh");
+				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer::DispatchMesh");
+				
+				m_graphicsContext.SetGraphicsRootSignature(m_rootSignature);
+				m_graphicsContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
 
-				m_commandContext.SetGraphicsRootSignature(m_rootSignature);
-				m_commandContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
-				m_commandContext.DispatchMesh(1, 1, 1);
+				for (size_t i = 0; i < model->Meshes.size(); ++i)
+				{
+					StaticMesh& mesh = model->Meshes[i];
+
+					for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+					{
+						if (!mesh.HasAttributes(i))
+						{
+							continue;
+						}
+
+						m_graphicsContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						m_graphicsContext->SetGraphicsRootShaderResourceView(i + 1, mesh.StreamOfVertices.Resources[i].GetGpuVirtualAddress());
+					}
+					m_graphicsContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(6, mesh.MeshletBuffer.GetGpuVirtualAddress());
+
+					m_graphicsContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(7, mesh.UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
+
+					m_graphicsContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(8, mesh.PrimitiveIndicesBuffer.GetGpuVirtualAddress());
+
+					m_graphicsContext.DispatchMesh(mesh.GetNumMeshlets(), 1, 1); // should be good enough for cube testing
+				}
 			}
 			// Indicate that the back buffer will now be used to present.
-			m_commandContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
+			m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
 		}
-		m_commandContext.Close();
+		m_graphicsContext.Close();
 
-		m_frameFenceValues[frameIndex] = m_commandContext.Execute(false);
+		m_frameFenceValues[frameIndex] = m_graphicsContext.Execute(false);
 		m_swapchain->Present(false);
 
 		m_device->EndFrame();
@@ -127,23 +160,24 @@ namespace Warp
 	void Renderer::Update(float timestep)
 	{
 		m_timeElapsed += timestep;
-		ConstantBuffer cb;
-		cb.model = DirectX::XMMatrixAffineTransformation(
-			DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 0.0f),
-			DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f),
-			DirectX::XMQuaternionRotationRollPitchYaw(
-				m_timeElapsed * 0.5f,
-				m_timeElapsed * 1.0f,
-				m_timeElapsed * 0.75f
-			),
-			DirectX::XMVectorSet(0.0f, 0.0f, 2.0f, 0.0f)
-		);
-		cb.view = DirectX::XMMatrixIdentity();
+
+		float yaw = m_timeElapsed * 0.5f;
+		float pitch = m_timeElapsed * 1.0f;
+		float roll = m_timeElapsed * 0.75f;
+		Math::Quaternion rotQuat = Math::Quaternion::CreateFromYawPitchRoll(Math::Vector3(0.0f, pitch, 0.0f));
+
+		Math::Matrix translation = Math::Matrix::CreateTranslation(Math::Vector3(0.0f, -2.0f, -4.0f));
+		Math::Matrix rotation = Math::Matrix::CreateFromQuaternion(rotQuat);
+		Math::Matrix scale = Math::Matrix::CreateScale(0.5f);
 
 		uint32_t width = m_swapchain->GetWidth();
 		uint32_t height = m_swapchain->GetHeight();
 		float aspectRatio = static_cast<float>(width) / height;
-		cb.proj = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
+
+		ConstantBuffer cb;
+		cb.model = scale * rotation * translation;
+		cb.view = Math::Matrix();
+		cb.proj = Math::Matrix::CreatePerspectiveFieldOfView(DirectX::XMConvertToRadians(90.0f), aspectRatio, 0.1f, 100.0f);
 
 		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
 		memcpy(data, &cb, sizeof(ConstantBuffer));
@@ -151,12 +185,12 @@ namespace Warp
 
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{
-		m_device->GetGraphicsQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
+		m_graphicsContext.GetQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
 	}
 
 	void Renderer::WaitForGfxToFinish()
 	{
-		m_device->GetGraphicsQueue()->HostWaitIdle();
+		m_graphicsContext.GetQueue()->HostWaitIdle();
 	}
 
 	void Renderer::InitDepthStencil()
@@ -175,16 +209,15 @@ namespace Warp
 		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 		// Create depth-stencil texture2d
-		m_depthStencil = std::make_unique<RHITexture>(m_device, 
+		m_depthStencil = std::make_unique<RHITexture>(GetDevice(),
 			D3D12_HEAP_TYPE_DEFAULT, 
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
 			desc, 
 			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0));
 
 		// Depth-stencil view
-		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(m_device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
-		m_dsv = m_dsvHeap->Allocate(1);
-		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
+		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
+		m_depthStencilView = RHIDepthStencilView(m_device.get(), m_depthStencil.get(), nullptr, m_dsvHeap->Allocate(1));
 	}
 
 	void Renderer::ResizeDepthStencil()
@@ -196,14 +229,11 @@ namespace Warp
 
 		CD3DX12_CLEAR_VALUE optimizedClearValue(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0);
 		m_depthStencil->RecreateInPlace(D3D12_RESOURCE_STATE_DEPTH_WRITE, desc, &optimizedClearValue);
-		m_device->GetD3D12Device()->CreateDepthStencilView(m_depthStencil->GetD3D12Resource(), nullptr, m_dsv.GetCpuAddress());
+		m_depthStencilView.RecreateDescriptor(m_depthStencil.get());
 	}
 
 	bool Renderer::InitAssets()
 	{
-		// TODO: Temporary
-		ID3D12Device* d3dDevice = m_device->GetD3D12Device();
-
 		if (!InitShaders())
 		{
 			WARP_LOG_ERROR("Failed to init shaders");
@@ -211,7 +241,17 @@ namespace Warp
 		}
 
 		// TODO: Figure out why MESH visibility wont work
-		m_rootSignature = RHIRootSignature(m_device, RHIRootSignatureDesc(1, 0).AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)); 
+		m_rootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc(9, 0)
+			.AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.AddShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_ALL) // Vertex attributes // 1
+			.AddShaderResourceView(0, 1, D3D12_SHADER_VISIBILITY_ALL) // 2
+			.AddShaderResourceView(0, 2, D3D12_SHADER_VISIBILITY_ALL) // 3
+			.AddShaderResourceView(0, 3, D3D12_SHADER_VISIBILITY_ALL) // 4
+			.AddShaderResourceView(0, 4, D3D12_SHADER_VISIBILITY_ALL) // 5
+			.AddShaderResourceView(1, 0, D3D12_SHADER_VISIBILITY_ALL) // Meshlets // 6
+			.AddShaderResourceView(2, 0, D3D12_SHADER_VISIBILITY_ALL) // uvIndices // 7
+			.AddShaderResourceView(3, 0, D3D12_SHADER_VISIBILITY_ALL) // Prim indices // 8
+		);
 		m_rootSignature.SetName(L"RHIRootSign_Cube");
 
 		RHIMeshPipelineDesc cubePsoDesc = {};
@@ -225,22 +265,11 @@ namespace Warp
 		cubePsoDesc.NumRTVs = 1;
 		cubePsoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		cubePsoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		m_cubePso = RHIMeshPipelineState(m_device, cubePsoDesc);
+		m_cubePso = RHIMeshPipelineState(GetDevice(), cubePsoDesc);
 		m_cubePso.SetName(L"RHIMeshPso_Cube");
-
-		// TODO: Remvoe this
-		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
-		
-		ConstantBuffer cb;
-		cb.model = DirectX::XMMatrixIdentity();
-		cb.view = DirectX::XMMatrixIdentity();
-		cb.proj = DirectX::XMMatrixIdentity();
 
 		m_constantBuffer = m_device->CreateBuffer(sizeof(ConstantBuffer), sizeof(ConstantBuffer));
 		m_constantBuffer.SetName(L"RHIBuffer_CubeCBV");
-
-		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
-		memcpy(data, &cb, sizeof(ConstantBuffer));
 
 		WaitForGfxToFinish();
 		return true;
@@ -248,11 +277,8 @@ namespace Warp
 
 	bool Renderer::InitShaders()
 	{
-		std::string cubeShader = (Application::Get().GetShaderPath() / "Cube.hlsl").string();
-		ShaderCompilationDesc msShaderDesc = ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh)
-			.AddDefine(ShaderDefine("MAX_OUTPUT_VERTICES", "256"))
-			.AddDefine(ShaderDefine("MAX_OUTPUT_PRIMITIVES", "256")); // TODO: Defines do not work as expected
-
+		std::string cubeShader = (Application::Get().GetShaderPath() / "Model.hlsl").string();
+		ShaderCompilationDesc msShaderDesc = ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh);
 		ShaderCompilationDesc psShaderDesc = ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel);
 
 		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);

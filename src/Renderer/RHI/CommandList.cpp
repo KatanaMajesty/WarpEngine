@@ -14,10 +14,16 @@ namespace Warp
 		m_pendingResourceBarriers.push_back(barrier);
 	}
 
+	void RHIResourceStateTracker::AddDecayableBarrier(const DecayableTransitionBarrier& barrier)
+	{
+		m_decayableTransitionBarriers.push_back(barrier);
+	}
+
 	void RHIResourceStateTracker::Reset()
 	{
 		m_cachedResourceStates.clear();
 		m_pendingResourceBarriers.clear();
+		m_decayableTransitionBarriers.clear();
 	}
 
 	CResourceState& RHIResourceStateTracker::GetCachedState(RHIResource* resource)
@@ -64,21 +70,37 @@ namespace Warp
 			UINT numSubresources = trackedState.GetNumSubresources();
 			// If we track a resource state on per-subresource level, then we won't be able to get a state of D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
 			// thus, we need to manually iterate through all the resource states
-			if (subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && trackedState.IsPerSubresource())
+			if (subresourceIndex == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && trackedState.IsPerSubresource())
 			{
 				for (UINT i = 0; i < numSubresources; ++i)
 				{
 					D3D12_RESOURCE_STATES stateBefore = trackedState.GetSubresourceState(i);
-					if (stateBefore == state) // No need to transition, if states are the same
+
+					if (stateBefore == state)
 					{
+						// No need to transition, if states are the same
 						continue;
 					}
 
-					AddResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(
-						resource->GetD3D12Resource(),
-						stateBefore,
-						state,
-						i));
+					if (resource->IsStateImplicitlyDecayableFrom(state, GetType(), subresourceIndex))
+					{
+						m_stateTracker.AddDecayableBarrier(RHIResourceStateTracker::DecayableTransitionBarrier
+							{
+								.Resource = resource,
+								.SubresourceIndex = subresourceIndex,
+								.State = state
+							});
+					}
+
+					if (!resource->IsStateImplicitlyPromotableTo(state, subresourceIndex))
+					{
+						// Only add resource transition barrier if and only if we cannot promote to a state implicitly!
+						AddResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(
+							resource->GetD3D12Resource(),
+							stateBefore,
+							state,
+							i));
+					}
 				}
 			}
 			else // Otherwise, we just apply a resource state on per-subresource level
@@ -86,11 +108,26 @@ namespace Warp
 				D3D12_RESOURCE_STATES stateBefore = trackedState.GetSubresourceState(subresourceIndex);
 				if (stateBefore != state)
 				{
-					AddResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(
-						resource->GetD3D12Resource(),
-						stateBefore,
-						state,
-						subresourceIndex));
+					// If we try to decay a resource state, try to decay it implicitly
+					if (resource->IsStateImplicitlyDecayableFrom(state, GetType(), subresourceIndex))
+					{
+						m_stateTracker.AddDecayableBarrier(RHIResourceStateTracker::DecayableTransitionBarrier
+							{
+								.Resource = resource,
+								.SubresourceIndex = subresourceIndex,
+								.State = state
+							});
+					}
+
+					// Only add resource barrier if we cannot implicitly promote to a state
+					if (!resource->IsStateImplicitlyPromotableTo(state, subresourceIndex))
+					{
+						AddResourceBarrier(CD3DX12_RESOURCE_BARRIER::Transition(
+							resource->GetD3D12Resource(),
+							stateBefore,
+							state,
+							subresourceIndex));
+					}
 				}
 			}
 		}
@@ -118,10 +155,31 @@ namespace Warp
 		}
 	}
 
+	void RHICommandList::ResolveDecayableResourceStates()
+	{
+		std::vector<RHIResourceStateTracker::DecayableTransitionBarrier>& decayableTransitions = m_stateTracker.GetAllDecayableTransitions();
+
+		for (const auto& [resource, subresourceIndex, stateBefore] : decayableTransitions)
+		{
+			CResourceState& resourceGlobalState = resource->GetState();
+
+			// We want to check if the stateBefore is still relevant as it could have been changed by other lists in
+			// ExecuteCommandLists. This is because Decay does not occur between command lists executed together in the same ExecuteCommandLists call.
+			if (stateBefore != resourceGlobalState.GetSubresourceState(subresourceIndex))
+			{
+				continue;
+			}
+
+			resourceGlobalState.SetSubresourceState(subresourceIndex, D3D12_RESOURCE_STATE_COMMON);
+		}
+
+		// Clear decayable transitions after resolving them
+		decayableTransitions.clear();
+	}
+
 	WARP_ATTR_NODISCARD std::vector<D3D12_RESOURCE_BARRIER> RHICommandList::ResolvePendingResourceBarriers()
 	{
-		const auto& pendingBarriers = m_stateTracker.GetAllPendingBarriers();
-
+		std::vector<RHIResourceStateTracker::PendingResourceBarrier>& pendingBarriers = m_stateTracker.GetAllPendingBarriers();
 		std::vector<D3D12_RESOURCE_BARRIER> resolvedBarriers;
 		resolvedBarriers.reserve(pendingBarriers.size());
 
@@ -134,7 +192,7 @@ namespace Warp
 			D3D12_RESOURCE_STATES stateAfter = (state == D3D12_RESOURCE_STATE_UNKNOWN) ? stateBefore : state;
 
 			// If state before is equal to state after, then no need to transition
-			if (stateBefore != stateAfter)
+			if (stateBefore != stateAfter && !resource->IsStateImplicitlyPromotableTo(stateAfter, subresourceIndex))
 			{
 				resolvedBarriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(resource->GetD3D12Resource(),
 					stateBefore,
@@ -152,7 +210,9 @@ namespace Warp
 				resourceGlobalState.SetSubresourceState(subresourceIndex, previousState);
 			}
 		}
-
+		
+		// Clear the pending barriers after we resolved them
+		pendingBarriers.clear();
 		return resolvedBarriers;
 	}
 

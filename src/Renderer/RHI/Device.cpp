@@ -67,6 +67,9 @@ namespace Warp
 		WARP_RHI_VALIDATE(D3D12MA::CreateAllocator(&resourceAllocatorDesc, m_resourceAllocator.ReleaseAndGetAddressOf()));
 
 		InitCommandQueues();
+
+		// Associate a logical device with physical device!
+		physicalDevice->AssociateLogicalDevice(this);
 	}
 
 	RHIDevice::~RHIDevice()
@@ -99,7 +102,7 @@ namespace Warp
 		m_resourceAllocator->SetCurrentFrameIndex(m_frameID);
 	}
 
-	RHICommandQueue* RHIDevice::GetQueue(D3D12_COMMAND_LIST_TYPE type) const
+	RHICommandQueue* RHIDevice::GetCommandQueue(D3D12_COMMAND_LIST_TYPE type)
 	{
 		switch (type)
 		{

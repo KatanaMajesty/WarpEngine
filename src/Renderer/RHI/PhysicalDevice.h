@@ -63,6 +63,7 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline IDXGIAdapter1* GetAdapter() const { return m_adapter.Get(); }
 		WARP_ATTR_NODISCARD inline bool IsDebugLayerEnabled() const { return m_debugInterface != nullptr; }
 
+		void AssociateLogicalDevice(RHIDevice* device);
 		RHIDevice* GetAssociatedLogicalDevice();
 
 	private:
@@ -79,7 +80,7 @@ namespace Warp
 
 		// Direct3D 12 devices are singletons per adapter. If a Direct3D 12 device already exists in the current process for a given adapter, 
 		// then a subsequent call to D3D12CreateDevice returns the existing device
-		std::unique_ptr<RHIDevice> m_linkedLogicalDevice;
+		RHIDevice* m_associatedLogicalDevice;
 	};
 
 	class RHIPhysicalDeviceChild

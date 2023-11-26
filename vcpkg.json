@@ -1,6 +1,13 @@
 {
   "dependencies": [
     "fmt",
-    "spdlog"
+    "spdlog",
+    "entt",
+    {
+      "name": "directxmesh",
+      "features": [
+        "dx12"
+      ]
+    }
   ]
 }

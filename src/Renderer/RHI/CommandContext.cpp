@@ -4,6 +4,8 @@
 #include "Device.h"
 #include "RootSignature.h"
 
+#include "../../Core/Logger.h"
+
 namespace Warp
 {
 
@@ -77,6 +79,11 @@ namespace Warp
 		return fenceValue;
 	}
 
+	void RHICommandContext::FlushBatchedResourceBarriers()
+	{
+		m_commandList.FlushBatchedResourceBarriers();
+	}
+
 	void RHICommandContext::Open()
 	{
 		if (!m_commandAllocator)
@@ -141,6 +148,29 @@ namespace Warp
 			numThreadGroupsX,
 			numThreadGroupsY,
 			numThreadGroupsZ);
+	}
+
+	void RHICommandContext::ClearRtv(const RHIRenderTargetView& descriptor, const float* rgba, UINT numDirtyRects, const D3D12_RECT* dirtyRects)
+	{
+		m_commandList->ClearRenderTargetView(descriptor.GetCpuAddress(), rgba, numDirtyRects, dirtyRects);
+	}
+
+	void RHICommandContext::ClearDsv(const RHIDepthStencilView& descriptor, D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil, UINT numDirtyRects, const D3D12_RECT* dirtyRects)
+	{
+		m_commandList->ClearDepthStencilView(descriptor.GetCpuAddress(), flags, depth, stencil, numDirtyRects, dirtyRects);
+	}
+
+	void RHICommandContext::CopyResource(RHIResource* dest, RHIResource* src)
+	{
+		WARP_EXPAND_DEBUG_ONLY(
+			if (m_queue->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
+			{
+				WARP_LOG_WARN("Trying to copy a resource from non-copy context. Was that intentional? Always prefer using copy context for that");
+			}
+		);
+
+		WARP_ASSERT(dest && src);
+		m_commandList->CopyResource(dest->GetD3D12Resource(), src->GetD3D12Resource());
 	}
 
 }

@@ -52,11 +52,7 @@ namespace Warp
 
 			m_backbuffers[i] = RHITexture(device, buffer.Get(), D3D12_RESOURCE_STATE_PRESENT);
 			m_backbuffers[i].SetName(std::format(L"RHITexture_RTVBackbuffer_{}", i));
-
-			device->GetD3D12Device()->CreateRenderTargetView(
-				m_backbuffers[i].GetD3D12Resource(), 
-				nullptr, 
-				m_backbufferRtvs.GetCpuAddress(i));
+			m_backbufferRtvs[i] = RHIRenderTargetView(device, &m_backbuffers[i], nullptr, m_backbufferRtvsAllocation, i);
 		}
 	}
 
@@ -92,7 +88,7 @@ namespace Warp
 		WARP_MAYBE_UNUSED HRESULT hr = swapchain1.As(&m_DXGISwapchain);
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to represent swapchain correctly");
 
-		m_backbufferRtvs = m_rtvHeap.Allocate(BackbufferCount);
+		m_backbufferRtvsAllocation = m_rtvHeap.Allocate(BackbufferCount);
 	}
 
 	void RHISwapchain::ReleaseAllDXGIReferences()
