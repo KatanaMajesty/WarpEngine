@@ -116,10 +116,26 @@ namespace Warp
 		// Returns a virtual address of a resource in GPU memory
 		WARP_ATTR_NODISCARD D3D12_GPU_VIRTUAL_ADDRESS GetGpuVirtualAddress() const;
 
-		WARP_ATTR_NODISCARD inline constexpr CResourceState& GetState() { return m_state; }
-		WARP_ATTR_NODISCARD inline constexpr const CResourceState& GetState() const { return m_state; }
-		WARP_ATTR_NODISCARD inline constexpr UINT GetNumSubresources() const { return m_numSubresources; }
-		WARP_ATTR_NODISCARD inline constexpr const D3D12_RESOURCE_DESC& GetDesc() const { return m_desc; }
+		WARP_ATTR_NODISCARD CResourceState& GetState() { return m_state; }
+		WARP_ATTR_NODISCARD const CResourceState& GetState() const { return m_state; }
+		WARP_ATTR_NODISCARD UINT GetNumSubresources() const { return m_numSubresources; }
+		WARP_ATTR_NODISCARD const D3D12_RESOURCE_DESC& GetDesc() const { return m_desc; }
+
+		// Subresource is implicitly promotable if and only if it is:
+		// 1) In D3D12_RESOURCE_STATE_COMMON at the moment of calling
+		// 2) If it is buffer or a non-depth SimultanousAccess texture
+		// 3) If it is a non-SimultaneousAccess NON_PIXEL_SHADER_RESOURCE, PIXEL_SHADER_RESOURCE, COPY_DEST or COPY_SOURCE
+		bool IsStateImplicitlyPromotableTo(D3D12_RESOURCE_STATES states, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) const;
+
+		// IMPORTANT NOTE:
+		//	Decay does not occur between command lists executed together in the same ExecuteCommandLists call.
+		// 
+		// Subresource is implicitly decayable if and only if it is:
+		// 1) Resource is being accessed on a copy queue
+		// 2) Buffer resource on any queue type
+		// 3) Texture resources on any queue type that have the D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS flag set
+		// 4) Any resource implicitly promoted to a read-only state
+		bool IsStateImplicitlyDecayableFrom(D3D12_RESOURCE_STATES states, D3D12_COMMAND_LIST_TYPE type, UINT subresourceIndex = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) const;
 
 		void SetName(std::wstring_view name);
 

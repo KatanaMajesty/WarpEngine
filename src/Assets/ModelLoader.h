@@ -29,6 +29,8 @@ namespace Warp
 		void ComputeMeshletsAndOptimize(StaticMesh& mesh);
 		void UploadMeshResources(StaticMesh& mesh);
 
+		Math::Matrix GetLocalToModel(cgltf_node* node);
+
 		AssetManager* m_assetManager;
 	};
 

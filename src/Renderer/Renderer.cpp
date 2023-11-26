@@ -131,16 +131,16 @@ namespace Warp
 				StaticMesh& mesh = model->Meshes[0]; // Assert that cube has 1 mesh
 				for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
 				{
-					// m_graphicsContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 					m_graphicsContext->SetGraphicsRootShaderResourceView(i + 1, mesh.StreamOfVertices.Resources[i].GetGpuVirtualAddress());
 				}
-				// m_graphicsContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+				m_graphicsContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				m_graphicsContext->SetGraphicsRootShaderResourceView(6, mesh.MeshletBuffer.GetGpuVirtualAddress());
 				
-				// m_graphicsContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+				m_graphicsContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				m_graphicsContext->SetGraphicsRootShaderResourceView(7, mesh.UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
 				
-				// m_graphicsContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+				m_graphicsContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				m_graphicsContext->SetGraphicsRootShaderResourceView(8, mesh.PrimitiveIndicesBuffer.GetGpuVirtualAddress());
 
 				m_graphicsContext.DispatchMesh(mesh.StreamOfVertices.NumVertices / 128 + 1, 1, 1); // should be good enough for cube testing

@@ -22,43 +22,6 @@ namespace Warp
 	// Quickstart with glTF https://www.khronos.org/files/gltf20-reference-guide.pdf
 	// Afterwards we chill here - https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
-	template<typename AttributeType, cgltf_component_type ReqType>
-	void FillFromAccessor(std::vector<AttributeType>& dest, cgltf_accessor* accessor)
-	{
-		static constexpr size_t AttributeSize = sizeof(AttributeType);
-		WARP_ASSERT(accessor->stride == AttributeSize && accessor->component_type == ReqType);
-
-		cgltf_buffer_view* bufferView = accessor->buffer_view;
-
-		// TODO: Check if this is reliable enough in all cases
-		size_t sz = accessor->count * AttributeSize;
-		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
-		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
-
-		dest.clear();
-		dest.resize(accessor->count);
-		std::memcpy(dest.data(), src, sz);
-	}
-
-	template<typename AttributeType, cgltf_component_type ReqType>
-	void FillBytesFromAccessor(std::vector<std::byte>& dest, uint32_t& stride, cgltf_accessor* accessor)
-	{
-		WARP_ASSERT(accessor->stride == sizeof(AttributeType), accessor->component_type == ReqType);
-		cgltf_buffer_view* bufferView = accessor->buffer_view;
-
-		// TODO: Check if this is reliable enough in all cases
-		size_t sz = accessor->count * accessor->stride;
-		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
-		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
-
-		dest.clear();
-		dest.resize(sz);
-		std::memcpy(dest.data(), src, sz);
-
-		// TODO: Safety checks?
-		stride = static_cast<uint32_t>(accessor->stride);
-	}
-
 	AssetProxy ModelLoader::Load(std::string_view filepath)
 	{
 		cgltf_data* data = nullptr;
@@ -109,20 +72,8 @@ namespace Warp
 
 		// TODO: Add materials
 
-		// Get transform of a node
-		// We use right-handed coordinate system, as do glTF
-		Math::Matrix LocalToModel;
-		if (node->has_matrix)
-		{
-			LocalToModel = Math::Matrix(node->matrix);
-		}
-		else
-		{
-			Math::Matrix T = Math::Matrix::CreateTranslation(node->has_translation ? Math::Vector3(node->translation) : Math::Vector3());
-			Math::Matrix R = Math::Matrix::CreateFromQuaternion(node->has_rotation ? Math::Quaternion(node->rotation) : Math::Quaternion());
-			Math::Matrix S = Math::Matrix::CreateScale(node->has_scale ? Math::Vector3(node->scale) : Math::Vector3(1.0f));
-			LocalToModel = S * R * T;
-		}
+		// TODO: We never use local to model transformation
+		Math::Matrix LocalToModel = GetLocalToModel(node);
 
 		cgltf_mesh* glTFMesh = node->mesh;
 		for (size_t primitiveIndex = 0; primitiveIndex < glTFMesh->primitives_count; ++primitiveIndex)
@@ -149,6 +100,43 @@ namespace Warp
 		{
 			ProcessStaticMeshNode(model, node->children[i]);
 		}
+	}
+
+	template<typename AttributeType, cgltf_component_type ReqType>
+	void FillFromAccessor(std::vector<AttributeType>& dest, cgltf_accessor* accessor)
+	{
+		static constexpr size_t AttributeSize = sizeof(AttributeType);
+		WARP_ASSERT(accessor->stride == AttributeSize && accessor->component_type == ReqType);
+
+		cgltf_buffer_view* bufferView = accessor->buffer_view;
+
+		// TODO: Check if this is reliable enough in all cases
+		size_t sz = accessor->count * AttributeSize;
+		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
+		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
+
+		dest.clear();
+		dest.resize(accessor->count);
+		std::memcpy(dest.data(), src, sz);
+	}
+
+	template<typename AttributeType, cgltf_component_type ReqType>
+	void FillBytesFromAccessor(std::vector<std::byte>& dest, uint32_t& stride, cgltf_accessor* accessor)
+	{
+		WARP_ASSERT(accessor->stride == sizeof(AttributeType), accessor->component_type == ReqType);
+		cgltf_buffer_view* bufferView = accessor->buffer_view;
+
+		// TODO: Check if this is reliable enough in all cases
+		size_t sz = accessor->count * accessor->stride;
+		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
+		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
+
+		dest.clear();
+		dest.resize(sz);
+		std::memcpy(dest.data(), src, sz);
+
+		// TODO: Safety checks?
+		stride = static_cast<uint32_t>(accessor->stride);
 	}
 
 	void ModelLoader::ProcessStaticMeshAttributes(StaticMesh& mesh, cgltf_primitive* primitive)
@@ -395,6 +383,25 @@ namespace Warp
 		}
 		copyContext.Close();
 		copyContext.Execute(true); // TODO: We wait for completion, though shouldnt
+	}
+
+	Math::Matrix ModelLoader::GetLocalToModel(cgltf_node* node)
+	{
+		// Get transform of a node
+		// We use right-handed coordinate system, as do glTF
+		Math::Matrix LocalToModel;
+		if (node->has_matrix)
+		{
+			LocalToModel = Math::Matrix(node->matrix);
+		}
+		else
+		{
+			Math::Matrix T = Math::Matrix::CreateTranslation(node->has_translation ? Math::Vector3(node->translation) : Math::Vector3());
+			Math::Matrix R = Math::Matrix::CreateFromQuaternion(node->has_rotation ? Math::Quaternion(node->rotation) : Math::Quaternion());
+			Math::Matrix S = Math::Matrix::CreateScale(node->has_scale ? Math::Vector3(node->scale) : Math::Vector3(1.0f));
+			LocalToModel = S * R * T;
+		}
+		return LocalToModel;
 	}
 
 }

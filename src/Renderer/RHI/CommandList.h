@@ -20,6 +20,9 @@ namespace Warp
 			D3D12_RESOURCE_STATES State;
 		};
 
+		// They are the same :)
+		using DecayableTransitionBarrier = PendingResourceBarrier;
+
 		RHIResourceStateTracker() = default;
 
 		// Adds a pending resource barrier object to the pending resource barrier queue
@@ -27,6 +30,14 @@ namespace Warp
 		// This is needed to resolve and keep track of valid states of unknown resources when they are first used in the command list
 		// For more info watch https://www.youtube.com/watch?v=nmB2XMasz2o
 		void AddPendingBarrier(const PendingResourceBarrier& barrier);
+
+		// Adds a decayable transition barrier to the list of those.
+		// The decayable transition barrier list will be resolved right after execution of the command lists
+		// This is needed to correctly store all of the internal state tracking stuff
+		// Without calling this method we will either face D3D12 warnings about resource state decays by doing redundant transitions or
+		// we will basically store incorrect resource states inside the resource state tracker
+		void AddDecayableBarrier(const DecayableTransitionBarrier& barrier);
+
 		void Reset();
 
 		// Queries the cached resource state of a provided resource, if it is not null.
@@ -35,11 +46,13 @@ namespace Warp
 		// The command list is then able to change the cached resource state returned by the function
 		CResourceState& GetCachedState(RHIResource* resource);
 
-		inline constexpr const auto& GetAllPendingBarriers() const { return m_pendingResourceBarriers; }
+		auto& GetAllPendingBarriers() { return m_pendingResourceBarriers; }
+		auto& GetAllDecayableTransitions() { return m_decayableTransitionBarriers; }
 
 	private:
 		std::unordered_map<RHIResource*, CResourceState> m_cachedResourceStates;
 		std::vector<PendingResourceBarrier> m_pendingResourceBarriers;
+		std::vector<DecayableTransitionBarrier> m_decayableTransitionBarriers;
 	};
 
 	class RHICommandList
@@ -63,6 +76,7 @@ namespace Warp
 		void AddUavBarrier(RHIResource* resource); // NOIMPL
 
 		void FlushBatchedResourceBarriers();
+		void ResolveDecayableResourceStates();
 		WARP_ATTR_NODISCARD std::vector<D3D12_RESOURCE_BARRIER> ResolvePendingResourceBarriers();
 
 		void Open(ID3D12CommandAllocator* allocator);
