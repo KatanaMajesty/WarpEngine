@@ -20,6 +20,11 @@ namespace Warp
 		Math::Matrix proj;
 	};
 
+	struct alignas(256) MeshletInfoCB
+	{
+		uint32_t MeshletIndex;
+	};
+
 	Renderer::Renderer(HWND hwnd)
 		: m_physicalDevice(
 			[hwnd]() -> std::unique_ptr<RHIPhysicalDevice>
@@ -111,39 +116,35 @@ namespace Warp
 			
 			{
 				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer::DispatchMesh");
-
-				/*
-				m_rootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc(1, 0)
-			.AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.AddShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_ALL) // Vertex attributes // 1
-			.AddShaderResourceView(0, 1, D3D12_SHADER_VISIBILITY_ALL) // 2
-			.AddShaderResourceView(0, 2, D3D12_SHADER_VISIBILITY_ALL) // 3
-			.AddShaderResourceView(0, 3, D3D12_SHADER_VISIBILITY_ALL) // 4
-			.AddShaderResourceView(0, 4, D3D12_SHADER_VISIBILITY_ALL) // 5
-			.AddShaderResourceView(1, 0, D3D12_SHADER_VISIBILITY_ALL) // Meshlets // 6
-			.AddShaderResourceView(2, 0, D3D12_SHADER_VISIBILITY_ALL) // uvIndices // 7
-			.AddShaderResourceView(3, 0, D3D12_SHADER_VISIBILITY_ALL) // Prim indices // 8
-				*/
-				// TODO: We need implicit state decay for our state tracking to work correctly
 				
 				m_graphicsContext.SetGraphicsRootSignature(m_rootSignature);
 				m_graphicsContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
-				StaticMesh& mesh = model->Meshes[0]; // Assert that cube has 1 mesh
-				for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
-				{
-					m_graphicsContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(i + 1, mesh.StreamOfVertices.Resources[i].GetGpuVirtualAddress());
-				}
-				m_graphicsContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				m_graphicsContext->SetGraphicsRootShaderResourceView(6, mesh.MeshletBuffer.GetGpuVirtualAddress());
-				
-				m_graphicsContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				m_graphicsContext->SetGraphicsRootShaderResourceView(7, mesh.UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
-				
-				m_graphicsContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-				m_graphicsContext->SetGraphicsRootShaderResourceView(8, mesh.PrimitiveIndicesBuffer.GetGpuVirtualAddress());
 
-				m_graphicsContext.DispatchMesh(mesh.StreamOfVertices.NumVertices / 128 + 1, 1, 1); // should be good enough for cube testing
+				for (size_t i = 0; i < model->Meshes.size(); ++i)
+				{
+					StaticMesh& mesh = model->Meshes[i];
+
+					for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+					{
+						if (!mesh.HasAttributes(i))
+						{
+							continue;
+						}
+
+						m_graphicsContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						m_graphicsContext->SetGraphicsRootShaderResourceView(i + 1, mesh.StreamOfVertices.Resources[i].GetGpuVirtualAddress());
+					}
+					m_graphicsContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(6, mesh.MeshletBuffer.GetGpuVirtualAddress());
+
+					m_graphicsContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(7, mesh.UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
+
+					m_graphicsContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(8, mesh.PrimitiveIndicesBuffer.GetGpuVirtualAddress());
+
+					m_graphicsContext.DispatchMesh(mesh.GetNumMeshlets(), 1, 1); // should be good enough for cube testing
+				}
 			}
 			// Indicate that the back buffer will now be used to present.
 			m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
@@ -163,11 +164,11 @@ namespace Warp
 		float yaw = m_timeElapsed * 0.5f;
 		float pitch = m_timeElapsed * 1.0f;
 		float roll = m_timeElapsed * 0.75f;
-		Math::Quaternion rotQuat = Math::Quaternion::CreateFromYawPitchRoll(Math::Vector3(yaw, pitch, roll));
+		Math::Quaternion rotQuat = Math::Quaternion::CreateFromYawPitchRoll(Math::Vector3(0.0f, pitch, 0.0f));
 
-		Math::Matrix translation = Math::Matrix::CreateTranslation(Math::Vector3(0.0f, 0.0f, -4.0f));
+		Math::Matrix translation = Math::Matrix::CreateTranslation(Math::Vector3(0.0f, -2.0f, -4.0f));
 		Math::Matrix rotation = Math::Matrix::CreateFromQuaternion(rotQuat);
-		Math::Matrix scale = Math::Matrix::CreateScale(1.0f);
+		Math::Matrix scale = Math::Matrix::CreateScale(0.5f);
 
 		uint32_t width = m_swapchain->GetWidth();
 		uint32_t height = m_swapchain->GetHeight();
@@ -267,19 +268,8 @@ namespace Warp
 		m_cubePso = RHIMeshPipelineState(GetDevice(), cubePsoDesc);
 		m_cubePso.SetName(L"RHIMeshPso_Cube");
 
-		// TODO: Remvoe this
-		WARP_ASSERT(DirectX::XMVerifyCPUSupport(), "Cannot use DirectXMath for the provided CPU");
-		
-		ConstantBuffer cb;
-		cb.model = DirectX::XMMatrixIdentity();
-		cb.view = DirectX::XMMatrixIdentity();
-		cb.proj = DirectX::XMMatrixIdentity();
-
 		m_constantBuffer = m_device->CreateBuffer(sizeof(ConstantBuffer), sizeof(ConstantBuffer));
 		m_constantBuffer.SetName(L"RHIBuffer_CubeCBV");
-
-		ConstantBuffer* data = m_constantBuffer.GetCpuVirtualAddress<ConstantBuffer>();
-		memcpy(data, &cb, sizeof(ConstantBuffer));
 
 		WaitForGfxToFinish();
 		return true;
@@ -294,73 +284,6 @@ namespace Warp
 		m_cubeMs = m_shaderCompiler.CompileShader(cubeShader, msShaderDesc);
 		m_cubePs = m_shaderCompiler.CompileShader(cubeShader, psShaderDesc);
 		return m_cubeMs.HasBinary() && m_cubePs.HasBinary();
-	}
-
-	void Renderer::InitStupidBuffers(ModelAsset* asset)
-	{
-		StaticMesh& mesh = asset->Meshes[0]; // Hardcode, get a cube's mesh
-		RHIDevice* device = m_device.get();
-
-		uint32_t numDescriptors = 3 + EVertexAttributes::NumAttributes;
-		m_cubeDescriptorHeap.reset(new RHIDescriptorHeap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, numDescriptors, true));
-		m_cubeDescriptors = m_cubeDescriptorHeap->Allocate(numDescriptors);
-		WARP_ASSERT(!m_cubeDescriptors.IsNull());
-
-		// Vertices
-		{
-			for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
-			{
-				D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
-				viewDesc.Format = DXGI_FORMAT_UNKNOWN;
-				viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-				viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-				viewDesc.Buffer.FirstElement = 0;
-				viewDesc.Buffer.NumElements = mesh.StreamOfVertices.NumVertices;
-				viewDesc.Buffer.StructureByteStride = mesh.StreamOfVertices.AttributeStrides[i];
-				viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-				m_attributeViews[i] = RHIShaderResourceView(device, &mesh.StreamOfVertices.Resources[i], &viewDesc, m_cubeDescriptors, i);
-			}
-		}
-
-		// Meshlets
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
-			viewDesc.Format = DXGI_FORMAT_UNKNOWN;
-			viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			viewDesc.Buffer.FirstElement = 0;
-			viewDesc.Buffer.NumElements = (UINT)mesh.Meshlets.size();
-			viewDesc.Buffer.StructureByteStride = sizeof(Meshlet);
-			viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-			m_meshletView = RHIShaderResourceView(device, &mesh.MeshletBuffer, &viewDesc, m_cubeDescriptors, EVertexAttributes::NumAttributes + 0);
-		}
-
-		// Unique vertex indices
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
-			viewDesc.Format = DXGI_FORMAT_R8_UINT;
-			viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			viewDesc.Buffer.FirstElement = 0;
-			viewDesc.Buffer.NumElements = (UINT)mesh.UniqueVertexIndices.size();
-			viewDesc.Buffer.StructureByteStride = 0;
-			viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_RAW;
-			m_meshletView = RHIShaderResourceView(device, &mesh.MeshletBuffer, &viewDesc, m_cubeDescriptors, EVertexAttributes::NumAttributes + 1);
-		}
-
-		// Primitive indices
-		{
-			D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc;
-			viewDesc.Format = DXGI_FORMAT_UNKNOWN;
-			viewDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-			viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			viewDesc.Buffer.FirstElement = 0;
-			viewDesc.Buffer.NumElements = (UINT)mesh.Meshlets.size();
-			viewDesc.Buffer.StructureByteStride = sizeof(Meshlet);
-			viewDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-			m_meshletView = RHIShaderResourceView(device, &mesh.MeshletBuffer, &viewDesc, m_cubeDescriptors, EVertexAttributes::NumAttributes + 2);
-		}
-		
 	}
 
 }

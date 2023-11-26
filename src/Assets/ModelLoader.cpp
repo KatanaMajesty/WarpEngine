@@ -72,10 +72,11 @@ namespace Warp
 
 		// TODO: Add materials
 
-		// TODO: We never use local to model transformation
 		Math::Matrix LocalToModel = GetLocalToModel(node);
 
 		cgltf_mesh* glTFMesh = node->mesh;
+		WARP_ASSERT(glTFMesh, "Damaged glTF model?");
+
 		for (size_t primitiveIndex = 0; primitiveIndex < glTFMesh->primitives_count; ++primitiveIndex)
 		{
 			// Create mesh for our model
@@ -89,7 +90,7 @@ namespace Warp
 			// We only use triangles for now. Will be removed in future. This is just in case
 			WARP_ASSERT(type == cgltf_primitive_type_triangles);
 
-			ProcessStaticMeshAttributes(mesh, &primitive);
+			ProcessStaticMeshAttributes(mesh, LocalToModel, &primitive);
 
 			ComputeMeshletsAndOptimize(mesh);
 			UploadMeshResources(mesh);
@@ -139,7 +140,7 @@ namespace Warp
 		stride = static_cast<uint32_t>(accessor->stride);
 	}
 
-	void ModelLoader::ProcessStaticMeshAttributes(StaticMesh& mesh, cgltf_primitive* primitive)
+	void ModelLoader::ProcessStaticMeshAttributes(StaticMesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive)
 	{
 		cgltf_accessor* indices = primitive->indices;
 		if (!indices)
@@ -162,8 +163,6 @@ namespace Warp
 				{
 					mesh.Indices.push_back(i);
 				}
-
-				mesh.NumIndices = static_cast<uint32_t>(indices->count);
 			}
 			else FillFromAccessor<uint32_t, cgltf_component_type_r_32u>(mesh.Indices, indices);
 		}
@@ -207,63 +206,78 @@ namespace Warp
 			case cgltf_attribute_type_tangent: FillFromAccessor<Math::Vector4, cgltf_component_type_r_32f>(gltfTangents, accessor); break;
 			default: break; // just skip
 			}
+		}
 
-			uint32_t numVertices = mesh.StreamOfVertices.NumVertices;
-			uint32_t numIndices = static_cast<uint32_t>(mesh.Indices.size());
+		uint32_t numVertices = mesh.GetNumVertices();
+		uint32_t numIndices = mesh.GetNumIndices();
 
-			// Sanity checks
-			WARP_ASSERT(numVertices > 0);
-			// TODO: Currently only with indices. If changing this, also check for creation of mesh.IndexBuffer (we assert there that indices exist)
-			WARP_ASSERT(!mesh.Indices.empty());
-			WARP_ASSERT(!mesh.StreamOfVertices.Attributes[EVertexAttributes::Positions].empty());
-			for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+		// Sanity checks
+		WARP_ASSERT(!mesh.StreamOfVertices.Attributes[EVertexAttributes::Positions].empty());
+		WARP_ASSERT(!mesh.Indices.empty());
+		WARP_ASSERT(numVertices > 0);
+		// TODO: Currently only with indices. If changing this, also check for creation of mesh.IndexBuffer (we assert there that indices exist)
+		for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+		{
+			if (!mesh.HasAttributes(i))
 			{
-				// If empty - no attribute
-				if (mesh.StreamOfVertices.Attributes[i].empty())
-				{
-					continue;
-				}
-
-				WARP_MAYBE_UNUSED size_t numAttributes = mesh.StreamOfVertices.Attributes[i].size() / mesh.StreamOfVertices.AttributeStrides[i];
-				WARP_ASSERT(numVertices == numAttributes);
+				continue;
 			}
-			WARP_ASSERT(numIndices % 3 == 0);
 
-			// Process tangents/bitangents
-			if (!gltfTangents.empty())
+			WARP_MAYBE_UNUSED size_t numAttributes = mesh.StreamOfVertices.Attributes[i].size() / mesh.StreamOfVertices.AttributeStrides[i];
+			WARP_ASSERT(numVertices == numAttributes);
+		}
+		WARP_ASSERT(numIndices % 3 == 0);
+
+		// Process tangents/bitangents
+		if (!gltfTangents.empty())
+		{
+			// TODO: Remove redundant copying of tangents, we can write immediately into the mesh.StreamOfVertices
+			std::vector<Math::Vector3> tangents(numVertices);
+			std::vector<Math::Vector3> bitangents(numVertices);
+			static constexpr size_t TangentStride = sizeof(Math::Vector3);
+
+			size_t normalStride = mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Normals];
+			WARP_ASSERT(normalStride == sizeof(Math::Vector3)); // TODO: One more sanity check, just in case. Remove it 
+
+			// If tangents non-empty, assume there are numVertices of them
+			for (size_t i = 0; i < numVertices; ++i)
 			{
-				// TODO: Remove redundant copying of tangents, we can write immediately into the mesh.StreamOfVertices
-				std::vector<Math::Vector3> tangents(numVertices);
-				std::vector<Math::Vector3> bitangents(numVertices);
-				static constexpr size_t TangentStride = sizeof(Math::Vector3);
-
-				size_t normalStride = mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Normals];
-				WARP_ASSERT(normalStride == sizeof(Math::Vector3)); // TODO: One more sanity check, just in case. Remove it 
-
-				// If tangents non-empty, assume there are numVertices of them
-				for (size_t i = 0; i < numVertices; ++i)
-				{
-					// Get normal from byte array
-					Math::Vector3& normal = reinterpret_cast<Math::Vector3&>(mesh.StreamOfVertices.Attributes[EVertexAttributes::Normals][i * normalStride]);
-					tangents[i] = Math::Vector3(gltfTangents[i]);
-					bitangents[i] = normal.Cross(tangents[i]) * gltfTangents[i].w;
-				}
-
-				size_t bytesToCopy = TangentStride * numVertices;
-
-				auto& streamOfTangents = mesh.StreamOfVertices.Attributes[EVertexAttributes::Tangents];
-				streamOfTangents.clear();
-				streamOfTangents.resize(bytesToCopy);
-				std::memcpy(streamOfTangents.data(), tangents.data(), bytesToCopy);
-
-				auto& streamOfBitangents = mesh.StreamOfVertices.Attributes[EVertexAttributes::Bitangents];
-				streamOfBitangents.clear();
-				streamOfBitangents.resize(bytesToCopy);
-				std::memcpy(streamOfBitangents.data(), bitangents.data(), bytesToCopy);
-
-				mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Tangents] = TangentStride;
-				mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Bitangents] = TangentStride;
+				// Get normal from byte array
+				Math::Vector3& normal = reinterpret_cast<Math::Vector3&>(mesh.StreamOfVertices.Attributes[EVertexAttributes::Normals][i * normalStride]);
+				tangents[i] = Math::Vector3(gltfTangents[i]);
+				bitangents[i] = normal.Cross(tangents[i]) * gltfTangents[i].w;
 			}
+
+			size_t bytesToCopy = TangentStride * numVertices;
+
+			auto& streamOfTangents = mesh.StreamOfVertices.Attributes[EVertexAttributes::Tangents];
+			streamOfTangents.clear();
+			streamOfTangents.resize(bytesToCopy);
+			std::memcpy(streamOfTangents.data(), tangents.data(), bytesToCopy);
+
+			auto& streamOfBitangents = mesh.StreamOfVertices.Attributes[EVertexAttributes::Bitangents];
+			streamOfBitangents.clear();
+			streamOfBitangents.resize(bytesToCopy);
+			std::memcpy(streamOfBitangents.data(), bitangents.data(), bytesToCopy);
+
+			mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Tangents] = TangentStride;
+			mesh.StreamOfVertices.AttributeStrides[EVertexAttributes::Bitangents] = TangentStride;
+		}
+
+		// Transform vertices from local to model space
+		Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh.StreamOfVertices.Attributes[EVertexAttributes::Positions].data());
+		XMVector3TransformCoordStream(
+			meshPositions, sizeof(Math::Vector3),
+			meshPositions, sizeof(Math::Vector3),
+			numVertices, localToModel);
+
+		if (mesh.HasAttributes(EVertexAttributes::Normals))
+		{
+			Math::Vector3* meshNormals = reinterpret_cast<Math::Vector3*>(mesh.StreamOfVertices.Attributes[EVertexAttributes::Normals].data());
+			XMVector3TransformNormalStream(
+				meshNormals, sizeof(Math::Vector3),
+				meshNormals, sizeof(Math::Vector3),
+				numVertices, localToModel);
 		}
 	}
 
@@ -274,7 +288,7 @@ namespace Warp
 
 		Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh.StreamOfVertices.Attributes[EVertexAttributes::Positions].data());
 		WARP_MAYBE_UNUSED HRESULT hr = DirectX::ComputeMeshlets(
-			mesh.Indices.data(), mesh.NumIndices / 3,
+			mesh.Indices.data(), mesh.GetNumIndices() / 3,
 			meshPositions, mesh.StreamOfVertices.NumVertices,
 			nullptr,
 			mesh.Meshlets, mesh.UniqueVertexIndices, mesh.PrimitiveIndices);
@@ -290,7 +304,7 @@ namespace Warp
 
 		// Fill upload resources with data
 		static constexpr uint32_t IndexStride = sizeof(uint32_t);
-		const size_t indicesInBytes = mesh.NumIndices * IndexStride;
+		const size_t indicesInBytes = mesh.GetNumIndices() * IndexStride;
 		RHIBuffer uploadIndexBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
 
 		std::memcpy(uploadIndexBuffer.GetCpuVirtualAddress<std::byte>(), mesh.Indices.data(), indicesInBytes);
@@ -302,7 +316,7 @@ namespace Warp
 		for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
 		{
 			// Skip if no attribute
-			if (mesh.StreamOfVertices.Attributes[i].empty())
+			if (!mesh.HasAttributes(i))
 			{
 				continue;
 			}
@@ -369,7 +383,7 @@ namespace Warp
 			for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
 			{
 				// Skip if no attribute
-				if (mesh.StreamOfVertices.Attributes[i].empty())
+				if (!mesh.HasAttributes(i))
 				{
 					continue;
 				}

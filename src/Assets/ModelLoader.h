@@ -25,7 +25,7 @@ namespace Warp
 
 	private:
 		void ProcessStaticMeshNode(ModelAsset* model, cgltf_node* node);
-		void ProcessStaticMeshAttributes(StaticMesh& mesh, cgltf_primitive* primitive);
+		void ProcessStaticMeshAttributes(StaticMesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
 		void ComputeMeshletsAndOptimize(StaticMesh& mesh);
 		void UploadMeshResources(StaticMesh& mesh);
 

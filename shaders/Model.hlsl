@@ -50,13 +50,17 @@ uint GetVertexIndex(Meshlet m, uint localIndex)
     return UniqueVertexIndices.Load(localIndex * 4);
 }
 
-OutVertex GetVertex(uint vertexIndex, matrix mvp)
+OutVertex GetVertex(uint meshletIndex, uint vertexIndex, matrix mvp)
 {
     float3 pos = Positions[vertexIndex];
     
     OutVertex v;
     v.pos = mul(float4(pos, 1.0), mvp);
-    v.color = pos * 0.5 + 0.5;
+    v.color = float3(
+	    float(meshletIndex & 1),
+	    float(meshletIndex & 3) / 4,
+	    float(meshletIndex & 7) / 8
+    );
     return v;
 }
 
@@ -77,7 +81,7 @@ void MSMain(
     {
         matrix mvp = mul(model, mul(view, proj));
         uint vertexIndex = GetVertexIndex(m, groupThreadID);
-        outVerts[groupThreadID] = GetVertex(vertexIndex, mvp);
+        outVerts[groupThreadID] = GetVertex(groupID, vertexIndex, mvp);
     }
     
     if (groupThreadID < m.PrimitiveCount)

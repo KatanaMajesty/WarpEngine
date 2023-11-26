@@ -45,7 +45,7 @@ namespace Warp
 		m_assetManager = std::make_unique<AssetManager>();
 
 		ModelLoader loader(m_assetManager.get());
-		m_tempModelProxy = loader.Load((GetAssetsPath() / "cube" / "cube.gltf").string());
+		m_tempModelProxy = loader.Load((GetAssetsPath() / "antique_camera" / "AntiqueCamera.gltf").string());
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)

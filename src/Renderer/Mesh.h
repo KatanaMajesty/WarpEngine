@@ -27,6 +27,11 @@ namespace Warp
 
 	struct StaticMesh
 	{
+		uint32_t GetNumIndices() const { return static_cast<uint32_t>(Indices.size()); }
+		uint32_t GetNumVertices() const { return StreamOfVertices.NumVertices; }
+		uint32_t GetNumMeshlets() const { return static_cast<uint32_t>(Meshlets.size()); }
+		bool HasAttributes(size_t index) const { return !StreamOfVertices.Attributes[index].empty(); }
+
 		std::string Name;
 
 		// SoA representation of mesh vertices
@@ -46,7 +51,6 @@ namespace Warp
 
 		std::vector<uint32_t> Indices;
 		RHIBuffer IndexBuffer;
-		uint32_t NumIndices;
 
 		std::vector<Meshlet> Meshlets;
 		std::vector<uint8_t> UniqueVertexIndices;
