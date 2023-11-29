@@ -17,7 +17,7 @@
 #include "ShaderCompiler.h"
 
 // TODO: Remove these asap
-#include "../Assets/ModelAsset.h"
+#include "../Assets/MeshAsset.h"
 
 namespace Warp
 {
@@ -36,7 +36,7 @@ namespace Warp
 		void Resize(uint32_t width, uint32_t height);
 		
 		// TODO: Temporarily takes in ModelAsset
-		void RenderFrame(ModelAsset* model);
+		void RenderFrame(const std::vector<MeshAsset*>& meshes);
 
 		// TODO: Maybe temp
 		void Update(float timestep);

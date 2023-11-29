@@ -106,12 +106,11 @@
     <ClCompile Include="src\Assets\AssetManager.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\ModelLoader.cpp">
-      <Filter>Assets</Filter>
-    </ClCompile>
     <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
+    <ClCompile Include="src\Assets\AssetImporter.cpp" />
+    <ClCompile Include="src\Assets\GltfLoader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -223,13 +222,10 @@
     <ClInclude Include="src\Assets\AssetManager.h">
       <Filter>Assets</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\ModelLoader.h">
+    <ClInclude Include="src\Assets\MeshAsset.h">
       <Filter>Assets</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\ModelAsset.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\Loader.h">
+    <ClInclude Include="src\Assets\AssetImporter.h">
       <Filter>Assets</Filter>
     </ClInclude>
     <ClInclude Include="src\Util\ArrayView.h">
@@ -241,6 +237,7 @@
     <ClInclude Include="src\Renderer\RHI\Descriptor.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="src\Assets\GltfLoader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">

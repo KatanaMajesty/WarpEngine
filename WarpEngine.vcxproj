@@ -20,8 +20,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Assets\AssetImporter.cpp" />
     <ClCompile Include="src\Assets\AssetManager.cpp" />
-    <ClCompile Include="src\Assets\ModelLoader.cpp" />
+    <ClCompile Include="src\Assets\GltfLoader.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -49,9 +50,9 @@
   <ItemGroup>
     <ClInclude Include="src\Assets\Asset.h" />
     <ClInclude Include="src\Assets\AssetManager.h" />
-    <ClInclude Include="src\Assets\Loader.h" />
-    <ClInclude Include="src\Assets\ModelAsset.h" />
-    <ClInclude Include="src\Assets\ModelLoader.h" />
+    <ClInclude Include="src\Assets\AssetImporter.h" />
+    <ClInclude Include="src\Assets\GltfLoader.h" />
+    <ClInclude Include="src\Assets\MeshAsset.h" />
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />

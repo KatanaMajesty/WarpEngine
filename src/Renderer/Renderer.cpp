@@ -77,7 +77,7 @@ namespace Warp
 		ResizeDepthStencil();
 	}
 
-	void Renderer::RenderFrame(ModelAsset* model)
+	void Renderer::RenderFrame(const std::vector<MeshAsset*>& meshes)
 	{
 		// Wait for inflight frame of the currently used backbuffer
 		UINT frameIndex = m_swapchain->GetCurrentBackbufferIndex();
@@ -120,30 +120,30 @@ namespace Warp
 				m_graphicsContext.SetGraphicsRootSignature(m_rootSignature);
 				m_graphicsContext->SetGraphicsRootConstantBufferView(0, m_constantBuffer.GetGpuVirtualAddress());
 
-				for (size_t i = 0; i < model->Meshes.size(); ++i)
+				for (size_t i = 0; i < meshes.size(); ++i)
 				{
-					StaticMesh& mesh = model->Meshes[i];
+					MeshAsset* mesh = meshes[i];
 
 					for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
 					{
-						if (!mesh.HasAttributes(i))
+						if (!mesh->HasAttributes(i))
 						{
 							continue;
 						}
 
-						m_graphicsContext.AddTransitionBarrier(&mesh.StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-						m_graphicsContext->SetGraphicsRootShaderResourceView(i + 1, mesh.StreamOfVertices.Resources[i].GetGpuVirtualAddress());
+						m_graphicsContext.AddTransitionBarrier(&mesh->StreamOfVertices.Resources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						m_graphicsContext->SetGraphicsRootShaderResourceView(i + 1, mesh->StreamOfVertices.Resources[i].GetGpuVirtualAddress());
 					}
-					m_graphicsContext.AddTransitionBarrier(&mesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(6, mesh.MeshletBuffer.GetGpuVirtualAddress());
+					m_graphicsContext.AddTransitionBarrier(&mesh->MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(6, mesh->MeshletBuffer.GetGpuVirtualAddress());
 
-					m_graphicsContext.AddTransitionBarrier(&mesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(7, mesh.UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
+					m_graphicsContext.AddTransitionBarrier(&mesh->UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(7, mesh->UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
 
-					m_graphicsContext.AddTransitionBarrier(&mesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(8, mesh.PrimitiveIndicesBuffer.GetGpuVirtualAddress());
+					m_graphicsContext.AddTransitionBarrier(&mesh->PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+					m_graphicsContext->SetGraphicsRootShaderResourceView(8, mesh->PrimitiveIndicesBuffer.GetGpuVirtualAddress());
 
-					m_graphicsContext.DispatchMesh(mesh.GetNumMeshlets(), 1, 1); // should be good enough for cube testing
+					m_graphicsContext.DispatchMesh(mesh->GetNumMeshlets(), 1, 1); // should be good enough for cube testing
 				}
 			}
 			// Indicate that the back buffer will now be used to present.

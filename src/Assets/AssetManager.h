@@ -7,7 +7,7 @@
 #include <concepts>
 
 #include "Asset.h"
-#include "ModelAsset.h"
+#include "MeshAsset.h"
 
 #include "../Core/Assert.h"
 #include "../Core/Logger.h"
@@ -81,9 +81,9 @@ namespace Warp
 		template<typename T>
 		auto GetRegistry() -> Registry<T>*
 		{
-			if constexpr (std::is_same_v<T, ModelAsset>)
+			if constexpr (std::is_same_v<T, MeshAsset>)
 			{
-				return &m_modelRegistry;
+				return &m_meshRegistry;
 			}
 			else if constexpr (std::is_same_v<T, TextureAsset>)
 			{
@@ -92,7 +92,7 @@ namespace Warp
 			else return nullptr;
 		}
 
-		Registry<ModelAsset> m_modelRegistry;
+		Registry<MeshAsset> m_meshRegistry;
 		Registry<TextureAsset> m_textureRegistry;
 	};
 
@@ -101,7 +101,7 @@ namespace Warp
 	{
 		switch (type)
 		{
-		case EAssetType::Model:		return "Model";
+		case EAssetType::Mesh:		return "Mesh";
 		case EAssetType::Texture:	return "Texture";
 		case EAssetType::Unknown: WARP_ATTR_FALLTHROUGH;
 		default: return "Unknown";

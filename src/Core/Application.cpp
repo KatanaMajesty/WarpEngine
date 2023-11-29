@@ -6,7 +6,7 @@
 #include "../Renderer/Renderer.h"
 #include "../World/World.h"
 
-#include "../Assets/ModelLoader.h"
+#include "../Assets/AssetImporter.h"
 
 namespace Warp
 {
@@ -44,8 +44,8 @@ namespace Warp
 		m_world = std::make_unique<World>();
 		m_assetManager = std::make_unique<AssetManager>();
 
-		ModelLoader loader(m_assetManager.get());
-		m_tempModelProxy = loader.Load((GetAssetsPath() / "antique_camera" / "AntiqueCamera.gltf").string());
+		MeshImporter importer(m_renderer.get(), m_assetManager.get());
+		m_tempModelProxies = importer.ImportFromFile((GetAssetsPath() / "antique_camera" / "AntiqueCamera.gltf").string());
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)
@@ -89,9 +89,16 @@ namespace Warp
 
 	void Application::Render()
 	{
-		// TODO: Temporarily using Model asset here. Will be removed asap
-		ModelAsset* model = m_assetManager->GetAs<ModelAsset>(m_tempModelProxy);
-		m_renderer->RenderFrame(model);
+		// TODO: Temporarily using mesh assets here. Will be removed asap
+		std::vector<MeshAsset*> meshes;
+		meshes.reserve(m_tempModelProxies.size());
+		
+		for (AssetProxy proxy : m_tempModelProxies)
+		{
+			meshes.push_back(m_assetManager->GetAs<MeshAsset>(proxy));
+		}
+
+		m_renderer->RenderFrame(meshes);
 	}
 
 }

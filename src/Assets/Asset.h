@@ -10,7 +10,7 @@ namespace Warp
 	enum class EAssetType
 	{
 		Unknown = 0,
-		Model,
+		Mesh,
 		Texture,
 		NumTypes,
 		// Scene,

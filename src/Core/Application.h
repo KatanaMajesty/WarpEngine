@@ -97,7 +97,7 @@ namespace Warp
 		std::unique_ptr<World> m_world;
 
 		std::unique_ptr<AssetManager> m_assetManager;
-		AssetProxy m_tempModelProxy;
+		std::vector<AssetProxy> m_tempModelProxies;
 	};
 
 }

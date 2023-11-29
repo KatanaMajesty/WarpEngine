@@ -1,19 +1,11 @@
 #pragma once
 
-#include <vector>
-
-// Include this before DirectXMesh to use it with DirectX 12
-#include "RHI/stdafx.h"
-#include <DirectXMesh.h>
-
-#include "RHI/Resource.h"
-#include "../Math/Math.h"
+#include "Asset.h"
+#include "../Renderer/RHI/Resource.h"
+#include "../Renderer/Meshlet.h"
 
 namespace Warp
 {
-
-	using Meshlet = DirectX::Meshlet;
-	using MeshletTriangle = DirectX::MeshletTriangle;
 
 	enum EVertexAttributes
 	{
@@ -25,8 +17,12 @@ namespace Warp
 		NumAttributes,
 	};
 
-	struct StaticMesh
+	struct MeshAsset : public Asset
 	{
+		static constexpr EAssetType StaticType = EAssetType::Mesh;
+
+		MeshAsset() : Asset(StaticType) {}
+
 		uint32_t GetNumIndices() const { return static_cast<uint32_t>(Indices.size()); }
 		uint32_t GetNumVertices() const { return StreamOfVertices.NumVertices; }
 		uint32_t GetNumMeshlets() const { return static_cast<uint32_t>(Meshlets.size()); }
@@ -45,10 +41,9 @@ namespace Warp
 			AttributeArray<RHIBuffer> Resources;
 
 			uint32_t NumVertices = 0;
-		};
+		} StreamOfVertices;
 
-		VertexStream StreamOfVertices;
-
+		// TODO: Maybe remove indices from mesh?
 		std::vector<uint32_t> Indices;
 		RHIBuffer IndexBuffer;
 
