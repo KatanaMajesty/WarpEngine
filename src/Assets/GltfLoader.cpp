@@ -9,11 +9,12 @@
 #include "../Math/Math.h"
 #include "../Core/Logger.h"
 #include "../Core/Assert.h"
+#include "MeshAsset.h"
 
 // TODO: Warp Asset Loader does not support sparse GLTF accessors currently. Will be removed asap
 #define WAL_GLTF_SPARSE_NOIMPL(accessor) { if (accessor->is_sparse) { WARP_YIELD_NOIMPL(); } }
 
-namespace Warp
+namespace Warp::GltfLoader
 {
 
 	static Math::Matrix GetLocalToModel(cgltf_node* node)
@@ -35,47 +36,11 @@ namespace Warp
 		return LocalToModel;
 	}
 
-	template<typename AttributeType, cgltf_component_type ReqType>
-	void FillFromAccessor(std::vector<AttributeType>& dest, cgltf_accessor* accessor)
-	{
-		static constexpr size_t AttributeSize = sizeof(AttributeType);
-		WARP_ASSERT(accessor->stride == AttributeSize && accessor->component_type == ReqType);
-
-		cgltf_buffer_view* bufferView = accessor->buffer_view;
-
-		// TODO: Check if this is reliable enough in all cases
-		size_t sz = accessor->count * AttributeSize;
-		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
-		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
-
-		dest.clear();
-		dest.resize(accessor->count);
-		std::memcpy(dest.data(), src, sz);
-	}
-
-	template<typename AttributeType, cgltf_component_type ReqType>
-	void FillBytesFromAccessor(std::vector<std::byte>& dest, uint32_t& stride, cgltf_accessor* accessor)
-	{
-		WARP_ASSERT(accessor->stride == sizeof(AttributeType), accessor->component_type == ReqType);
-		cgltf_buffer_view* bufferView = accessor->buffer_view;
-
-		// TODO: Check if this is reliable enough in all cases
-		size_t sz = accessor->count * accessor->stride;
-		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
-		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
-
-		dest.clear();
-		dest.resize(sz);
-		std::memcpy(dest.data(), src, sz);
-
-		// TODO: Safety checks?
-		stride = static_cast<uint32_t>(accessor->stride);
-	}
-
 	// Quickstart with glTF https://www.khronos.org/files/gltf20-reference-guide.pdf
 	// Afterwards we chill here - https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
-	std::vector<AssetProxy> GltfLoader::LoadFromFile(std::string_view filepath, AssetManager* assetManager)
+	void ProcessStaticMeshNode(std::vector<AssetProxy>& proxies, AssetManager* assetManager, cgltf_node* node);
+	std::vector<AssetProxy> LoadFromFile(std::string_view filepath, AssetManager* assetManager)
 	{
 		cgltf_data* data = nullptr;
 		cgltf_options options = {};
@@ -115,7 +80,8 @@ namespace Warp
 		return proxies;
 	}
 
-	void GltfLoader::ProcessStaticMeshNode(std::vector<AssetProxy>& proxies, AssetManager* assetManager, cgltf_node* node)
+	void ProcessStaticMeshAttributes(MeshAsset* mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
+	void ProcessStaticMeshNode(std::vector<AssetProxy>& proxies, AssetManager* assetManager, cgltf_node* node)
 	{
 		// TODO: Add materials
 
@@ -148,7 +114,44 @@ namespace Warp
 		}
 	}
 
-	void GltfLoader::ProcessStaticMeshAttributes(MeshAsset* mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive)
+	template<typename AttributeType, cgltf_component_type ReqType>
+	void FillFromAccessor(std::vector<AttributeType>& dest, cgltf_accessor* accessor)
+	{
+		static constexpr size_t AttributeSize = sizeof(AttributeType);
+		WARP_ASSERT(accessor->stride == AttributeSize && accessor->component_type == ReqType);
+
+		cgltf_buffer_view* bufferView = accessor->buffer_view;
+
+		// TODO: Check if this is reliable enough in all cases
+		size_t sz = accessor->count * AttributeSize;
+		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
+		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
+
+		dest.clear();
+		dest.resize(accessor->count);
+		std::memcpy(dest.data(), src, sz);
+	}
+
+	template<typename AttributeType, cgltf_component_type ReqType>
+	void FillBytesFromAccessor(std::vector<std::byte>& dest, uint32_t& stride, cgltf_accessor* accessor)
+	{
+		WARP_ASSERT(accessor->stride == sizeof(AttributeType), accessor->component_type == ReqType);
+		cgltf_buffer_view* bufferView = accessor->buffer_view;
+
+		// TODO: Check if this is reliable enough in all cases
+		size_t sz = accessor->count * accessor->stride;
+		const void* buf = bufferView->data ? bufferView->data : bufferView->buffer->data; WARP_ASSERT(buf);
+		const void* src = static_cast<const std::byte*>(buf) + bufferView->offset;
+
+		dest.clear();
+		dest.resize(sz);
+		std::memcpy(dest.data(), src, sz);
+
+		// TODO: Safety checks?
+		stride = static_cast<uint32_t>(accessor->stride);
+	}
+
+	void ProcessStaticMeshAttributes(MeshAsset* mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive)
 	{
 		cgltf_accessor* indices = primitive->indices;
 		if (!indices)

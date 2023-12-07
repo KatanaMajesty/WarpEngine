@@ -231,13 +231,14 @@
     <ClInclude Include="src\Util\ArrayView.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\Mesh.h">
+    <ClInclude Include="src\Renderer\Meshlet.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\RHI\Descriptor.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
     <ClInclude Include="src\Assets\GltfLoader.h" />
+    <ClInclude Include="src\World\Components\MeshComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">

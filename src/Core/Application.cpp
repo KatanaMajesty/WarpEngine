@@ -3,8 +3,6 @@
 #include "Logger.h"
 #include "Defines.h"
 #include "Assert.h"
-#include "../Renderer/Renderer.h"
-#include "../World/World.h"
 
 #include "../Assets/AssetImporter.h"
 
@@ -38,9 +36,9 @@ namespace Warp
 		return *s_instance;
 	}
 
-	void Application::Init(HWND hwnd)
+	void Application::Init(void* hwnd)
 	{
-		m_renderer = std::make_unique<Renderer>(hwnd);
+		m_renderer = std::make_unique<Renderer>(reinterpret_cast<HWND>(hwnd));
 		m_world = std::make_unique<World>();
 		m_assetManager = std::make_unique<AssetManager>();
 
@@ -83,7 +81,7 @@ namespace Warp
 
 	void Application::Update(float timestep)
 	{
-		m_world->Update(timestep);
+		// m_world->Update(timestep);
 		m_renderer->Update(timestep);
 	}
 

@@ -4,9 +4,10 @@
 #include <string>
 #include <filesystem>
 
-#include "../WinAPI.h"
 #include "../Util/Timer.h"
-
+#include "../Assets/Asset.h"
+#include "../World/World.h"
+#include "../Renderer/Renderer.h"
 #include "../Assets/AssetManager.h"
 
 namespace Warp
@@ -29,9 +30,6 @@ namespace Warp
 		EApplicationFlags Flags = EApplicationFlag_None;
 	};
 
-	class Renderer;
-	class World;
-
 	class Application
 	{
 	private:
@@ -52,7 +50,7 @@ namespace Warp
 		static Application& Get();
 
 		// Initialize (or reinitialize) the Application
-		void Init(HWND hwnd);
+		void Init(void* hwnd);
 		void RequestResize(uint32_t width, uint32_t height);
 
 		void Tick();
@@ -95,7 +93,6 @@ namespace Warp
 
 		// TODO: currently we store world in Application. This should be changed though
 		std::unique_ptr<World> m_world;
-
 		std::unique_ptr<AssetManager> m_assetManager;
 		std::vector<AssetProxy> m_tempModelProxies;
 	};

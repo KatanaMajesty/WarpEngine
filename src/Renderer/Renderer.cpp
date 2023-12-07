@@ -9,6 +9,7 @@
 // TODO: Temp, remove
 #include "../Math/Math.h"
 #include "RHI/PIXRuntime.h"
+#include "../World/World.h"
 
 namespace Warp
 {
@@ -155,6 +156,10 @@ namespace Warp
 		m_swapchain->Present(false);
 
 		m_device->EndFrame();
+	}
+
+	void Renderer::RenderWorld(World* world)
+	{
 	}
 
 	void Renderer::Update(float timestep)

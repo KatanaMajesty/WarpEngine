@@ -4,6 +4,7 @@
 #include <filesystem>
 
 #include "GltfLoader.h"
+#include "../Math/Math.h"
 #include "../Core/Logger.h"
 #include "../Core/Assert.h"
 #include "../Renderer/Renderer.h"
@@ -26,7 +27,7 @@ namespace Warp
 
 		switch (extension)
 		{
-		case AssetFileExtension::Gltf: meshes = GltfLoader().LoadFromFile(filepath, manager); break;
+		case AssetFileExtension::Gltf: meshes = GltfLoader::LoadFromFile(filepath, manager); break;
 		default: WARP_ASSERT(false, "Shouldnt happen"); return {};
 		}
 
@@ -59,7 +60,6 @@ namespace Warp
 
 	void MeshImporter::UploadGpuResources(MeshAsset* mesh)
 	{
-		// TODO: REWRITE RHI RESOURCE HANDLING;
 		Renderer* renderer = GetRenderer();
 		RHIDevice* Device = renderer->GetDevice();
 
@@ -73,7 +73,7 @@ namespace Warp
 		// Asset that we have indices
 		mesh->IndexBuffer = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
 
-		StaticMesh::VertexStream::AttributeArray<RHIBuffer> uploadResources;
+		MeshAsset::VertexStream::AttributeArray<RHIBuffer> uploadResources;
 		for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
 		{
 			// Skip if no attribute

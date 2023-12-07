@@ -18,9 +18,12 @@
 
 // TODO: Remove these asap
 #include "../Assets/MeshAsset.h"
+// #include "../World/World.h" // Moved to renderer.cpp
 
 namespace Warp
 {
+
+	class World;
 
 	class Renderer
 	{
@@ -37,6 +40,8 @@ namespace Warp
 		
 		// TODO: Temporarily takes in ModelAsset
 		void RenderFrame(const std::vector<MeshAsset*>& meshes);
+
+		void RenderWorld(World* world);
 
 		// TODO: Maybe temp
 		void Update(float timestep);

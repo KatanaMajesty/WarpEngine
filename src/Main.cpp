@@ -1,11 +1,10 @@
-#include <Windows.h>
-
 #include <vector>
 #include <string>
 #include <cstdint>
 #include <iostream>
 #include <string_view>
 
+#include "WinAPI.h"
 #include "Core/Application.h"
 #include "Core/Logger.h"
 
