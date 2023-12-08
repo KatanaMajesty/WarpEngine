@@ -45,9 +45,6 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() { return m_computeQueue.get(); }
 		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() { return m_copyQueue.get(); }
 
-		// TODO: We should not return by value!
-		WARP_ATTR_NODISCARD RHIBuffer CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE);
-
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
 		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }
 

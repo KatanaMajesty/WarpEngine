@@ -37,14 +37,7 @@ namespace Warp
 		~Renderer();
 
 		void Resize(uint32_t width, uint32_t height);
-		
-		// TODO: Temporarily takes in ModelAsset
-		void RenderFrame(const std::vector<MeshAsset*>& meshes);
-
-		void RenderWorld(World* world);
-
-		// TODO: Maybe temp
-		void Update(float timestep);
+		void Render(World* world);
 
 		static constexpr uint32_t SimultaneousFrames = RHISwapchain::BackbufferCount;
 		static constexpr uint32_t NumDescriptorHeapTypes = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
@@ -64,14 +57,11 @@ namespace Warp
 		// Wait for graphics queue to finish executing all the commands on all frames
 		void WaitForGfxToFinish();
 
-		std::unique_ptr<RHIPhysicalDevice>	m_physicalDevice;
-		std::unique_ptr<RHIDevice>			m_device;
-		std::unique_ptr<RHISwapchain>		m_swapchain;
+		std::unique_ptr<RHIPhysicalDevice> m_physicalDevice;
+		std::unique_ptr<RHIDevice> m_device;
+		std::unique_ptr<RHISwapchain> m_swapchain;
 
-		RHIRootSignature m_rootSignature;
 		UINT64 m_frameFenceValues[SimultaneousFrames];
-
-		std::array<std::unique_ptr<RHIDescriptorHeap>, NumDescriptorHeapTypes> m_descriptorHeaps;
 
 		// TODO: Remove/move
 		void InitDepthStencil();
@@ -84,15 +74,14 @@ namespace Warp
 		RHICommandContext m_copyContext;
 		RHICommandContext m_computeContext;
 
-		RHIBuffer m_constantBuffer;
+		RHIBuffer m_cbViewData;
+		RHIBuffer m_cbDrawData;
+		RHIRootSignature m_basicRootSignature;
+		RHIMeshPipelineState m_basicPSO;
 		CShaderCompiler m_shaderCompiler;
-
-		float m_timeElapsed = 0.0f;
-		RHIMeshPipelineState m_cubePso;
-		CShader m_cubeMs;
-		CShader m_cubePs;
+		CShader m_MSBasic;
+		CShader m_PSBasic;
 
 		bool InitAssets(); // TODO: Temp, will be removed
-		bool InitShaders(); // TODO: Temp, will be removed
 	};
 }

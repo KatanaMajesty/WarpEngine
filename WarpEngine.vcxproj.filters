@@ -255,10 +255,7 @@
     </Natvis>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\Cube.hlsl">
-      <Filter>Shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="shaders\Model.hlsl">
+    <FxCompile Include="shaders\Basic.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

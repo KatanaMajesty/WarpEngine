@@ -6,6 +6,9 @@
 
 #include "../Assets/AssetImporter.h"
 
+// TODO: Remove
+#include "../World/Components.h"
+
 namespace Warp
 {
 
@@ -41,9 +44,18 @@ namespace Warp
 		m_renderer = std::make_unique<Renderer>(reinterpret_cast<HWND>(hwnd));
 		m_world = std::make_unique<World>();
 		m_assetManager = std::make_unique<AssetManager>();
-
+		
 		MeshImporter importer(m_renderer.get(), m_assetManager.get());
-		m_tempModelProxies = importer.ImportFromFile((GetAssetsPath() / "antique_camera" / "AntiqueCamera.gltf").string());
+		std::vector<AssetProxy> meshes = importer.ImportFromFile((GetAssetsPath() / "antique_camera" / "AntiqueCamera.gltf").string());
+
+		TransformComponent transform = TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f));
+
+		for (size_t i = 0; i < meshes.size(); ++i)
+		{
+			Entity antiqueEntity = m_world->CreateEntity(fmt::format("Antique Camera Entity Mesh {}", i));
+			antiqueEntity.AddComponent<TransformComponent>(transform);
+			antiqueEntity.AddComponent<MeshComponent>(importer.GetAssetManager(), meshes[i]);
+		}
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)
@@ -81,22 +93,12 @@ namespace Warp
 
 	void Application::Update(float timestep)
 	{
-		// m_world->Update(timestep);
-		m_renderer->Update(timestep);
+		m_world->Update(timestep);
 	}
 
 	void Application::Render()
 	{
-		// TODO: Temporarily using mesh assets here. Will be removed asap
-		std::vector<MeshAsset*> meshes;
-		meshes.reserve(m_tempModelProxies.size());
-		
-		for (AssetProxy proxy : m_tempModelProxies)
-		{
-			meshes.push_back(m_assetManager->GetAs<MeshAsset>(proxy));
-		}
-
-		m_renderer->RenderFrame(meshes);
+		m_renderer->Render(m_world.get());
 	}
 
 }

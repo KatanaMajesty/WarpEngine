@@ -94,7 +94,6 @@ namespace Warp
 		// TODO: currently we store world in Application. This should be changed though
 		std::unique_ptr<World> m_world;
 		std::unique_ptr<AssetManager> m_assetManager;
-		std::vector<AssetProxy> m_tempModelProxies;
 	};
 
 }

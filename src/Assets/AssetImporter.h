@@ -41,6 +41,9 @@ namespace Warp
 			return m_supportedFileExtensions.at(extension);
 		}
 
+		Renderer* GetRenderer() { return m_renderer; }
+		AssetManager* GetAssetManager() { return m_assetManager; }
+
 	protected:
 		void AddSupportedFormat(const std::string& format, AssetFileExtension extension)
 		{
@@ -48,11 +51,7 @@ namespace Warp
 		}
 
 		std::unordered_map<std::string, AssetFileExtension> m_supportedFileExtensions;
-
-		Renderer* GetRenderer() { return m_renderer; }
 		Renderer* m_renderer = nullptr;
-
-		AssetManager* GetAssetManager() { return m_assetManager; }
 		AssetManager* m_assetManager = nullptr;
 	};
 

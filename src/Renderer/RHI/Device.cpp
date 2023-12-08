@@ -113,21 +113,6 @@ namespace Warp
 		}
 	}
 
-	RHIBuffer RHIDevice::CreateBuffer(UINT strideInBytes, UINT64 sizeInBytes, D3D12_RESOURCE_FLAGS flags)
-	{
-		// Work remarks:
-		// Applications should stick to the heap type abstractions of UPLOAD, DEFAULT, and READBACK, 
-		// in order to support all adapter architectures reasonably well.
-		RHIBuffer buffer(this,
-			D3D12_HEAP_TYPE_UPLOAD, 		   // TODO: Rewrite this, request a heap type from the user
-			D3D12_RESOURCE_STATE_GENERIC_READ, // TODO: Rewrite this, avoid using generic read, start using transitions
-			flags, 
-			strideInBytes, sizeInBytes);
-
-		// TODO: Add validity checks
-		return buffer;
-	}
-
 	bool RHIDevice::CheckMeshShaderSupport() const
 	{
 		D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature;

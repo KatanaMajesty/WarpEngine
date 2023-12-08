@@ -27,12 +27,10 @@ namespace Warp
 		return m_ranges.data();
 	}
 
-	RHIRootSignatureDesc::RHIRootSignatureDesc(UINT numParameters, UINT numStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	RHIRootSignatureDesc::RHIRootSignatureDesc(UINT numStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
 		: m_flags(flags)
-		, m_numParameters(numParameters)
 		, m_numStaticSamplers(numStaticSamplers)
 	{
-		m_params.reserve(numParameters);
 		m_staticSamplers.reserve(numStaticSamplers);
 	}
 
@@ -112,7 +110,6 @@ namespace Warp
 
 	const D3D12_ROOT_PARAMETER1* RHIRootSignatureDesc::GetAllParameters() const
 	{
-		WARP_ASSERT(m_numParameters == m_params.size());
 		return m_params.data();
 	}
 
@@ -124,7 +121,6 @@ namespace Warp
 
 	RHIRootSignatureDesc& RHIRootSignatureDesc::AddParameter(const D3D12_ROOT_PARAMETER1& param)
 	{
-		WARP_ASSERT(m_params.size() < m_numParameters);
 		m_params.push_back(param);
 		return *this;
 	}

@@ -1,20 +1,22 @@
-cbuffer CubeCB : register(b0)
+struct ViewData
 {
-    matrix model;
-    matrix view;
-    matrix proj;
+    matrix View;
+    matrix Projection;
 };
+
+struct DrawData
+{
+    matrix MeshToWorld;
+};
+
+ConstantBuffer<ViewData> CbViewData : register(b0);
+ConstantBuffer<DrawData> CbDrawData : register(b1);
 
 struct OutVertex
 {
     float4 pos : SV_Position;
     float3 color : COLOR0;
 };
-
-float4 TransformPosition(float3 xyz, in matrix mvp)
-{
-    return mul(float4(xyz, 1.0), mvp);
-}
 
 struct Meshlet
 {
@@ -32,6 +34,11 @@ StructuredBuffer<float3>    Bitangents  : register(t0, space4);
 StructuredBuffer<Meshlet>   Meshlets    : register(t1);
 ByteAddressBuffer           UniqueVertexIndices : register(t2);
 StructuredBuffer<uint>      PrimitiveIndices : register(t3);
+
+float4 TransformPosition(float3 xyz, in matrix mvp)
+{
+    return mul(float4(xyz, 1.0), mvp);
+}
 
 uint3 UnpackPrimitive(uint primitive)
 {
@@ -79,7 +86,7 @@ void MSMain(
 
     if (groupThreadID < m.VertexCount)
     {
-        matrix mvp = mul(model, mul(view, proj));
+        matrix mvp = mul(CbDrawData.MeshToWorld, mul(CbViewData.View, CbViewData.Projection));
         uint vertexIndex = GetVertexIndex(m, groupThreadID);
         outVerts[groupThreadID] = GetVertex(groupID, vertexIndex, mvp);
     }

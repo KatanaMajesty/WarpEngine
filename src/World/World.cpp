@@ -13,6 +13,15 @@ namespace Warp
 
 	void World::Update(float timestep)
 	{
+		m_timeElapsed += timestep;
+
+		ViewOf<TransformComponent>().each(
+			[this](TransformComponent& transformComponent)
+			{
+				float pitch = m_timeElapsed;
+				transformComponent.Rotation = Math::Vector3(0.0f, pitch, 0.0f);
+			}
+		);
 	}
 
 	Entity World::CreateEntity(std::string_view name)

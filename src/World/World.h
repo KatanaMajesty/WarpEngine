@@ -32,6 +32,9 @@ namespace Warp
 		inline constexpr auto& GetEntityRegistry() { return m_entityRegistry; }
 		inline constexpr auto& GetEntityRegistry() const { return m_entityRegistry; }
 
+		template<typename... ComponentTypes>
+		inline auto ViewOf() { return GetEntityRegistry().view<ComponentTypes...>(); }
+
 	private:
 		auto FindEntityByID(Entity entity) const -> EntityContainer::const_iterator;
 		bool HasEntity(Entity entity) const;
@@ -39,6 +42,8 @@ namespace Warp
 		void RemoveEntityFromContainer(Entity entity);
 		void ClearEntities();
 
+		float m_timeElapsed = 0.0f; // TODO: Remove this from here...
+		
 		// TODO: Currently we just have 1 registry per World. Maybe we should consider requesting a registry for a World in future?
 		EntityRegistry	m_entityRegistry;
 		EntityContainer	m_entityContainer;
