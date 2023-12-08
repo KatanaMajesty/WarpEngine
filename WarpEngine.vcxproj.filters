@@ -109,8 +109,12 @@
     <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\AssetImporter.cpp" />
-    <ClCompile Include="src\Assets\GltfLoader.cpp" />
+    <ClCompile Include="src\Assets\GltfLoader.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\AssetImporter.cpp">
+      <Filter>Assets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -237,8 +241,12 @@
     <ClInclude Include="src\Renderer\RHI\Descriptor.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\GltfLoader.h" />
-    <ClInclude Include="src\World\Components\MeshComponent.h" />
+    <ClInclude Include="src\Assets\GltfLoader.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\Components\MeshComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
