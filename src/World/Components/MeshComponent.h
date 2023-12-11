@@ -20,7 +20,7 @@ namespace Warp
 
 		MeshAsset* GetMesh() { return Manager->GetAs<MeshAsset>(Proxy); }
 
-		AssetManager* Manager;
+		AssetManager* Manager = nullptr;
 		AssetProxy Proxy;
 	};
 

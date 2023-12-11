@@ -20,9 +20,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Assets\AssetImporter.cpp" />
     <ClCompile Include="src\Assets\AssetManager.cpp" />
-    <ClCompile Include="src\Assets\GltfLoader.cpp" />
+    <ClCompile Include="src\Assets\Util\GltfLoader.cpp" />
+    <ClCompile Include="src\Assets\MeshImporter.cpp" />
+    <ClCompile Include="src\Assets\TextureImporter.cpp" />
+    <ClCompile Include="src\Assets\Util\ImageLoader.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -51,14 +53,18 @@
     <ClInclude Include="src\Assets\Asset.h" />
     <ClInclude Include="src\Assets\AssetManager.h" />
     <ClInclude Include="src\Assets\AssetImporter.h" />
-    <ClInclude Include="src\Assets\GltfLoader.h" />
+    <ClInclude Include="src\Assets\Util\GltfLoader.h" />
     <ClInclude Include="src\Assets\MeshAsset.h" />
+    <ClInclude Include="src\Assets\MeshImporter.h" />
+    <ClInclude Include="src\Assets\TextureAsset.h" />
+    <ClInclude Include="src\Assets\TextureImporter.h" />
+    <ClInclude Include="src\Assets\Util\ImageLoader.h" />
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\Math\Math.h" />
-    <ClInclude Include="src\Renderer\Meshlet.h" />
+    <ClInclude Include="src\Renderer\Mesh.h" />
     <ClInclude Include="src\Renderer\Renderer.h" />
     <ClInclude Include="src\Renderer\RHI\CommandList.h" />
     <ClInclude Include="src\Renderer\RHI\CommandQueue.h" />
@@ -91,7 +97,6 @@
     <ClInclude Include="src\World\World.h" />
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
     <ClInclude Include="vendor\d3dx12.h" />
-    <ClInclude Include="vendor\DirectXTK\SimpleMath.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -102,7 +107,6 @@
     <CopyFileToFolders Include="vendor\dxil.dll">
       <FileType>Document</FileType>
     </CopyFileToFolders>
-    <None Include="vendor\DirectXTK\SimpleMath.inl" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\Basic.hlsl">

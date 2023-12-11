@@ -27,6 +27,18 @@ auto WINAPI wWinMain(
 
     Warp::Logging::Init(Warp::Logging::Severity::WARP_SEVERITY_INFO);
 
+    // TODO: Maybe move this?
+#if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
+    Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
+    if (FAILED(initialize))
+    {
+        WARP_LOG_FATAL("Failed to initialize COM Library");
+        return -1;
+    }
+#else
+#error Do not support this Windows version
+#endif
+
     std::vector<std::string> cmdLineArgs;
     ParseWin32CmdlineParams(cmdLineArgs, pCmdLine);
 

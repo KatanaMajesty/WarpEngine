@@ -8,6 +8,7 @@
 
 #include "Asset.h"
 #include "MeshAsset.h"
+#include "TextureAsset.h"
 
 #include "../Core/Assert.h"
 #include "../Core/Logger.h"

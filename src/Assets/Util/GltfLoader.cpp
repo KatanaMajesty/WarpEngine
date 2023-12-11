@@ -6,10 +6,10 @@
 #include <vector>
 #include <cstring>
 
-#include "../Math/Math.h"
-#include "../Core/Logger.h"
-#include "../Core/Assert.h"
-#include "MeshAsset.h"
+#include "../../Math/Math.h"
+#include "../../Core/Logger.h"
+#include "../../Core/Assert.h"
+#include "../MeshAsset.h"
 
 // TODO: Warp Asset Loader does not support sparse GLTF accessors currently. Will be removed asap
 #define WAL_GLTF_SPARSE_NOIMPL(accessor) { if (accessor->is_sparse) { WARP_YIELD_NOIMPL(); } }
@@ -88,7 +88,7 @@ namespace Warp::GltfLoader
 		Math::Matrix LocalToModel = GetLocalToModel(node);
 
 		cgltf_mesh* glTFMesh = node->mesh;
-		WARP_ASSERT(glTFMesh, "Damaged glTF model?");
+		WARP_ASSERT(glTFMesh, "Damaged glTF mesh?");
 
 		for (size_t primitiveIndex = 0; primitiveIndex < glTFMesh->primitives_count; ++primitiveIndex)
 		{
@@ -101,6 +101,8 @@ namespace Warp::GltfLoader
 			mesh->Name = fmt::format("{}_{}", glTFMesh->name, primitiveIndex);
 			cgltf_primitive& primitive = glTFMesh->primitives[primitiveIndex];
 			cgltf_primitive_type type = primitive.type;
+
+			primitive.material->normal_texture.texture->image->mime_type;
 
 			// We only use triangles for now. Will be removed in future. This is just in case
 			WARP_ASSERT(type == cgltf_primitive_type_triangles);

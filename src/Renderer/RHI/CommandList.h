@@ -55,6 +55,8 @@ namespace Warp
 		std::vector<DecayableTransitionBarrier> m_decayableTransitionBarriers;
 	};
 
+	// TODO: Fix, RHICommandList should be RHIDeviceChild?
+
 	class RHICommandList
 	{
 	public:

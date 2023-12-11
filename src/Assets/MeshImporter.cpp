@@ -1,20 +1,13 @@
-#include "AssetImporter.h"
+#include "MeshImporter.h"
 
-#include <array>
-#include <filesystem>
-
-#include "GltfLoader.h"
+#include "Util/GltfLoader.h"
 #include "../Math/Math.h"
-#include "../Core/Logger.h"
-#include "../Core/Assert.h"
-#include "../Renderer/Renderer.h"
-#include "../Renderer/RHI/CommandContext.h"
 
 namespace Warp
 {
 
-    std::vector<AssetProxy> MeshImporter::ImportFromFile(std::string_view filepath)
-    {
+	std::vector<AssetProxy> MeshImporter::ImportFromFile(std::string_view filepath)
+	{
 		AssetFileExtension extension = GetFilepathExtension(filepath);
 		if (extension == AssetFileExtension::Unknown)
 		{
@@ -37,26 +30,26 @@ namespace Warp
 			return {};
 		}
 
-        // https://github.com/microsoft/DirectXMesh/wiki/DirectXMesh
-        // TODO: Add mesh optimization
+		// https://github.com/microsoft/DirectXMesh/wiki/DirectXMesh
+		// TODO: Add mesh optimization
 
-        // Compute meshlets and upload gpu resources
-        for (AssetProxy proxy : meshes)
-        {
+		// Compute meshlets and upload gpu resources
+		for (AssetProxy proxy : meshes)
+		{
 			auto mesh = manager->GetAs<MeshAsset>(proxy);
-            Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh->StreamOfVertices.Attributes[EVertexAttributes::Positions].data());
-            WARP_MAYBE_UNUSED HRESULT hr = DirectX::ComputeMeshlets(
-                mesh->Indices.data(), mesh->GetNumIndices() / 3,
-                meshPositions, mesh->StreamOfVertices.NumVertices,
-                nullptr,
-                mesh->Meshlets, mesh->UniqueVertexIndices, mesh->PrimitiveIndices);
+			Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh->StreamOfVertices.Attributes[EVertexAttributes::Positions].data());
+			WARP_MAYBE_UNUSED HRESULT hr = DirectX::ComputeMeshlets(
+				mesh->Indices.data(), mesh->GetNumIndices() / 3,
+				meshPositions, mesh->StreamOfVertices.NumVertices,
+				nullptr,
+				mesh->Meshlets, mesh->UniqueVertexIndices, mesh->PrimitiveIndices);
 
-            WARP_ASSERT(SUCCEEDED(hr), "Failed to compute meshlets for mesh");
+			WARP_ASSERT(SUCCEEDED(hr), "Failed to compute meshlets for mesh");
 			UploadGpuResources(mesh);
-        }
-        
+		}
+
 		return meshes;
-    }
+	}
 
 	void MeshImporter::UploadGpuResources(MeshAsset* mesh)
 	{

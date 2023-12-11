@@ -5,8 +5,8 @@
 
 #include <string>
 
-#include "Asset.h"
-#include "AssetManager.h"
+#include "../Asset.h"
+#include "../AssetManager.h"
 
 namespace Warp::GltfLoader
 {

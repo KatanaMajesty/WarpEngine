@@ -7,7 +7,6 @@
 #include "../Renderer/Renderer.h"
 #include "Asset.h"
 #include "AssetManager.h"
-#include "MeshAsset.h"
 
 namespace Warp
 {
@@ -16,6 +15,9 @@ namespace Warp
 	{
 		Unknown,
 		Gltf,
+		Bmp,
+		Png,
+		Jpeg,
 	};
 
 	class AssetImporter
@@ -53,22 +55,6 @@ namespace Warp
 		std::unordered_map<std::string, AssetFileExtension> m_supportedFileExtensions;
 		Renderer* m_renderer = nullptr;
 		AssetManager* m_assetManager = nullptr;
-	};
-
-	class MeshImporter : public AssetImporter
-	{
-	public:
-		MeshImporter() = default;
-		MeshImporter(Renderer* renderer, AssetManager* assetManager)
-			: AssetImporter(renderer, assetManager)
-		{
-			AddSupportedFormat(".gltf", AssetFileExtension::Gltf);
-		}
-
-		std::vector<AssetProxy> ImportFromFile(std::string_view filepath);
-
-	private:
-		void UploadGpuResources(MeshAsset* mesh);
 	};
 
 }

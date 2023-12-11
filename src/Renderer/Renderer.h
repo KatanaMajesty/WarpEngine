@@ -50,6 +50,9 @@ namespace Warp
 		inline RHICommandContext& GetCopyContext() { return m_copyContext; }
 		inline RHICommandContext& GetComputeContext() { return m_computeContext; }
 
+		// Utility function that manages copy context, creates intermediate resource and calls Context::UploadSubresources
+		void UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset);
+
 	private:
 		// Waits for graphics queue to finish executing on the particular specified frame
 		void WaitForGfxOnFrameToFinish(uint32_t frameIndex);
@@ -62,18 +65,17 @@ namespace Warp
 		std::unique_ptr<RHISwapchain> m_swapchain;
 
 		UINT64 m_frameFenceValues[SimultaneousFrames];
-
-		// TODO: Remove/move
-		void InitDepthStencil();
-		void ResizeDepthStencil();
-		std::unique_ptr<RHITexture> m_depthStencil;
-		std::unique_ptr<RHIDescriptorHeap> m_dsvHeap;
-		RHIDepthStencilView m_depthStencilView;
-
 		RHICommandContext m_graphicsContext;
 		RHICommandContext m_copyContext;
 		RHICommandContext m_computeContext;
 
+		// TODO: Remove/move
+		void InitDepthStencil();
+		void ResizeDepthStencil();
+		bool InitAssets(); // TODO: Temp, will be removed
+		
+		std::unique_ptr<RHITexture> m_depthStencil;
+		RHIDepthStencilView m_depthStencilView;
 		RHIBuffer m_cbViewData;
 		RHIBuffer m_cbDrawData;
 		RHIRootSignature m_basicRootSignature;
@@ -81,7 +83,5 @@ namespace Warp
 		CShaderCompiler m_shaderCompiler;
 		CShader m_MSBasic;
 		CShader m_PSBasic;
-
-		bool InitAssets(); // TODO: Temp, will be removed
 	};
 }

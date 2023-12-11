@@ -44,11 +44,4 @@ namespace Warp
 		EAssetType m_type;
 	};
 
-	struct TextureAsset final : public Asset
-	{
-		static constexpr EAssetType StaticType = EAssetType::Texture;
-
-		TextureAsset() : Asset(StaticType) {}
-	};
-
 }

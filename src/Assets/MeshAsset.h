@@ -1,8 +1,9 @@
 #pragma once
 
+#include <DirectXMesh.h>
+
 #include "Asset.h"
 #include "../Renderer/RHI/Resource.h"
-#include "../Renderer/Meshlet.h"
 
 namespace Warp
 {
@@ -47,9 +48,9 @@ namespace Warp
 		std::vector<uint32_t> Indices;
 		RHIBuffer IndexBuffer;
 
-		std::vector<Meshlet> Meshlets;
+		std::vector<DirectX::Meshlet> Meshlets;
 		std::vector<uint8_t> UniqueVertexIndices;
-		std::vector<MeshletTriangle> PrimitiveIndices;
+		std::vector<DirectX::MeshletTriangle> PrimitiveIndices;
 
 		RHIBuffer MeshletBuffer;
 		RHIBuffer UniqueVertexIndicesBuffer;

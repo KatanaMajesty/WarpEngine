@@ -1,12 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <array>
 
 #include "D3D12MA/D3D12MemAlloc.h"
 
 #include "stdafx.h"
 #include "Resource.h"
 #include "CommandQueue.h"
+#include "DescriptorHeap.h"
 
 namespace Warp
 {
@@ -45,11 +47,23 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() { return m_computeQueue.get(); }
 		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() { return m_copyQueue.get(); }
 
+		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) { return m_descriptorHeaps[type].Heap.get(); }
+		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetSamplerHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER); }
+		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetViewHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); }
+		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetRtvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV); }
+		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetDsvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV); }
+
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
 		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }
 
 		bool CheckMeshShaderSupport() const;
 
+		// Returns the amount of TotalBytes needed to copy the subresources of the resource
+		// Basically gets a resource's TotalBytes from GetCopyableFootprint structure call
+		UINT64 GetCopyableBytes(RHIResource* res, UINT subresourceOffset, UINT numSubresources);
+
+		static constexpr UINT NumDescriptorHeaps = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
+		
 	private:
 		RHIPhysicalDevice* m_physicalDevice;
 
@@ -66,6 +80,16 @@ namespace Warp
 		std::unique_ptr<RHICommandQueue> m_graphicsQueue;
 		std::unique_ptr<RHICommandQueue> m_computeQueue;
 		std::unique_ptr<RHICommandQueue> m_copyQueue;
+
+		struct DescriptorHeapData
+		{
+			std::unique_ptr<RHIDescriptorHeap> Heap;
+			UINT NumDescriptors;
+			BOOL ShaderVisible;
+		};
+
+		void InitDescriptorHeaps();
+		std::array<DescriptorHeapData, NumDescriptorHeaps> m_descriptorHeaps;
 	};
 
 }

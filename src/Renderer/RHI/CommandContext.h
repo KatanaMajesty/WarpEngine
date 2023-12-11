@@ -1,5 +1,7 @@
 #pragma once
 
+#include <span>
+
 #include "stdafx.h"
 #include "Resource.h"
 #include "CommandList.h"
@@ -66,6 +68,7 @@ namespace Warp
 		void ClearDsv(const RHIDepthStencilView& descriptor, D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil, UINT numDirtyRects, const D3D12_RECT* dirtyRects);
 
 		void CopyResource(RHIResource* dest, RHIResource* src);
+		void UploadSubresources(RHIResource* dest, RHIResource* uploadBuffer, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset);
 
 	private:
 		static constexpr UINT NumResourceBarriersPerBatch = 16;

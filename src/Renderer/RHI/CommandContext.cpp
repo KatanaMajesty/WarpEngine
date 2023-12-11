@@ -173,4 +173,32 @@ namespace Warp
 		m_commandList->CopyResource(dest->GetD3D12Resource(), src->GetD3D12Resource());
 	}
 
+	void RHICommandContext::UploadSubresources(RHIResource* dest, RHIResource* uploadBuffer, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset)
+	{
+		WARP_EXPAND_DEBUG_ONLY(
+			if (m_queue->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
+			{
+				WARP_LOG_WARN("Trying to upload a resource from non-copy context. Was that intentional? Always prefer using copy context for that");
+			}
+		);
+
+		if (subresourceData.empty())
+		{
+			return;
+		}
+
+		UINT numSubresources = static_cast<UINT>(subresourceData.size());
+		WARP_ASSERT(dest);
+		WARP_ASSERT(numSubresources + subresourceOffset <= dest->GetNumSubresources());
+
+		UINT64 a = UpdateSubresources(m_commandList.GetD3D12CommandList(),
+			dest->GetD3D12Resource(),
+			uploadBuffer->GetD3D12Resource(), 0,
+			subresourceOffset, 
+			numSubresources, 
+			subresourceData.data());
+
+		WARP_ASSERT(a > 0, "Upload was unsuccessful");
+	}
+
 }

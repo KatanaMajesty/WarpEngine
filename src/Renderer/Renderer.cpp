@@ -213,6 +213,25 @@ namespace Warp
 		Device->EndFrame();
 	}
 
+	void Renderer::UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset)
+	{
+		uint32_t numSubresources = static_cast<uint32_t>(subresources.size());
+
+		RHIDevice* Device = m_device.get();
+		RHIBuffer uploadBuffer = RHIBuffer(Device,
+			D3D12_HEAP_TYPE_UPLOAD,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_FLAG_NONE,
+			0, Device->GetCopyableBytes(dest, subresourceOffset, numSubresources));
+		uploadBuffer.SetName(L"Renderer_UploadSubresources_IntermediateUploadBuffer");
+
+		m_copyContext.Open();
+		{
+			m_copyContext.UploadSubresources(dest, &uploadBuffer, subresources, subresourceOffset);
+		}
+		m_copyContext.Close();
+	}
+
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{
 		m_graphicsContext.GetQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
@@ -239,15 +258,16 @@ namespace Warp
 		desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 		// Create depth-stencil texture2d
+		CD3DX12_CLEAR_VALUE optimizedClearValue(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0);
 		m_depthStencil = std::make_unique<RHITexture>(GetDevice(),
 			D3D12_HEAP_TYPE_DEFAULT, 
 			D3D12_RESOURCE_STATE_DEPTH_WRITE, 
 			desc, 
-			CD3DX12_CLEAR_VALUE(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0));
+			&optimizedClearValue);
 
 		// Depth-stencil view
-		m_dsvHeap = std::make_unique<RHIDescriptorHeap>(GetDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);
-		m_depthStencilView = RHIDepthStencilView(m_device.get(), m_depthStencil.get(), nullptr, m_dsvHeap->Allocate(1));
+		RHIDevice* Device = m_device.get();
+		m_depthStencilView = RHIDepthStencilView(m_device.get(), m_depthStencil.get(), nullptr, Device->GetDsvsHeap()->Allocate(1));
 	}
 
 	void Renderer::ResizeDepthStencil()

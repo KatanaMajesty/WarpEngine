@@ -4,7 +4,8 @@
 #include "Defines.h"
 #include "Assert.h"
 
-#include "../Assets/AssetImporter.h"
+#include "../Assets/MeshImporter.h"
+#include "../Assets/TextureImporter.h"
 
 // TODO: Remove
 #include "../World/Components.h"
@@ -46,7 +47,14 @@ namespace Warp
 		m_assetManager = std::make_unique<AssetManager>();
 		
 		MeshImporter importer(m_renderer.get(), m_assetManager.get());
-		std::vector<AssetProxy> meshes = importer.ImportFromFile((GetAssetsPath() / "antique_camera" / "AntiqueCamera.gltf").string());
+		TextureImporter textureImporter(m_renderer.get(), m_assetManager.get());
+
+		std::filesystem::path filepath = GetAssetsPath() / "antique_camera";
+
+		AssetProxy t = textureImporter.ImportFromFile((filepath / "camera_camera_BaseColor.png").string(), ImportDesc());
+		// auto tAsset = textureImporter.GetAssetManager()->GetAs<TextureAsset>(t);
+
+		std::vector<AssetProxy> meshes = importer.ImportFromFile((filepath / "AntiqueCamera.gltf").string());
 
 		TransformComponent transform = TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f));
 

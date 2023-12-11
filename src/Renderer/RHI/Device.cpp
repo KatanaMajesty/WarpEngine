@@ -67,6 +67,7 @@ namespace Warp
 		WARP_RHI_VALIDATE(D3D12MA::CreateAllocator(&resourceAllocatorDesc, m_resourceAllocator.ReleaseAndGetAddressOf()));
 
 		InitCommandQueues();
+		InitDescriptorHeaps();
 
 		// Associate a logical device with physical device!
 		physicalDevice->AssociateLogicalDevice(this);
@@ -120,6 +121,16 @@ namespace Warp
 		return feature.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1;
 	}
 
+	UINT64 RHIDevice::GetCopyableBytes(RHIResource* res, UINT subresourceOffset, UINT numSubresources)
+	{
+		UINT64 TotalBytes = 0;
+		GetD3D12Device()->GetCopyableFootprints(
+			&res->GetDesc(),
+			subresourceOffset,
+			numSubresources, 0, nullptr, nullptr, nullptr, &TotalBytes);
+		return TotalBytes;
+	}
+
 	void RHIDevice::InitCommandQueues()
 	{
 		m_graphicsQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_DIRECT));
@@ -130,6 +141,28 @@ namespace Warp
 
 		m_copyQueue.reset(new RHICommandQueue(this, D3D12_COMMAND_LIST_TYPE_COPY));
 		m_copyQueue->SetName(L"RHIDevice_CopyQueue");
+	}
+
+	void RHIDevice::InitDescriptorHeaps()
+	{
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].NumDescriptors = 32768;
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].ShaderVisible = true;
+
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].NumDescriptors = 512;
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].ShaderVisible = true;
+
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV].NumDescriptors = 512;
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_RTV].ShaderVisible = false;
+		
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV].NumDescriptors = 512;
+		m_descriptorHeaps[D3D12_DESCRIPTOR_HEAP_TYPE_DSV].ShaderVisible = false;
+
+		for (UINT i = 0; i < NumDescriptorHeaps; ++i)
+		{
+			DescriptorHeapData& data = m_descriptorHeaps[i];
+			D3D12_DESCRIPTOR_HEAP_TYPE type = (D3D12_DESCRIPTOR_HEAP_TYPE)i;
+			data.Heap.reset(new RHIDescriptorHeap(this, type, data.NumDescriptors, data.ShaderVisible));
+		}
 	}
 
 }

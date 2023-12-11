@@ -37,6 +37,9 @@
     <Filter Include="Assets">
       <UniqueIdentifier>{0e4c5c3c-4bd9-46f5-804d-3824d5960a95}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Assets\Util">
+      <UniqueIdentifier>{b5ee88a1-9573-4f4a-a939-fff29f87bad2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -109,10 +112,16 @@
     <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\GltfLoader.cpp">
+    <ClCompile Include="src\Assets\Util\GltfLoader.cpp">
+      <Filter>Assets\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Util\ImageLoader.cpp">
+      <Filter>Assets\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\MeshImporter.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\AssetImporter.cpp">
+    <ClCompile Include="src\Assets\TextureImporter.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
   </ItemGroup>
@@ -195,9 +204,6 @@
     <ClInclude Include="src\Renderer\RHI\PIXRuntime.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="vendor\DirectXTK\SimpleMath.h">
-      <Filter>Vendor\DirectXTK</Filter>
-    </ClInclude>
     <ClInclude Include="src\Math\Math.h">
       <Filter>Math</Filter>
     </ClInclude>
@@ -235,17 +241,29 @@
     <ClInclude Include="src\Util\ArrayView.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\Meshlet.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\Renderer\RHI\Descriptor.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\GltfLoader.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
     <ClInclude Include="src\World\Components\MeshComponent.h">
       <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Util\GltfLoader.h">
+      <Filter>Assets\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Util\ImageLoader.h">
+      <Filter>Assets\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Mesh.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\MeshImporter.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\TextureImporter.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\TextureAsset.h">
+      <Filter>Assets</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -253,9 +271,6 @@
       <Filter>Vendor</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="vendor\DirectXTK\SimpleMath.inl">
-      <Filter>Vendor\DirectXTK</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="vendor\D3D12MA\D3D12MemAlloc.natvis">

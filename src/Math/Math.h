@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DirectXTK/SimpleMath.h"
+#include "directxtk12/SimpleMath.h"
 
 using namespace DirectX;
 namespace Math = DirectX::SimpleMath;

@@ -286,12 +286,12 @@ namespace Warp
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState, 
 		const D3D12_RESOURCE_DESC& desc, 
-		const D3D12_CLEAR_VALUE& optimizedClearValue)
+		const D3D12_CLEAR_VALUE* optimizedClearValue)
 		: RHIResource(device,
 			heapType,
 			initialState,
 			desc,
-			&optimizedClearValue)
+			optimizedClearValue)
 	{
 		QueryNumMipLevels();
 

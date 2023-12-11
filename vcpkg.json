@@ -8,6 +8,8 @@
       "features": [
         "dx12"
       ]
-    }
+    },
+    "directxtk12",
+    "directxtex"
   ]
 }
