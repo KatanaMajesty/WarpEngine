@@ -5,6 +5,7 @@
 
 #include <vector>
 #include <cstring>
+#include <filesystem>
 
 #include "../../Math/Math.h"
 #include "../../Core/Logger.h"
@@ -39,7 +40,7 @@ namespace Warp::MeshLoader
 	// Quickstart with glTF https://www.khronos.org/files/gltf20-reference-guide.pdf
 	// Afterwards we chill here - https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
-	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, cgltf_node* node);
+	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, const std::filesystem::path& folder, cgltf_node* node);
 	std::vector<Mesh> LoadFromGltfFile(std::string_view filepath)
 	{
 		cgltf_data* data = nullptr;
@@ -60,6 +61,7 @@ namespace Warp::MeshLoader
 		}
 
 		std::vector<Mesh> meshes;
+		std::filesystem::path folder = std::filesystem::path(filepath).parent_path();
 		for (size_t i = 0; i < data->scenes_count; ++i)
 		{
 			cgltf_scene& scene = data->scenes[i];
@@ -70,7 +72,7 @@ namespace Warp::MeshLoader
 				cgltf_node* node = scene.nodes[nodeIndex];
 
 				// Process mesh
-				ProcessStaticMeshNode(meshes, node);
+				ProcessStaticMeshNode(meshes, folder, node);
 			}
 		}
 
@@ -80,8 +82,61 @@ namespace Warp::MeshLoader
 		return meshes;
 	}
 
+	void LoadImageFromView(ImageLoader::Image& outImage, const std::filesystem::path& folder, cgltf_image* img)
+	{
+		if (img->buffer_view)
+		{
+			// Load from memory
+			WARP_YIELD_NOIMPL();
+			const char* mimeType = img->mime_type;
+		}
+		else
+		{
+			WARP_ASSERT(img->uri);
+			// TODO: Currently we do not support DDS extension, but we will definitely!
+			std::string imagePath = (folder / img->uri).string();
+			outImage = ImageLoader::LoadWICFromFile(imagePath, false);
+		}
+	}
+
+	void ProcessMaterial(Mesh& mesh, const std::filesystem::path& folder, cgltf_material* glTFMaterial)
+	{
+		WARP_ASSERT(glTFMaterial);
+		if (glTFMaterial->has_pbr_metallic_roughness)
+		{
+			cgltf_pbr_metallic_roughness m = glTFMaterial->pbr_metallic_roughness;
+			// If we hase BaseColorTexture - use it, otherwise use BaseColorFactor
+			if (m.base_color_texture.texture != nullptr)
+			{
+				// Create BaseColor asset using texture loader
+				cgltf_image* img = m.base_color_texture.texture->image;
+				LoadImageFromView(mesh.Material.BaseColor, folder, img);
+			}
+			else
+			{
+				mesh.Material.BaseColorFactor = Math::Vector4(m.base_color_factor);
+			}
+
+			if (m.metallic_roughness_texture.texture != nullptr)
+			{
+				cgltf_image* img = m.metallic_roughness_texture.texture->image;
+				LoadImageFromView(mesh.Material.MetalnessRoughnessMap, folder, img);
+			}
+			else
+			{
+				mesh.Material.MetalnessRoughnessFactor = Math::Vector2(m.metallic_factor, m.roughness_factor);
+			}
+		}
+
+		if (glTFMaterial->normal_texture.texture != nullptr)
+		{
+			cgltf_image* img = glTFMaterial->normal_texture.texture->image;
+			LoadImageFromView(mesh.Material.NormalMap, folder, img);
+		}
+	}
+
 	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
-	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, cgltf_node* node)
+	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, const std::filesystem::path& folder, cgltf_node* node)
 	{
 		// TODO: Add materials
 
@@ -99,37 +154,7 @@ namespace Warp::MeshLoader
 			cgltf_primitive_type type = primitive.type;
 
 			cgltf_material* glTFMaterial = primitive.material;
-			if (glTFMaterial->has_pbr_metallic_roughness)
-			{
-				cgltf_pbr_metallic_roughness m = glTFMaterial->pbr_metallic_roughness;
-				// If we hase BaseColorTexture - use it, otherwise use BaseColorFactor
-				if (m.base_color_texture.texture != nullptr)
-				{
-					// Create BaseColor asset using texture loader
-					//m.base_color_texture.texture->image->buffer_view
-
-					// TODO: Currently we do not support DDS extension, but we will definitely!
-					// Add check for mime_type
-					// TODO: Add loadfromfile/loadfrommemory
-					// ImageLoader::LoadWICFromFile();
-					// ImageLoader::LoadWICFromMemory();
-				}
-				else
-				{
-					mesh.Material.BaseColorFactor = Math::Vector4(m.base_color_factor);
-				}
-
-				if (m.metallic_roughness_texture.texture != nullptr)
-				{
-					// TODO: Load texture
-				}
-				else
-				{
-					mesh.Material.MetalnessRoughnessFactor = Math::Vector2(m.metallic_factor, m.roughness_factor);
-				}
-			}
-			primitive.material->normal_texture.texture->image->mime_type;
-			primitive.material->normal_texture.texture->image->mime_type;
+			ProcessMaterial(mesh, folder, glTFMaterial);
 
 			// We only use triangles for now. Will be removed in future. This is just in case
 			WARP_ASSERT(type == cgltf_primitive_type_triangles);
@@ -139,7 +164,7 @@ namespace Warp::MeshLoader
 		// Process all its children
 		for (size_t i = 0; i < node->children_count; ++i)
 		{
-			ProcessStaticMeshNode(meshes, node->children[i]);
+			ProcessStaticMeshNode(meshes, folder, node->children[i]);
 		}
 	}
 
