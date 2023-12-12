@@ -81,7 +81,8 @@ namespace Warp
 	void MeshImporter::LoadMeshMaterial(MeshAsset* mesh, const MeshLoader::MeshMaterial& loadedMaterial)
 	{
 		// TODO: We create own small texture importer just to import textures. Its meh... but whatever
-		TextureImporter textureImporter(GetRenderer(), GetAssetManager());
+		mesh->Material.Manager = GetAssetManager();
+		TextureImporter textureImporter(GetRenderer(), mesh->Material.Manager);
 
 		if (loadedMaterial.BaseColor.IsValid())
 		{

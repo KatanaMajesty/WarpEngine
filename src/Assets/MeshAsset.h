@@ -20,7 +20,7 @@ namespace Warp
 		bool HasNormalMap() const { return NormalMapProxy.IsValid(); }
 		bool HasMetalnessRoughnessMap() const { return MetalnessRoughnessMapProxy.IsValid(); }
 
-		AssetManager* Manager;
+		AssetManager* Manager = nullptr;
 		AssetProxy BaseColorProxy;
 		AssetProxy NormalMapProxy;
 		AssetProxy MetalnessRoughnessMapProxy;
