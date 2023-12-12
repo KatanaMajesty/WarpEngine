@@ -16,9 +16,6 @@ namespace Warp
 
 		TextureAsset() : Asset(StaticType) {}
 
-		std::string Filepath;
-		DirectX::ScratchImage Image;
-
 		RHITexture Texture;
 		RHIDescriptorAllocation SrvAllocation;
 		RHIShaderResourceView	Srv;

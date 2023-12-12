@@ -1,4 +1,4 @@
-#include "GltfLoader.h"
+#include "MeshLoader.h"
 
 #define CGLTF_IMPLEMENTATION
 #include <cgltf.h>
@@ -14,7 +14,7 @@
 // TODO: Warp Asset Loader does not support sparse GLTF accessors currently. Will be removed asap
 #define WAL_GLTF_SPARSE_NOIMPL(accessor) { if (accessor->is_sparse) { WARP_YIELD_NOIMPL(); } }
 
-namespace Warp::GltfLoader
+namespace Warp::MeshLoader
 {
 
 	static Math::Matrix GetLocalToModel(cgltf_node* node)
@@ -39,8 +39,8 @@ namespace Warp::GltfLoader
 	// Quickstart with glTF https://www.khronos.org/files/gltf20-reference-guide.pdf
 	// Afterwards we chill here - https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
-	void ProcessStaticMeshNode(std::vector<AssetProxy>& proxies, AssetManager* assetManager, cgltf_node* node);
-	std::vector<AssetProxy> LoadFromFile(std::string_view filepath, AssetManager* assetManager)
+	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, cgltf_node* node);
+	std::vector<Mesh> LoadFromGltfFile(std::string_view filepath)
 	{
 		cgltf_data* data = nullptr;
 		cgltf_options options = {};
@@ -59,7 +59,7 @@ namespace Warp::GltfLoader
 			return {};
 		}
 
-		std::vector<AssetProxy> proxies;
+		std::vector<Mesh> meshes;
 		for (size_t i = 0; i < data->scenes_count; ++i)
 		{
 			cgltf_scene& scene = data->scenes[i];
@@ -70,38 +70,65 @@ namespace Warp::GltfLoader
 				cgltf_node* node = scene.nodes[nodeIndex];
 
 				// Process mesh
-				ProcessStaticMeshNode(proxies, assetManager, node);
+				ProcessStaticMeshNode(meshes, node);
 			}
 		}
 
 		// TODO: Check if succeeded. If not - destroy asset proxy
 
 		cgltf_free(data);
-		return proxies;
+		return meshes;
 	}
 
-	void ProcessStaticMeshAttributes(MeshAsset* mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
-	void ProcessStaticMeshNode(std::vector<AssetProxy>& proxies, AssetManager* assetManager, cgltf_node* node)
+	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
+	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, cgltf_node* node)
 	{
 		// TODO: Add materials
 
 		Math::Matrix LocalToModel = GetLocalToModel(node);
 
-		cgltf_mesh* glTFMesh = node->mesh;
-		WARP_ASSERT(glTFMesh, "Damaged glTF mesh?");
+		cgltf_mesh* glTFMsh = node->mesh;
+		WARP_ASSERT(glTFMsh, "Damaged glTF mesh?");
 
-		for (size_t primitiveIndex = 0; primitiveIndex < glTFMesh->primitives_count; ++primitiveIndex)
+		for (size_t primitiveIndex = 0; primitiveIndex < glTFMsh->primitives_count; ++primitiveIndex)
 		{
-			AssetProxy proxy = assetManager->CreateAsset<MeshAsset>();
-			proxies.push_back(proxy);
+			Mesh& mesh = meshes.emplace_back();
 
-			MeshAsset* mesh = assetManager->GetAs<MeshAsset>(proxy);
-			WARP_ASSERT(mesh);
-
-			mesh->Name = fmt::format("{}_{}", glTFMesh->name, primitiveIndex);
-			cgltf_primitive& primitive = glTFMesh->primitives[primitiveIndex];
+			mesh.Name = fmt::format("{}_{}", glTFMsh->name, primitiveIndex);
+			cgltf_primitive& primitive = glTFMsh->primitives[primitiveIndex];
 			cgltf_primitive_type type = primitive.type;
 
+			cgltf_material* glTFMaterial = primitive.material;
+			if (glTFMaterial->has_pbr_metallic_roughness)
+			{
+				cgltf_pbr_metallic_roughness m = glTFMaterial->pbr_metallic_roughness;
+				// If we hase BaseColorTexture - use it, otherwise use BaseColorFactor
+				if (m.base_color_texture.texture != nullptr)
+				{
+					// Create BaseColor asset using texture loader
+					//m.base_color_texture.texture->image->buffer_view
+
+					// TODO: Currently we do not support DDS extension, but we will definitely!
+					// Add check for mime_type
+					// TODO: Add loadfromfile/loadfrommemory
+					// ImageLoader::LoadWICFromFile();
+					// ImageLoader::LoadWICFromMemory();
+				}
+				else
+				{
+					mesh.Material.BaseColorFactor = Math::Vector4(m.base_color_factor);
+				}
+
+				if (m.metallic_roughness_texture.texture != nullptr)
+				{
+					// TODO: Load texture
+				}
+				else
+				{
+					mesh.Material.MetalnessRoughnessFactor = Math::Vector2(m.metallic_factor, m.roughness_factor);
+				}
+			}
+			primitive.material->normal_texture.texture->image->mime_type;
 			primitive.material->normal_texture.texture->image->mime_type;
 
 			// We only use triangles for now. Will be removed in future. This is just in case
@@ -112,7 +139,7 @@ namespace Warp::GltfLoader
 		// Process all its children
 		for (size_t i = 0; i < node->children_count; ++i)
 		{
-			ProcessStaticMeshNode(proxies, assetManager, node->children[i]);
+			ProcessStaticMeshNode(meshes, node->children[i]);
 		}
 	}
 
@@ -153,14 +180,14 @@ namespace Warp::GltfLoader
 		stride = static_cast<uint32_t>(accessor->stride);
 	}
 
-	void ProcessStaticMeshAttributes(MeshAsset* mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive)
+	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive)
 	{
 		cgltf_accessor* indices = primitive->indices;
 		if (!indices)
 		{
 			// Indices property is not defined
 			// Number of vertex indices to render is defined by the count property of attribute accessors (with the implied values from range [0..count))
-			WARP_LOG_FATAL("no indices property! Mesh: {}", mesh->Name);
+			WARP_LOG_FATAL("no indices property! Mesh: {}", mesh.Name);
 			WARP_YIELD_NOIMPL(); // We do not support non-indexed geometry currently
 		}
 		else
@@ -171,13 +198,13 @@ namespace Warp::GltfLoader
 				// if u16, manually convert u16 to u32
 				std::vector<uint16_t> indices16;
 				FillFromAccessor<uint16_t, cgltf_component_type_r_16u>(indices16, indices);
-				mesh->Indices.reserve(indices16.size());
+				mesh.Indices.reserve(indices16.size());
 				for (uint16_t i : indices16)
 				{
-					mesh->Indices.push_back(i);
+					mesh.Indices.push_back(i);
 				}
 			}
-			else FillFromAccessor<uint32_t, cgltf_component_type_r_32u>(mesh->Indices, indices);
+			else FillFromAccessor<uint32_t, cgltf_component_type_r_32u>(mesh.Indices, indices);
 		}
 
 		// From glTF 2.0 spec https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#geometry-overview
@@ -197,11 +224,11 @@ namespace Warp::GltfLoader
 			{
 			case cgltf_attribute_type_position:
 			{
-				mesh->StreamOfVertices.NumVertices = static_cast<uint32_t>(accessor->count);
+				mesh.NumVertices = static_cast<uint32_t>(accessor->count);
 
 				FillBytesFromAccessor<Math::Vector3, cgltf_component_type_r_32f>(
-					mesh->StreamOfVertices.Attributes[EVertexAttributes::Positions],
-					mesh->StreamOfVertices.AttributeStrides[EVertexAttributes::Positions], accessor);
+					mesh.Attributes[EVertexAttributes_Positions],
+					mesh.AttributeStrides[EVertexAttributes_Positions], accessor);
 
 				// According to spec: POSITION accessor MUST have its min and max properties defined.
 				WARP_ASSERT(accessor->has_max && accessor->has_min);
@@ -209,34 +236,33 @@ namespace Warp::GltfLoader
 				// TODO: Calculate center of the mesh, calculate the length of the mesh for AABB
 			};  break;
 			case cgltf_attribute_type_normal: FillBytesFromAccessor<Math::Vector3, cgltf_component_type_r_32f>(
-				mesh->StreamOfVertices.Attributes[EVertexAttributes::Normals],
-				mesh->StreamOfVertices.AttributeStrides[EVertexAttributes::Normals], accessor); break;
+				mesh.Attributes[EVertexAttributes_Normals],
+				mesh.AttributeStrides[EVertexAttributes_Normals], accessor); break;
 
 			case cgltf_attribute_type_texcoord: FillBytesFromAccessor<Math::Vector2, cgltf_component_type_r_32f>(
-				mesh->StreamOfVertices.Attributes[EVertexAttributes::TextureCoords],
-				mesh->StreamOfVertices.AttributeStrides[EVertexAttributes::TextureCoords], accessor); break;
+				mesh.Attributes[EVertexAttributes_TextureCoords],
+				mesh.AttributeStrides[EVertexAttributes_TextureCoords], accessor); break;
 
 			case cgltf_attribute_type_tangent: FillFromAccessor<Math::Vector4, cgltf_component_type_r_32f>(gltfTangents, accessor); break;
 			default: break; // just skip
 			}
 		}
 
-		uint32_t numVertices = mesh->GetNumVertices();
-		uint32_t numIndices = mesh->GetNumIndices();
+		uint32_t numVertices = mesh.NumVertices;
+		uint32_t numIndices = static_cast<uint32_t>(mesh.Indices.size());
 
 		// Sanity checks
-		WARP_ASSERT(!mesh->StreamOfVertices.Attributes[EVertexAttributes::Positions].empty());
-		WARP_ASSERT(!mesh->Indices.empty());
-		WARP_ASSERT(numVertices > 0);
+		WARP_ASSERT(numVertices > 0 && numIndices > 0);
 		// TODO: Currently only with indices. If changing this, also check for creation of mesh->IndexBuffer (we assert there that indices exist)
-		for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+		for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
 		{
-			if (!mesh->HasAttributes(i))
+			// check if mesh has attributes
+			if (mesh.Attributes[i].empty())
 			{
 				continue;
 			}
 
-			WARP_MAYBE_UNUSED size_t numAttributes = mesh->StreamOfVertices.Attributes[i].size() / mesh->StreamOfVertices.AttributeStrides[i];
+			WARP_MAYBE_UNUSED size_t numAttributes = mesh.Attributes[i].size() / mesh.AttributeStrides[i];
 			WARP_ASSERT(numVertices == numAttributes);
 		}
 		WARP_ASSERT(numIndices % 3 == 0);
@@ -249,44 +275,45 @@ namespace Warp::GltfLoader
 			std::vector<Math::Vector3> bitangents(numVertices);
 			static constexpr size_t TangentStride = sizeof(Math::Vector3);
 
-			size_t normalStride = mesh->StreamOfVertices.AttributeStrides[EVertexAttributes::Normals];
+			size_t normalStride = mesh.AttributeStrides[EVertexAttributes_Normals];
 			WARP_ASSERT(normalStride == sizeof(Math::Vector3)); // TODO: One more sanity check, just in case. Remove it 
 
 			// If tangents non-empty, assume there are numVertices of them
 			for (size_t i = 0; i < numVertices; ++i)
 			{
 				// Get normal from byte array
-				Math::Vector3& normal = reinterpret_cast<Math::Vector3&>(mesh->StreamOfVertices.Attributes[EVertexAttributes::Normals][i * normalStride]);
+				Math::Vector3& normal = reinterpret_cast<Math::Vector3&>(mesh.Attributes[EVertexAttributes_Normals][i * normalStride]);
 				tangents[i] = Math::Vector3(gltfTangents[i]);
 				bitangents[i] = normal.Cross(tangents[i]) * gltfTangents[i].w;
 			}
 
 			size_t bytesToCopy = TangentStride * numVertices;
 
-			auto& streamOfTangents = mesh->StreamOfVertices.Attributes[EVertexAttributes::Tangents];
+			auto& streamOfTangents = mesh.Attributes[EVertexAttributes_Tangents];
 			streamOfTangents.clear();
 			streamOfTangents.resize(bytesToCopy);
 			std::memcpy(streamOfTangents.data(), tangents.data(), bytesToCopy);
 
-			auto& streamOfBitangents = mesh->StreamOfVertices.Attributes[EVertexAttributes::Bitangents];
+			auto& streamOfBitangents = mesh.Attributes[EVertexAttributes_Bitangents];
 			streamOfBitangents.clear();
 			streamOfBitangents.resize(bytesToCopy);
 			std::memcpy(streamOfBitangents.data(), bitangents.data(), bytesToCopy);
 
-			mesh->StreamOfVertices.AttributeStrides[EVertexAttributes::Tangents] = TangentStride;
-			mesh->StreamOfVertices.AttributeStrides[EVertexAttributes::Bitangents] = TangentStride;
+			mesh.AttributeStrides[EVertexAttributes_Tangents] = TangentStride;
+			mesh.AttributeStrides[EVertexAttributes_Bitangents] = TangentStride;
 		}
 
 		// Transform vertices from local to model space
-		Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh->StreamOfVertices.Attributes[EVertexAttributes::Positions].data());
+		Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh.Attributes[EVertexAttributes_Positions].data());
 		XMVector3TransformCoordStream(
 			meshPositions, sizeof(Math::Vector3),
 			meshPositions, sizeof(Math::Vector3),
 			numVertices, localToModel);
 
-		if (mesh->HasAttributes(EVertexAttributes::Normals))
+		// Check if mesh has normals
+		if (!mesh.Attributes[EVertexAttributes_Normals].empty())
 		{
-			Math::Vector3* meshNormals = reinterpret_cast<Math::Vector3*>(mesh->StreamOfVertices.Attributes[EVertexAttributes::Normals].data());
+			Math::Vector3* meshNormals = reinterpret_cast<Math::Vector3*>(mesh.Attributes[EVertexAttributes_Normals].data());
 			XMVector3TransformNormalStream(
 				meshNormals, sizeof(Math::Vector3),
 				meshNormals, sizeof(Math::Vector3),

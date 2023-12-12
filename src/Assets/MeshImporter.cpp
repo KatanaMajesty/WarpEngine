@@ -1,6 +1,8 @@
 #include "MeshImporter.h"
 
-#include "Util/GltfLoader.h"
+#include "TextureImporter.h"
+#include "TextureAsset.h"
+#include "Util/MeshLoader.h"
 #include "../Math/Math.h"
 
 namespace Warp
@@ -15,59 +17,113 @@ namespace Warp
 			return {};
 		}
 
-		AssetManager* manager = GetAssetManager();
-		std::vector<AssetProxy> meshes;
-
+		std::vector<MeshLoader::Mesh> loadedMeshes;
 		switch (extension)
 		{
-		case AssetFileExtension::Gltf: meshes = GltfLoader::LoadFromFile(filepath, manager); break;
+		case AssetFileExtension::Gltf: 
+			loadedMeshes = MeshLoader::LoadFromGltfFile(filepath);
+			break;
 		default: WARP_ASSERT(false, "Shouldnt happen"); return {};
 		}
 
-		if (meshes.empty())
+		if (loadedMeshes.empty())
 		{
 			WARP_LOG_ERROR("Failed to load meshes from {}", filepath);
 			return {};
 		}
 
+		AssetManager* manager = GetAssetManager();
+
+		std::vector<AssetProxy> meshes;
+		meshes.reserve(loadedMeshes.size());
+		
 		// https://github.com/microsoft/DirectXMesh/wiki/DirectXMesh
 		// TODO: Add mesh optimization
 
-		// Compute meshlets and upload gpu resources
-		for (AssetProxy proxy : meshes)
+		// Compute meshlets, materials and upload gpu resources
+		for (MeshLoader::Mesh& loadedMesh : loadedMeshes)
 		{
+			// Create mesh asset for each loaded mesh, move the buffers
+			AssetProxy proxy = manager->CreateAsset<MeshAsset>();
+			meshes.push_back(proxy);
+
 			auto mesh = manager->GetAs<MeshAsset>(proxy);
-			Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh->StreamOfVertices.Attributes[EVertexAttributes::Positions].data());
+			mesh->Name = std::move(loadedMesh.Name);
+			mesh->NumVertices = loadedMesh.NumVertices;
+
+			for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
+			{
+				mesh->Attributes[i] = std::move(loadedMesh.Attributes[i]);
+				mesh->AttributeStrides[i] = std::move(loadedMesh.AttributeStrides[i]);
+			}
+
+			// Create assets for a material
+			LoadMeshMaterial(mesh, loadedMesh.Material);
+
+			// Compute meshlets
+			uint32_t numIndices = static_cast<uint32_t>(loadedMesh.Indices.size());
+			uint32_t* indices = loadedMesh.Indices.data();
+
+			Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh->Attributes[EVertexAttributes_Positions].data());
 			WARP_MAYBE_UNUSED HRESULT hr = DirectX::ComputeMeshlets(
-				mesh->Indices.data(), mesh->GetNumIndices() / 3,
-				meshPositions, mesh->StreamOfVertices.NumVertices,
+				indices, numIndices / 3,
+				meshPositions, mesh->GetNumVertices(),
 				nullptr,
 				mesh->Meshlets, mesh->UniqueVertexIndices, mesh->PrimitiveIndices);
 
 			WARP_ASSERT(SUCCEEDED(hr), "Failed to compute meshlets for mesh");
-			UploadGpuResources(mesh);
+			LoadGpuResources(mesh);
 		}
 
 		return meshes;
 	}
 
-	void MeshImporter::UploadGpuResources(MeshAsset* mesh)
+	void MeshImporter::LoadMeshMaterial(MeshAsset* mesh, const MeshLoader::MeshMaterial& loadedMaterial)
+	{
+		// TODO: We create own small texture importer just to import textures. Its meh... but whatever
+		TextureImporter textureImporter(GetRenderer(), GetAssetManager());
+
+		if (loadedMaterial.BaseColor.IsValid())
+		{
+			mesh->Material.BaseColorProxy = textureImporter.ImportFromImage(loadedMaterial.BaseColor);
+		} 
+		else
+		{
+			mesh->Material.BaseColor = loadedMaterial.BaseColorFactor;
+		}
+
+		if (loadedMaterial.NormalMap.IsValid())
+		{
+			mesh->Material.NormalMapProxy = textureImporter.ImportFromImage(loadedMaterial.NormalMap);
+		}
+
+		if (loadedMaterial.MetalnessRoughnessMap.IsValid())
+		{
+			mesh->Material.MetalnessRoughnessMapProxy = textureImporter.ImportFromImage(loadedMaterial.NormalMap);
+		}
+		else
+		{
+			mesh->Material.MetalnessRoughness = loadedMaterial.MetalnessRoughnessFactor;
+		}
+	}
+
+	void MeshImporter::LoadGpuResources(MeshAsset* mesh)
 	{
 		Renderer* renderer = GetRenderer();
 		RHIDevice* Device = renderer->GetDevice();
 
 		// Fill upload resources with data
-		static constexpr uint32_t IndexStride = sizeof(uint32_t);
-		const size_t indicesInBytes = mesh->GetNumIndices() * IndexStride;
-		RHIBuffer uploadIndexBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
+		//static constexpr uint32_t IndexStride = sizeof(uint32_t);
+		//const size_t indicesInBytes = mesh->GetNumIndices() * IndexStride;
+		//RHIBuffer uploadIndexBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
 
-		std::memcpy(uploadIndexBuffer.GetCpuVirtualAddress<std::byte>(), mesh->Indices.data(), indicesInBytes);
+		//std::memcpy(uploadIndexBuffer.GetCpuVirtualAddress<std::byte>(), mesh->Indices.data(), indicesInBytes);
 
-		// Asset that we have indices
-		mesh->IndexBuffer = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
+		//// Asset that we have indices
+		//mesh->IndexBuffer = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
 
-		MeshAsset::VertexStream::AttributeArray<RHIBuffer> uploadResources;
-		for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+		MeshAsset::AttributeArray<RHIBuffer> uploadResources;
+		for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
 		{
 			// Skip if no attribute
 			if (!mesh->HasAttributes(i))
@@ -75,13 +131,13 @@ namespace Warp
 				continue;
 			}
 
-			uint32_t stride = mesh->StreamOfVertices.AttributeStrides[i];
-			size_t sizeInBytes = mesh->StreamOfVertices.NumVertices * stride;
+			uint32_t stride = mesh->AttributeStrides[i];
+			size_t sizeInBytes = mesh->GetNumVertices() * stride;
 			uploadResources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
 
-			std::memcpy(uploadResources[i].GetCpuVirtualAddress<std::byte>(), mesh->StreamOfVertices.Attributes[i].data(), sizeInBytes);
+			std::memcpy(uploadResources[i].GetCpuVirtualAddress<std::byte>(), mesh->Attributes[i].data(), sizeInBytes);
 
-			mesh->StreamOfVertices.Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
+			mesh->Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
 		}
 
 		static constexpr uint32_t MeshletStride = sizeof(Meshlet);
@@ -133,8 +189,8 @@ namespace Warp
 			// NOTICE!
 			// Specifically, a resource must be in the COMMON state before being used on DIRECT/COMPUTE (when previously used on COPY). 
 			// This restriction doesn't exist when accessing data between DIRECT and COMPUTE queues.
-			copyContext.CopyResource(&mesh->IndexBuffer, &uploadIndexBuffer);
-			for (size_t i = 0; i < EVertexAttributes::NumAttributes; ++i)
+			//copyContext.CopyResource(&mesh->IndexBuffer, &uploadIndexBuffer);
+			for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
 			{
 				// Skip if no attribute
 				if (!mesh->HasAttributes(i))
@@ -142,7 +198,7 @@ namespace Warp
 					continue;
 				}
 
-				copyContext.CopyResource(&mesh->StreamOfVertices.Resources[i], &uploadResources[i]);
+				copyContext.CopyResource(&mesh->Resources[i], &uploadResources[i]);
 			}
 
 			copyContext.CopyResource(&mesh->MeshletBuffer, &uploadMeshletBuffer);

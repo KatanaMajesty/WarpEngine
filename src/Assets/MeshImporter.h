@@ -11,6 +11,9 @@ namespace Warp
 	// TODO: We need to introduce a few major changes here. Currently our Assets/Util folders load data into the Asset directly.
 	// This is bad as we just waste memory to store maybe unused or maybe obsolete data, that is the one that we use to upload/process Asset during importing
 	// We want instead to retrieve generic data from Assets/Util which will then be converted to our Asset types
+	
+	// TODO: Maybe do smth about it?
+	namespace MeshLoader { struct MeshMaterial; }
 
 	class MeshImporter : public AssetImporter
 	{
@@ -25,7 +28,8 @@ namespace Warp
 		std::vector<AssetProxy> ImportFromFile(std::string_view filepath);
 
 	private:
-		void UploadGpuResources(MeshAsset* mesh);
+		void LoadMeshMaterial(MeshAsset* mesh, const MeshLoader::MeshMaterial& loadedMaterial);
+		void LoadGpuResources(MeshAsset* mesh);
 	};
 
 }

@@ -171,7 +171,7 @@ namespace Warp
 					size_t attributeRootIndexOffset = 2;
 					
 					MeshAsset* mesh = meshInstance.Mesh;
-					for (size_t attributeIndex = 0; attributeIndex < EVertexAttributes::NumAttributes; ++attributeIndex)
+					for (size_t attributeIndex = 0; attributeIndex < EVertexAttributes_NumAttributes; ++attributeIndex)
 					{
 						// TODO: Add flags indicating meshe's attributes
 						if (!mesh->HasAttributes(attributeIndex))
@@ -179,13 +179,13 @@ namespace Warp
 							continue;
 						}
 
-						m_graphicsContext.AddTransitionBarrier(&mesh->StreamOfVertices.Resources[attributeIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						m_graphicsContext.AddTransitionBarrier(&mesh->Resources[attributeIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 						m_graphicsContext->SetGraphicsRootShaderResourceView(
 							attributeRootIndexOffset + attributeIndex, 
-							mesh->StreamOfVertices.Resources[attributeIndex].GetGpuVirtualAddress());
+							mesh->Resources[attributeIndex].GetGpuVirtualAddress());
 					}
 
-					size_t meshletRootIndexOffset = attributeRootIndexOffset + EVertexAttributes::NumAttributes;
+					size_t meshletRootIndexOffset = attributeRootIndexOffset + EVertexAttributes_NumAttributes;
 
 					std::array meshletResources = {
 						&mesh->MeshletBuffer,

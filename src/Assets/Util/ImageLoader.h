@@ -9,16 +9,10 @@ namespace Warp::ImageLoader
 
 	struct Image
 	{
-		std::string Filepath;
-		DirectX::ScratchImage DxImage;
-	};
+		bool IsValid() const { return DxImage.GetImages() != nullptr; }
 
-	enum class ImageExtension
-	{
-		Bmp,
-		Png,
-		Jpeg,
-		Dds,
+		std::string Filepath; // This may be empty, if the Image was loaded from memory
+		DirectX::ScratchImage DxImage;
 	};
 
 	Image LoadWICFromFile(std::string_view filepath, bool generateMips);

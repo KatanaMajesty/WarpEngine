@@ -37,8 +37,8 @@
     <Filter Include="Assets">
       <UniqueIdentifier>{0e4c5c3c-4bd9-46f5-804d-3824d5960a95}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Assets\Util">
-      <UniqueIdentifier>{b5ee88a1-9573-4f4a-a939-fff29f87bad2}</UniqueIdentifier>
+    <Filter Include="Assets\AssetUtils">
+      <UniqueIdentifier>{7faeacb7-8b0d-45b3-9869-78671e522db9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -112,17 +112,17 @@
     <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\Util\GltfLoader.cpp">
-      <Filter>Assets\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\Util\ImageLoader.cpp">
-      <Filter>Assets\Util</Filter>
-    </ClCompile>
     <ClCompile Include="src\Assets\MeshImporter.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
     <ClCompile Include="src\Assets\TextureImporter.cpp">
       <Filter>Assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Util\ImageLoader.cpp">
+      <Filter>Assets\AssetUtils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Util\MeshLoader.cpp">
+      <Filter>Assets\AssetUtils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -247,12 +247,6 @@
     <ClInclude Include="src\World\Components\MeshComponent.h">
       <Filter>World\Components</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\Util\GltfLoader.h">
-      <Filter>Assets\Util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\Util\ImageLoader.h">
-      <Filter>Assets\Util</Filter>
-    </ClInclude>
     <ClInclude Include="src\Renderer\Mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
@@ -264,6 +258,21 @@
     </ClInclude>
     <ClInclude Include="src\Assets\TextureAsset.h">
       <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Material.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\MaterialRegistry.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\Vertex.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Util\ImageLoader.h">
+      <Filter>Assets\AssetUtils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Util\MeshLoader.h">
+      <Filter>Assets\AssetUtils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
