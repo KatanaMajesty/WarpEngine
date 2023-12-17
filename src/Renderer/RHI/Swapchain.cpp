@@ -11,15 +11,12 @@ namespace Warp
 
 	RHISwapchain::RHISwapchain(RHIPhysicalDevice* physicalDevice)
 		: RHIPhysicalDeviceChild(physicalDevice)
-		, m_rtvHeap(physicalDevice->GetAssociatedLogicalDevice(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, BackbufferCount, false)
 	{
 		InitDXGISwapchain();
 
 		DXGI_SWAP_CHAIN_DESC1 desc;
 		WARP_RHI_VALIDATE(m_DXGISwapchain->GetDesc1(&desc));
 		Resize(desc.Width, desc.Height);
-
-		m_rtvHeap.SetName(L"RHIDescriptorHeap_RTVHeap");
 	}
 
 	void RHISwapchain::Present(bool vsync)
@@ -91,7 +88,7 @@ namespace Warp
 		WARP_MAYBE_UNUSED HRESULT hr = swapchain1.As(&m_DXGISwapchain);
 		WARP_ASSERT(SUCCEEDED(hr), "Failed to represent swapchain correctly");
 
-		m_backbufferRtvsAllocation = m_rtvHeap.Allocate(BackbufferCount);
+		m_backbufferRtvsAllocation = GetPhysicalDevice()->GetAssociatedLogicalDevice()->GetRtvsHeap()->Allocate(BackbufferCount);
 	}
 
 	void RHISwapchain::ReleaseAllDXGIReferences()

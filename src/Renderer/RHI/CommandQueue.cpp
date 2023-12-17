@@ -51,8 +51,17 @@ namespace Warp
 			return;
 		}
 
-		WARP_MAYBE_UNUSED HRESULT hr = m_handle->Wait(m_fence.Get(), fenceValue);
-		WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (GPU-sided)");
+		WARP_RHI_VALIDATE(m_handle->Wait(m_fence.Get(), fenceValue));
+	}
+
+	void RHICommandQueue::WaitForValue(UINT64 fenceValue, RHICommandQueue* queue)
+	{
+		if (queue->IsFenceComplete(fenceValue))
+		{
+			return;
+		}
+
+		WARP_RHI_VALIDATE(m_handle->Wait(queue->m_fence.Get(), fenceValue));
 	}
 
 	void RHICommandQueue::HostWaitForValue(UINT64 fenceValue)

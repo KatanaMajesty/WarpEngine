@@ -138,8 +138,6 @@ namespace Warp::MeshLoader
 	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
 	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, const std::filesystem::path& folder, cgltf_node* node)
 	{
-		// TODO: Add materials
-
 		Math::Matrix LocalToModel = GetLocalToModel(node);
 
 		cgltf_mesh* glTFMsh = node->mesh;

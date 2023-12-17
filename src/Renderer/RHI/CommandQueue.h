@@ -36,6 +36,7 @@ namespace Warp
 		// GPU-Sided wait for provided fence value completion, meaning that the call to this function returns immediately on CPU
 		// and inserts a wait command to the GPU-queue
 		void WaitForValue(UINT64 fenceValue);
+		void WaitForValue(UINT64 fenceValue, RHICommandQueue* queue);
 
 		// CPU-Sided wait for provided fence value completion
 		void HostWaitForValue(UINT64 fenceValue);

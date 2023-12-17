@@ -83,5 +83,12 @@ namespace Warp
 		CShaderCompiler m_shaderCompiler;
 		CShader m_MSBasic;
 		CShader m_PSBasic;
+
+		struct UploadResourceTrackedState
+		{
+			RHIBuffer UploadBuffer;
+			UINT64 FenceValue;
+		};
+		std::vector<UploadResourceTrackedState> m_uploadResourceTrackedStates;
 	};
 }

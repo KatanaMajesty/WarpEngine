@@ -50,7 +50,6 @@ namespace Warp
 		UINT m_height = 0;
 		ComPtr<IDXGISwapChain4> m_DXGISwapchain;
 		RHITexture m_backbuffers[BackbufferCount];
-		RHIDescriptorHeap m_rtvHeap;
 		RHIDescriptorAllocation m_backbufferRtvsAllocation;
 		RHIRenderTargetView m_backbufferRtvs[BackbufferCount];
 	};

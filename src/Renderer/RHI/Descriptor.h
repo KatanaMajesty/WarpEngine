@@ -123,6 +123,7 @@ namespace Warp
 
 		bool IsValid() const { return m_allocation.IsValid() && m_allocationIndex != uint32_t(-1); }
 		D3D12_CPU_DESCRIPTOR_HANDLE GetCpuAddress() const { return m_allocation.GetCpuAddress(m_allocationIndex); }
+		D3D12_GPU_DESCRIPTOR_HANDLE GetGpuAddress() const { return m_allocation.GetGpuAddress(m_allocationIndex); }
 
 	protected:
 		uint32_t m_allocationIndex = uint32_t(-1);

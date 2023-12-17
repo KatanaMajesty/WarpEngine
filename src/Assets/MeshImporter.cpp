@@ -113,16 +113,6 @@ namespace Warp
 		Renderer* renderer = GetRenderer();
 		RHIDevice* Device = renderer->GetDevice();
 
-		// Fill upload resources with data
-		//static constexpr uint32_t IndexStride = sizeof(uint32_t);
-		//const size_t indicesInBytes = mesh->GetNumIndices() * IndexStride;
-		//RHIBuffer uploadIndexBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
-
-		//std::memcpy(uploadIndexBuffer.GetCpuVirtualAddress<std::byte>(), mesh->Indices.data(), indicesInBytes);
-
-		//// Asset that we have indices
-		//mesh->IndexBuffer = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, IndexStride, indicesInBytes);
-
 		MeshAsset::AttributeArray<RHIBuffer> uploadResources;
 		for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
 		{

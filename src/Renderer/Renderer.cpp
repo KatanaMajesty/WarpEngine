@@ -27,6 +27,24 @@ namespace Warp
 		Math::Matrix MeshToWorld;
 	};
 
+	// Represents indices of Basic.hlsl root signature
+	enum BasicRootParameterIndex
+	{
+		BasicRootParameterIndex_CbViewData,
+		BasicRootParameterIndex_CbDrawData,
+		BasicRootParameterIndex_Positions,
+		BasicRootParameterIndex_Normals,
+		BasicRootParameterIndex_TexCoords,
+		BasicRootParameterIndex_Tangents,
+		BasicRootParameterIndex_Bitangents,
+		BasicRootParameterIndex_Meshlets,
+		BasicRootParameterIndex_UniqueVertexIndices,
+		BasicRootParameterIndex_PrimitiveIndices,
+		BasicRootParameterIndex_BaseColor,
+		BasicRootParameterIndex_NormalMap,
+		BasicRootParameterIndex_MetalnessRoughnessMap,
+	};
+
 	Renderer::Renderer(HWND hwnd)
 		: m_physicalDevice(
 			[hwnd]() -> std::unique_ptr<RHIPhysicalDevice>
@@ -136,6 +154,17 @@ namespace Warp
 
 			RHITexture* backbuffer = m_swapchain->GetBackbuffer(frameIndex);
 
+			{
+				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+
+				std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
+					Device->GetSamplerHeap()->GetD3D12Heap(),
+					Device->GetViewHeap()->GetD3D12Heap()
+				};
+
+				m_graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+			}
+
 			// Setting rtvs
 			{
 				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_SetRtvs");
@@ -146,16 +175,21 @@ namespace Warp
 				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_depthStencilView.GetCpuAddress();
 				m_graphicsContext->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
-				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+				const float clearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearColor, 0, nullptr);
 				m_graphicsContext.ClearDsv(m_depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 			}
+
+			// Wait for the copy context to finish here
+			// TODO: Maybe write a cleaner way of waiting?
+			RHICommandQueue* copyQueue = m_copyContext.GetQueue();
+			m_graphicsContext.GetQueue()->WaitForValue(copyQueue->Signal(), copyQueue);
 
 			{
 				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_DispatchMeshes");
 
 				m_graphicsContext.SetGraphicsRootSignature(m_basicRootSignature);
-				m_graphicsContext->SetGraphicsRootConstantBufferView(0, m_cbViewData.GetGpuVirtualAddress());
+				m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbViewData, m_cbViewData.GetGpuVirtualAddress());
 
 				for (MeshInstance& meshInstance : meshInstances)
 				{
@@ -164,12 +198,9 @@ namespace Warp
 					};
 					memcpy(m_cbDrawData.GetCpuVirtualAddress<HlslDrawData>(), &drawData, sizeof(HlslDrawData));
 
-					m_graphicsContext->SetGraphicsRootConstantBufferView(1, m_cbDrawData.GetGpuVirtualAddress());
+					m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbDrawData, m_cbDrawData.GetGpuVirtualAddress());
 					m_graphicsContext.SetPipelineState(m_basicPSO);
 
-					// TODO: Handle this better?
-					size_t attributeRootIndexOffset = 2;
-					
 					MeshAsset* mesh = meshInstance.Mesh;
 					for (size_t attributeIndex = 0; attributeIndex < EVertexAttributes_NumAttributes; ++attributeIndex)
 					{
@@ -181,11 +212,9 @@ namespace Warp
 
 						m_graphicsContext.AddTransitionBarrier(&mesh->Resources[attributeIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 						m_graphicsContext->SetGraphicsRootShaderResourceView(
-							attributeRootIndexOffset + attributeIndex, 
+							BasicRootParameterIndex_Positions + attributeIndex, 
 							mesh->Resources[attributeIndex].GetGpuVirtualAddress());
 					}
-
-					size_t meshletRootIndexOffset = attributeRootIndexOffset + EVertexAttributes_NumAttributes;
 
 					std::array meshletResources = {
 						&mesh->MeshletBuffer,
@@ -196,8 +225,17 @@ namespace Warp
 					for (size_t i = 0; i < meshletResources.size(); ++i)
 					{
 						m_graphicsContext.AddTransitionBarrier(meshletResources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-						m_graphicsContext->SetGraphicsRootShaderResourceView(meshletRootIndexOffset + i, meshletResources[i]->GetGpuVirtualAddress());
+						m_graphicsContext->SetGraphicsRootShaderResourceView(BasicRootParameterIndex_Meshlets + i, meshletResources[i]->GetGpuVirtualAddress());
 					}
+
+					auto baseColor = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.BaseColorProxy);
+					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_BaseColor, baseColor->Srv.GetGpuAddress());
+
+					auto normalMap = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.NormalMapProxy);
+					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_NormalMap, normalMap->Srv.GetGpuAddress());
+
+					auto metalnessRoughnessMap = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.MetalnessRoughnessMapProxy);
+					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_MetalnessRoughnessMap, metalnessRoughnessMap->Srv.GetGpuAddress());
 
 					m_graphicsContext.DispatchMesh(mesh->GetNumMeshlets(), 1, 1); // should be good enough for now
 				}
@@ -215,6 +253,11 @@ namespace Warp
 
 	void Renderer::UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset)
 	{
+		std::erase_if(m_uploadResourceTrackedStates, [this](const UploadResourceTrackedState& trackedState) -> bool
+			{
+				return m_copyContext.GetQueue()->IsFenceComplete(trackedState.FenceValue);
+			});
+
 		uint32_t numSubresources = static_cast<uint32_t>(subresources.size());
 
 		RHIDevice* Device = m_device.get();
@@ -230,6 +273,9 @@ namespace Warp
 			m_copyContext.UploadSubresources(dest, &uploadBuffer, subresources, subresourceOffset);
 		}
 		m_copyContext.Close();
+		UINT64 fenceValue = m_copyContext.Execute(false);
+
+		m_uploadResourceTrackedStates.emplace_back(std::move(uploadBuffer), fenceValue);
 	}
 
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
@@ -309,7 +355,7 @@ namespace Warp
 		m_cbViewData.SetName(L"Cb_DrawData");
 
 		// TODO: Figure out why MESH visibility wont work
-		m_basicRootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc()
+		m_basicRootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc(1)
 			.AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)
 			.AddConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL)
 			.AddShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_ALL) // Vertex attributes // 1
@@ -320,6 +366,14 @@ namespace Warp
 			.AddShaderResourceView(1, 0, D3D12_SHADER_VISIBILITY_ALL) // Meshlets // 6
 			.AddShaderResourceView(2, 0, D3D12_SHADER_VISIBILITY_ALL) // uvIndices // 7
 			.AddShaderResourceView(3, 0, D3D12_SHADER_VISIBILITY_ALL) // Prim indices // 8
+			.AddDescriptorTable(RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0), D3D12_SHADER_VISIBILITY_PIXEL) // BaseColor
+			.AddDescriptorTable(RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 1), D3D12_SHADER_VISIBILITY_PIXEL) // NormalMap
+			.AddDescriptorTable(RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 2), D3D12_SHADER_VISIBILITY_PIXEL) // MetalnessRoughness
+			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
+				D3D12_FILTER_ANISOTROPIC,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP)
 		);
 		m_basicRootSignature.SetName(L"RootSignature_Basic");
 

@@ -47,7 +47,7 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() { return m_computeQueue.get(); }
 		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() { return m_copyQueue.get(); }
 
-		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type) { return m_descriptorHeaps[type].Heap.get(); }
+		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetDescriptorHeap(uint32_t type) { return m_descriptorHeaps[type].Heap.get(); }
 		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetSamplerHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER); }
 		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetViewHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); }
 		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetRtvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV); }

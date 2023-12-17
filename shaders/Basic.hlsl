@@ -15,6 +15,7 @@ ConstantBuffer<DrawData> CbDrawData : register(b1);
 struct OutVertex
 {
     float4 pos : SV_Position;
+    float2 uv : TEXCOORD0;
     float3 color : COLOR0;
 };
 
@@ -63,6 +64,7 @@ OutVertex GetVertex(uint meshletIndex, uint vertexIndex, matrix mvp)
     
     OutVertex v;
     v.pos = mul(float4(pos, 1.0), mvp);
+    v.uv = TexCoords[vertexIndex];
     v.color = float3(
 	    float(meshletIndex & 1),
 	    float(meshletIndex & 3) / 4,
@@ -97,7 +99,13 @@ void MSMain(
     }
 }
 
+Texture2D BaseColor : register(t4, space0);
+Texture2D NormalMap : register(t4, space1);
+Texture2D MetalnessRoughnessMap : register(t4, space2);
+SamplerState StaticSampler : register(s0);
+
 float4 PSMain(OutVertex vertex) : SV_Target0
 {
-    return float4(vertex.color, 1.0);
+    float4 baseColor = BaseColor.Sample(StaticSampler, vertex.uv);
+    return baseColor;
 }

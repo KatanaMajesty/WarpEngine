@@ -18,6 +18,7 @@ namespace Warp
 	{
 		CD3DX12_DESCRIPTOR_RANGE1 range;
 		range.Init(type, numDescriptors, shaderRegister, registerSpace, m_flags, offsetInDescriptors);
+		m_ranges.push_back(range);
 		return *this;
 	}
 
