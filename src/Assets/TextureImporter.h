@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "AssetImporter.h"
 #include "TextureAsset.h"
 
@@ -28,8 +30,12 @@ namespace Warp
 			AddSupportedFormat(".jpeg", AssetFileExtension::Jpeg);
 		}
 
-		AssetProxy ImportFromFile(std::string_view filepath, const ImportDesc& importDesc);
+		AssetProxy ImportFromFile(const std::string& filepath, const ImportDesc& importDesc);
 		AssetProxy ImportFromImage(const ImageLoader::Image& image);
+
+	private:
+		// TODO: Cache only works with filepaths... Maybe use more metadata information to store it?
+		std::unordered_map<std::string, AssetProxy> m_textureCache;
 	};
 
 }

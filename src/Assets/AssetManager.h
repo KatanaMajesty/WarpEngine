@@ -45,10 +45,16 @@ namespace Warp
 		template<ValidAssetType T>
 		T* GetAs(AssetProxy proxy)
 		{
-			WARP_ASSERT(proxy.IsValid(), "Proxy is invalid!")
-			WARP_ASSERT(proxy.Type == T::StaticType, "Proxies' asset type differs from the requested");
 			Registry<T>* registry = this->GetRegistry<T>();
+			WARP_ASSERT(registry->IsValid(proxy), "Proxy is invalid!");
 			return registry->GetAsset(proxy);
+		}
+
+		template<ValidAssetType T>
+		bool IsValid(AssetProxy proxy) const
+		{
+			const Registry<T>* registry = this->GetRegistry<T>();
+			return registry->IsValid(proxy);
 		}
 
 	private:
@@ -69,18 +75,27 @@ namespace Warp
 
 			WARP_ATTR_NODISCARD AssetProxy AllocateAsset();
 			WARP_ATTR_NODISCARD AssetProxy DestroyAsset(AssetProxy proxy);
+			WARP_ATTR_NODISCARD bool IsValid(AssetProxy proxy) const;
 
 			// Queries an asset that the proxy is pointing into
 			T* GetAsset(AssetProxy proxy) const;
 
-			void Reset(); // Resets the registry
+			// Resets the registry. You should probably never call this function at this point
+			// If you call the function though, ensure that there are NO asset proxies left alive from this registry
+			void Reset();
 
-			std::vector<std::unique_ptr<T>> AssetContainer;
+			struct AssetAllocation
+			{
+				std::unique_ptr<T> Ptr;
+				size_t UniqueID;
+			};
+			std::vector<AssetAllocation> AssetContainer;
 			std::queue<size_t> FreedProxies;
+			size_t LastUniqueID = 0;
 		};
 
 		template<typename T>
-		auto GetRegistry() -> Registry<T>*
+		Registry<T>* GetRegistry()
 		{
 			if constexpr (std::is_same_v<T, MeshAsset>)
 			{
@@ -91,6 +106,13 @@ namespace Warp
 				return &m_textureRegistry;
 			}
 			else return nullptr;
+		}
+
+		template<typename T>
+		const Registry<T>* GetRegistry() const
+		{
+			using NonConstMe = std::remove_const_t<decltype(this)>;
+			return const_cast<NonConstMe>(this)->GetRegistry<T>();
 		}
 
 		Registry<MeshAsset> m_meshRegistry;
@@ -114,21 +136,25 @@ namespace Warp
 	{
 		AssetProxy proxy = AssetProxy();
 		proxy.Type = T::StaticType;
+		proxy.UniqueRegistryID = LastUniqueID++;
 
 		if (!FreedProxies.empty())
 		{
 			proxy.Index = FreedProxies.front();
 			FreedProxies.pop();
 
-			WARP_ASSERT(proxy.Index < AssetContainer.size() && !AssetContainer[proxy.Index]);
+			WARP_ASSERT(proxy.Index < AssetContainer.size() && !AssetContainer[proxy.Index].Ptr);
 		}
 		else
 		{
 			proxy.Index = AssetContainer.size();
-			AssetContainer.emplace_back(); // emplace empty ptr
+			AssetContainer.emplace_back(); // emplace empty allocation that we will fill later
 		}
 
-		AssetContainer[proxy.Index] = std::make_unique<T>();
+		AssetContainer[proxy.Index] = AssetAllocation{
+			.Ptr = std::make_unique<T>(),
+			.UniqueID = proxy.UniqueRegistryID
+		};
 
 		WARP_ASSERT(proxy.IsValid());
 		return proxy;
@@ -137,6 +163,7 @@ namespace Warp
 	template<ValidAssetType T>
 	inline AssetProxy AssetManager::Registry<T>::DestroyAsset(AssetProxy proxy)
 	{
+		// Ensure that the asset for this proxy is still alive
 		if (!proxy.IsValid())
 		{
 			WARP_LOG_WARN("Tried destroying the asset with invalid proxy AssetProxy(Type: {}, Index: {})!", 
@@ -145,21 +172,49 @@ namespace Warp
 			return AssetProxy();
 		}
 
-		// Ensure that the asset for this proxy is still alive
-		WARP_ASSERT(proxy.Index < AssetContainer.size() && AssetContainer[proxy.Index]);
+		AssetAllocation& allocation = AssetContainer[proxy.Index];
 
 		// reset the ptr and add index to freed indices
-		AssetContainer[proxy.Index].reset();
+		allocation.Ptr.reset();
 		FreedProxies.push(proxy.Index);
 
 		return AssetProxy(); // Just return invalid proxy
 	}
 
 	template<ValidAssetType T>
+	inline bool AssetManager::Registry<T>::IsValid(AssetProxy proxy) const
+	{
+		if (!proxy.IsValid())
+		{
+			return false;
+		}
+
+		if (proxy.Type != T::StaticType)
+		{
+			return false;
+		}
+
+		// Check if there is ANY asset assosiated with the current proxy
+		const AssetAllocation& allocation = AssetContainer[proxy.Index];
+		if (proxy.Index >= AssetContainer.size() || !allocation.Ptr)
+		{
+			return false;
+		}
+
+		// Now check unique IDs to be the same to ensure we are trying to access the same asset
+		if (proxy.UniqueRegistryID != allocation.UniqueID)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
+	template<ValidAssetType T>
 	inline T* AssetManager::Registry<T>::GetAsset(AssetProxy proxy) const
 	{
 		WARP_EXPAND_DEBUG_ONLY(
-			if (!proxy.IsValid() || proxy.Index >= AssetContainer.size() || !AssetContainer[proxy.Index])
+			if (!IsValid(proxy))
 			{
 				WARP_LOG_ERROR("Tried to access asset using invalid proxy AssetProxy(Type: {}, Index: {})!",
 					GetAssetTypeName(proxy.Type), proxy.Index);
@@ -168,7 +223,8 @@ namespace Warp
 				return nullptr;
 			}
 		);
-		return AssetContainer[proxy.Index].get();
+		const AssetAllocation& allocation = AssetContainer[proxy.Index];
+		return allocation.Ptr.get();
 	}
 
 	template<ValidAssetType T>
@@ -176,6 +232,8 @@ namespace Warp
 	{
 		AssetContainer.clear();
 		std::queue<size_t>().swap(FreedProxies);
+
+		LastUniqueID = 0;
 	}
 
 }

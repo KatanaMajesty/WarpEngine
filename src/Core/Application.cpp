@@ -51,11 +51,7 @@ namespace Warp
 
 		std::filesystem::path filepath = GetAssetsPath() / "antique_camera";
 
-		AssetProxy t = textureImporter.ImportFromFile((filepath / "camera_camera_BaseColor.png").string(), ImportDesc());
-		// auto tAsset = textureImporter.GetAssetManager()->GetAs<TextureAsset>(t);
-
 		std::vector<AssetProxy> meshes = importer.ImportFromFile((filepath / "AntiqueCamera.gltf").string());
-
 		TransformComponent transform = TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f));
 
 		for (size_t i = 0; i < meshes.size(); ++i)

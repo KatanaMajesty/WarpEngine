@@ -175,7 +175,7 @@ namespace Warp
 				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_depthStencilView.GetCpuAddress();
 				m_graphicsContext->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
-				const float clearColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearColor, 0, nullptr);
 				m_graphicsContext.ClearDsv(m_depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 			}

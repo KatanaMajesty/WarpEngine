@@ -14,9 +14,10 @@ ConstantBuffer<DrawData> CbDrawData : register(b1);
 
 struct OutVertex
 {
-    float4 pos : SV_Position;
-    float2 uv : TEXCOORD0;
-    float3 color : COLOR0;
+    float4 Pos : SV_Position;
+    float3 PosInView : POSITION;
+    float2 TexUv : TEXCOORD;
+    float3 Normal : NORMAL;
 };
 
 struct Meshlet
@@ -58,18 +59,23 @@ uint GetVertexIndex(Meshlet m, uint localIndex)
     return UniqueVertexIndices.Load(localIndex * 4);
 }
 
-OutVertex GetVertex(uint meshletIndex, uint vertexIndex, matrix mvp)
+OutVertex GetVertex(uint meshletIndex, uint vertexIndex)
 {
-    float3 pos = Positions[vertexIndex];
+    matrix mv = mul(CbDrawData.MeshToWorld, CbViewData.View);
+    matrix mvp = mul(CbDrawData.MeshToWorld, mul(CbViewData.View, CbViewData.Projection));
+    float4 pos = mul(float4(Positions[vertexIndex], 1.0), mvp);
+    float4 posInView = mul(float4(Positions[vertexIndex], 1.0), mv);
     
     OutVertex v;
-    v.pos = mul(float4(pos, 1.0), mvp);
-    v.uv = TexCoords[vertexIndex];
-    v.color = float3(
-	    float(meshletIndex & 1),
-	    float(meshletIndex & 3) / 4,
-	    float(meshletIndex & 7) / 8
-    );
+    v.Pos = pos;
+    v.PosInView = posInView.xyz;
+    v.TexUv = TexCoords[vertexIndex];
+    v.Normal = normalize(mul(float4(Normals[vertexIndex], 0.0f), mv).xyz);
+    // v.color = float3(
+	//     float(meshletIndex & 1),
+	//     float(meshletIndex & 3) / 4,
+	//     float(meshletIndex & 7) / 8
+    // );
     return v;
 }
 
@@ -88,9 +94,8 @@ void MSMain(
 
     if (groupThreadID < m.VertexCount)
     {
-        matrix mvp = mul(CbDrawData.MeshToWorld, mul(CbViewData.View, CbViewData.Projection));
         uint vertexIndex = GetVertexIndex(m, groupThreadID);
-        outVerts[groupThreadID] = GetVertex(groupID, vertexIndex, mvp);
+        outVerts[groupThreadID] = GetVertex(groupID, vertexIndex);
     }
     
     if (groupThreadID < m.PrimitiveCount)
@@ -106,6 +111,22 @@ SamplerState StaticSampler : register(s0);
 
 float4 PSMain(OutVertex vertex) : SV_Target0
 {
-    float4 baseColor = BaseColor.Sample(StaticSampler, vertex.uv);
-    return baseColor;
+    float3 L = normalize(-float3(-1.0, -2.0, -1.0));
+    float3 V = normalize(-vertex.PosInView); // Camera is at origin now
+    float3 N = normalize(vertex.Normal);
+    float3 H = normalize(L + V);
+    
+    float lambertian = saturate(dot(N, L));
+    
+    float4 baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
+    float alpha = baseColor.a;
+    
+    float3 diffuse = lambertian * baseColor.xyz;
+    float specAngle = saturate(dot(H, N));
+    float specular = pow(specAngle, 32.0);
+    
+    const float3 ambientColor = float3(0.05, 0.0, 0.1);
+    float3 color = ambientColor + diffuse + specular;
+    
+    return float4(color, alpha);
 }

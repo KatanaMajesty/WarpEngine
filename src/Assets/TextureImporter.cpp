@@ -1,5 +1,7 @@
 #include "TextureImporter.h"
 
+#include <algorithm>
+
 #include "../Core/Logger.h"
 #include "../Core/Assert.h"
 
@@ -9,8 +11,19 @@
 namespace Warp
 {
 
-	AssetProxy TextureImporter::ImportFromFile(std::string_view filepath, const ImportDesc& importDesc)
+	AssetProxy TextureImporter::ImportFromFile(const std::string& filepath, const ImportDesc& importDesc)
 	{
+		// Avoid loading a texture multiple times
+		auto it = m_textureCache.find(filepath);
+		if (it != m_textureCache.end())
+		{
+			AssetProxy cachedProxy = m_textureCache.at(filepath);
+			if (GetAssetManager()->IsValid<TextureAsset>(cachedProxy))
+			{
+				return cachedProxy;
+			}
+		}
+
 		AssetFileExtension extension = GetFilepathExtension(filepath);
 		if (extension == AssetFileExtension::Unknown)
 		{
@@ -29,7 +42,11 @@ namespace Warp
 		default: WARP_ASSERT(false, "Shouldn't happen"); break;
 		}
 
-		return ImportFromImage(image);
+		AssetProxy proxy = ImportFromImage(image);
+
+		// Add loaded texture to cache before returning
+		m_textureCache[filepath] = proxy;
+		return proxy;
 	}
 
 	AssetProxy TextureImporter::ImportFromImage(const ImageLoader::Image& image)
