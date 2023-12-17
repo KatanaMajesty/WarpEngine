@@ -9,6 +9,8 @@
 #include "../World/World.h"
 #include "../Renderer/Renderer.h"
 #include "../Assets/AssetManager.h"
+#include "../Assets/MeshImporter.h"
+#include "../Assets/TextureImporter.h"
 
 namespace Warp
 {
@@ -71,6 +73,9 @@ namespace Warp
 		inline constexpr bool IsWindowFocused() const noexcept { return m_isWindowFocused; }
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
 
+		inline MeshImporter* GetMeshImporter() const { return m_meshImporter.get(); }
+		inline TextureImporter* GetTextureImporter() const { return m_textureImporter.get(); }
+
 	private:
 		// Moved to private after Application::RequestResize() was introduced
 		void Resize();
@@ -94,6 +99,8 @@ namespace Warp
 		// TODO: currently we store world in Application. This should be changed though
 		std::unique_ptr<World> m_world;
 		std::unique_ptr<AssetManager> m_assetManager;
+		std::unique_ptr<MeshImporter> m_meshImporter;
+		std::unique_ptr<TextureImporter> m_textureImporter;
 	};
 
 }

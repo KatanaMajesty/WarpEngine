@@ -45,20 +45,19 @@ namespace Warp
 		m_renderer = std::make_unique<Renderer>(reinterpret_cast<HWND>(hwnd));
 		m_world = std::make_unique<World>();
 		m_assetManager = std::make_unique<AssetManager>();
-		
-		MeshImporter importer(m_renderer.get(), m_assetManager.get());
-		TextureImporter textureImporter(m_renderer.get(), m_assetManager.get());
+		m_meshImporter = std::make_unique<MeshImporter>(m_renderer.get(), m_assetManager.get());
+		m_textureImporter = std::make_unique<TextureImporter>(m_renderer.get(), m_assetManager.get());
 
 		std::filesystem::path filepath = GetAssetsPath() / "antique_camera";
 
-		std::vector<AssetProxy> meshes = importer.ImportFromFile((filepath / "AntiqueCamera.gltf").string());
+		std::vector<AssetProxy> meshes = m_meshImporter->ImportFromFile((filepath / "AntiqueCamera.gltf").string());
 		TransformComponent transform = TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f));
 
 		for (size_t i = 0; i < meshes.size(); ++i)
 		{
 			Entity antiqueEntity = m_world->CreateEntity(fmt::format("Antique Camera Entity Mesh {}", i));
 			antiqueEntity.AddComponent<TransformComponent>(transform);
-			antiqueEntity.AddComponent<MeshComponent>(importer.GetAssetManager(), meshes[i]);
+			antiqueEntity.AddComponent<MeshComponent>(m_meshImporter->GetAssetManager(), meshes[i]);
 		}
 	}
 

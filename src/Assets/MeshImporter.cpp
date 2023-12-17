@@ -1,5 +1,6 @@
 #include "MeshImporter.h"
 
+#include "../Core/Application.h"
 #include "TextureImporter.h"
 #include "TextureAsset.h"
 #include "Util/MeshLoader.h"
@@ -80,13 +81,13 @@ namespace Warp
 
 	void MeshImporter::LoadMeshMaterial(MeshAsset* mesh, const MeshLoader::MeshMaterial& loadedMaterial)
 	{
-		// TODO: We create own small texture importer just to import textures. Its meh... but whatever
-		mesh->Material.Manager = GetAssetManager();
-		TextureImporter textureImporter(GetRenderer(), mesh->Material.Manager);
+		// TODO: We use Application's texture importer, which may use different asset manager? This is also a bad way to handle textures
+		TextureImporter* textureImporter = Application::Get().GetTextureImporter();
+		mesh->Material.Manager = textureImporter->GetAssetManager();
 
 		if (loadedMaterial.BaseColor.IsValid())
 		{
-			mesh->Material.BaseColorProxy = textureImporter.ImportFromImage(loadedMaterial.BaseColor);
+			mesh->Material.BaseColorProxy = textureImporter->ImportFromImage(loadedMaterial.BaseColor);
 		} 
 		else
 		{
@@ -95,12 +96,12 @@ namespace Warp
 
 		if (loadedMaterial.NormalMap.IsValid())
 		{
-			mesh->Material.NormalMapProxy = textureImporter.ImportFromImage(loadedMaterial.NormalMap);
+			mesh->Material.NormalMapProxy = textureImporter->ImportFromImage(loadedMaterial.NormalMap);
 		}
 
 		if (loadedMaterial.MetalnessRoughnessMap.IsValid())
 		{
-			mesh->Material.MetalnessRoughnessMapProxy = textureImporter.ImportFromImage(loadedMaterial.NormalMap);
+			mesh->Material.MetalnessRoughnessMapProxy = textureImporter->ImportFromImage(loadedMaterial.NormalMap);
 		}
 		else
 		{

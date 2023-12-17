@@ -13,17 +13,6 @@ namespace Warp
 
 	AssetProxy TextureImporter::ImportFromFile(const std::string& filepath, const ImportDesc& importDesc)
 	{
-		// Avoid loading a texture multiple times
-		auto it = m_textureCache.find(filepath);
-		if (it != m_textureCache.end())
-		{
-			AssetProxy cachedProxy = m_textureCache.at(filepath);
-			if (GetAssetManager()->IsValid<TextureAsset>(cachedProxy))
-			{
-				return cachedProxy;
-			}
-		}
-
 		AssetFileExtension extension = GetFilepathExtension(filepath);
 		if (extension == AssetFileExtension::Unknown)
 		{
@@ -43,9 +32,6 @@ namespace Warp
 		}
 
 		AssetProxy proxy = ImportFromImage(image);
-
-		// Add loaded texture to cache before returning
-		m_textureCache[filepath] = proxy;
 		return proxy;
 	}
 
@@ -54,6 +40,20 @@ namespace Warp
 		if (!image.IsValid())
 		{
 			return AssetProxy();
+		}
+
+		// Avoid loading a texture multiple times
+		if (!image.Filepath.empty())
+		{
+			auto it = m_textureCache.find(image.Filepath);
+			if (it != m_textureCache.end())
+			{
+				AssetProxy cachedProxy = m_textureCache.at(image.Filepath);
+				if (GetAssetManager()->IsValid<TextureAsset>(cachedProxy))
+				{
+					return cachedProxy;
+				}
+			}
 		}
 
 		AssetManager* assetManager = GetAssetManager();
@@ -100,6 +100,13 @@ namespace Warp
 		}
 
 		renderer->UploadSubresources(&asset->Texture, subresources, 0);
+
+		// Add loaded texture to cache before returning
+		if (!image.Filepath.empty())
+		{
+			m_textureCache[image.Filepath] = proxy;
+		}
+
 		return proxy;
 	}
 

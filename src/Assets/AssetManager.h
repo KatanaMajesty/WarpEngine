@@ -111,7 +111,7 @@ namespace Warp
 		template<typename T>
 		const Registry<T>* GetRegistry() const
 		{
-			using NonConstMe = std::remove_const_t<decltype(this)>;
+			using NonConstMe = std::remove_const_t<std::remove_pointer_t<decltype(this)>>*;
 			return const_cast<NonConstMe>(this)->GetRegistry<T>();
 		}
 
@@ -195,13 +195,13 @@ namespace Warp
 		}
 
 		// Check if there is ANY asset assosiated with the current proxy
-		const AssetAllocation& allocation = AssetContainer[proxy.Index];
-		if (proxy.Index >= AssetContainer.size() || !allocation.Ptr)
+		if (proxy.Index >= AssetContainer.size() || !AssetContainer[proxy.Index].Ptr)
 		{
 			return false;
 		}
 
 		// Now check unique IDs to be the same to ensure we are trying to access the same asset
+		const AssetAllocation& allocation = AssetContainer[proxy.Index];
 		if (proxy.UniqueRegistryID != allocation.UniqueID)
 		{
 			return false;
