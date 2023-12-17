@@ -8,7 +8,7 @@ tl;dr
 - [x] Barebone PIX integration
 - [x] glTF mesh loader using cgltf (WIP)
 - [x] Meshlet rendering using Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline (still WIP)
-- [x] Asset system with for textures and meshes
+- [x] Asset system with Asset importer for textures and meshes
 - [x] World with ECS using entt. World is being rendered using Renderer 
 
 ## Mesh Rendering
