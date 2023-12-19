@@ -88,7 +88,7 @@ namespace Warp
 		if (loadedMaterial.BaseColor.IsValid())
 		{
 			mesh->Material.BaseColorProxy = textureImporter->ImportFromImage(loadedMaterial.BaseColor);
-		} 
+		}
 		else
 		{
 			mesh->Material.BaseColor = loadedMaterial.BaseColorFactor;
@@ -132,11 +132,11 @@ namespace Warp
 			mesh->Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
 		}
 
-		static constexpr uint32_t MeshletStride = sizeof(Meshlet);
+		static constexpr uint32_t MeshletStride = sizeof(DirectX::Meshlet);
 		static constexpr uint32_t UVIndexStride = sizeof(uint8_t);
-		static constexpr uint32_t PrimitiveIndicesStride = sizeof(MeshletTriangle);
+		static constexpr uint32_t PrimitiveIndicesStride = sizeof(DirectX::MeshletTriangle);
 
-		size_t meshletsInBytes = mesh->Meshlets.size() * sizeof(Meshlet);
+		size_t meshletsInBytes = mesh->Meshlets.size() * sizeof(DirectX::Meshlet);
 		size_t uniqueVertexIndicesInBytes = mesh->UniqueVertexIndices.size() * UVIndexStride;
 		size_t primitiveIndicesInBytes = mesh->PrimitiveIndices.size() * PrimitiveIndicesStride;
 

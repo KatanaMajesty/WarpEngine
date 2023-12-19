@@ -22,6 +22,8 @@ namespace Warp
 		RHISwapchain(const RHISwapchain&) = delete;
 		RHISwapchain& operator=(const RHISwapchain&) = delete;
 
+		~RHISwapchain();
+
 		// RHISwapchain(RHISwapchain&&) = default;
 		// RHISwapchain& operator=(RHISwapchain&&) = default;
 

@@ -26,6 +26,7 @@
     <ClCompile Include="src\Assets\Util\ImageLoader.cpp" />
     <ClCompile Include="src\Assets\Util\MeshLoader.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
+    <ClCompile Include="src\Core\Input.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Renderer\Renderer.cpp" />
@@ -62,6 +63,7 @@
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />
+    <ClInclude Include="src\Core\Input.h" />
     <ClInclude Include="src\Core\Logger.h" />
     <ClInclude Include="src\Math\Math.h" />
     <ClInclude Include="src\Renderer\Material.h" />
@@ -97,6 +99,7 @@
     <ClInclude Include="src\World\Components\NametagComponent.h" />
     <ClInclude Include="src\World\Components\TransformComponent.h" />
     <ClInclude Include="src\World\Entity.h" />
+    <ClInclude Include="src\World\EntityRegistry.h" />
     <ClInclude Include="src\World\World.h" />
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
     <ClInclude Include="vendor\d3dx12.h" />

@@ -3,9 +3,11 @@
 #include <cstdint>
 #include <iostream>
 #include <string_view>
+#include <unordered_map>
 
 #include "WinAPI.h"
 #include "Core/Application.h"
+#include "Core/Input.h"
 #include "Core/Logger.h"
 
 WCHAR g_ClassName[] = L"WarpEngineClass";
@@ -159,6 +161,7 @@ void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLi
     cmdLineArgs = std::vector(IteratorType(iss), IteratorType());
 }
 
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     Warp::Application& application = Warp::Application::Get();
@@ -179,8 +182,34 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_SETFOCUS:
         application.SetWindowFocused(true);
         break;
-    return 0;
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+    case WM_SYSKEYDOWN:
+    case WM_SYSKEYUP:
+    {
+        static std::unordered_map<WORD, Warp::EKeycode> Win32KeysMapping = {
+            { 'W', Warp::eKeycode_W },
+            { 'A', Warp::eKeycode_A },
+            { 'S', Warp::eKeycode_S },
+            { 'D', Warp::eKeycode_D },
+        };
 
+        Warp::InputManager& inputManager = application.GetInputManager();
+        WORD vkCode = LOWORD(wParam);
+        WORD keyFlags = HIWORD(lParam);
+
+        auto it = Win32KeysMapping.find(vkCode);
+        if (it != Win32KeysMapping.end())
+        {
+            Warp::EKeycode keycode = Win32KeysMapping[vkCode];
+
+            // BOOL wasKeyDown = (keyFlags & KF_REPEAT) == KF_REPEAT; // previous key-state flag, 1 on autorepeat
+            // WORD repeatCount = LOWORD(lParam);
+            BOOL isKeyReleased = (keyFlags & KF_UP) == KF_UP;
+
+            inputManager.SetKeyIsPressed(keycode, !isKeyReleased);
+        }
+    }; break;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

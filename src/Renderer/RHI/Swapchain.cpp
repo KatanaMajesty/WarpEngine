@@ -19,6 +19,11 @@ namespace Warp
 		Resize(desc.Width, desc.Height);
 	}
 
+	RHISwapchain::~RHISwapchain()
+	{
+		// GetPhysicalDevice()->GetAssociatedLogicalDevice()->GetRtvsHeap()->Free(std::move(m_backbufferRtvsAllocation));
+	}
+
 	void RHISwapchain::Present(bool vsync)
 	{
 		// https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/d3d10-graphics-programming-guide-dxgi

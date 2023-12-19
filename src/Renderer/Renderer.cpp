@@ -127,15 +127,12 @@ namespace Warp
 			return;
 		}
 
-		// TODO: It is a bit wrong to always use swapchain's width/height to render in, as we might want to render into a specific area of swapchain
-		UINT Width = m_swapchain->GetWidth();
-		UINT Height = m_swapchain->GetHeight();
-		float AspectRatio = static_cast<float>(Width) / Height;
+		Entity worldCamera = world->GetWorldCamera();
+		const CameraComponent& cameraComponent = worldCamera.GetComponent<CameraComponent>();
 
-		// TODO: Temp our proj is always the same and only changes on resize
 		HlslViewData viewData = HlslViewData{
-			.ViewMatrix = Math::Matrix(),
-			.ProjMatrix = Math::Matrix::CreatePerspectiveFieldOfView(DirectX::XMConvertToRadians(90.0f), AspectRatio, 0.1f, 100.0f)
+			.ViewMatrix = cameraComponent.ViewMatrix,
+			.ProjMatrix = cameraComponent.ProjMatrix
 		};
 		memcpy(m_cbViewData.GetCpuVirtualAddress<HlslViewData>(), &viewData, sizeof(HlslViewData));
 
@@ -149,6 +146,8 @@ namespace Warp
 		{
 			WARP_SCOPED_EVENT(&m_graphicsContext, fmt::format("Renderer_RenderWorld_Frame{}", frameIndex + 1));
 
+			UINT Width = m_swapchain->GetWidth();
+			UINT Height = m_swapchain->GetHeight();
 			m_graphicsContext.SetViewport(0, 0, Width, Height);
 			m_graphicsContext.SetScissorRect(0, 0, Width, Height);
 

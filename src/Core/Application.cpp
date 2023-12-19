@@ -76,6 +76,7 @@ namespace Warp
 	void Application::Resize()
 	{
 		m_renderer->Resize(m_width, m_height);
+		m_world->Resize(m_width, m_height);
 	}
 
 	void Application::Tick()

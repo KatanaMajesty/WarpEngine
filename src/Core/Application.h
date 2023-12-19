@@ -4,6 +4,7 @@
 #include <string>
 #include <filesystem>
 
+#include "Input.h"
 #include "../Util/Timer.h"
 #include "../Assets/Asset.h"
 #include "../World/World.h"
@@ -59,6 +60,7 @@ namespace Warp
 		void Update(float timestep);
 		void Render();
 
+		inline InputManager& GetInputManager() { return m_inputManager; }
 		inline Renderer* GetRenderer() const { return m_renderer.get(); }
 
 		// Returns the working directory
@@ -84,6 +86,8 @@ namespace Warp
 
 		Timer m_appTimer;
 		double m_lastFrameTime = 0.0;
+
+		InputManager m_inputManager;
 
 		std::unique_ptr<Renderer> m_renderer;
 		std::filesystem::path m_workingDirectory;

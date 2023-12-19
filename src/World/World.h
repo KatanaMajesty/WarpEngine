@@ -16,37 +16,43 @@ namespace Warp
 	class World
 	{
 	public:
-		using EntityRegistry = entt::registry;
-		using EntityContainer = std::unordered_map<uint32_t, Entity>;
-
-		World() = default;
-
-		~World();
+		World(const std::string& name = "Unnamed World");
 
 		// TODO: Currently just playing around here
 		void Update(float timestep);
+		void Resize(uint32_t width, uint32_t height);
 
 		WARP_ATTR_NODISCARD Entity CreateEntity(std::string_view name = "Unnamed");
-		void DestroyEntity(Entity entity);
+		WARP_ATTR_NODISCARD Entity DestroyEntity(Entity entity);
 
 		inline constexpr auto& GetEntityRegistry() { return m_entityRegistry; }
 		inline constexpr auto& GetEntityRegistry() const { return m_entityRegistry; }
+		inline Entity GetWorldCamera() { return m_worldCamera; }
 
 		template<typename... ComponentTypes>
 		inline auto ViewOf() { return GetEntityRegistry().view<ComponentTypes...>(); }
 
 	private:
-		auto FindEntityByID(Entity entity) const -> EntityContainer::const_iterator;
-		bool HasEntity(Entity entity) const;
-		void AddEntityToContainer(Entity entity);
-		void RemoveEntityFromContainer(Entity entity);
-		void ClearEntities();
+		// TODO: Do we even need this EntityContainer? Maybe remove?
+		struct EntityContainer
+		{
+			bool HasEntity(Entity entity) const;
+			void AddEntity(Entity entity);
+			void RemoveEntity(Entity entity);
+
+			std::unordered_map<uint32_t, Entity> Container;
+		};
+		
+		std::string m_worldName;
+		uint32_t m_width;
+		uint32_t m_height;
+
+		// TODO: Currently we just have 1 registry per World. Maybe we should consider requesting a registry for a World in future?
+		entt::registry m_entityRegistry;
+		EntityContainer	m_entityContainer;
+		Entity m_worldCamera;
 
 		float m_timeElapsed = 0.0f; // TODO: Remove this from here...
-		
-		// TODO: Currently we just have 1 registry per World. Maybe we should consider requesting a registry for a World in future?
-		EntityRegistry	m_entityRegistry;
-		EntityContainer	m_entityContainer;
 	};
 
 	template<typename ComponentType, typename... Args>

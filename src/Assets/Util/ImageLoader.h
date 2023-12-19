@@ -11,6 +11,7 @@ namespace Warp::ImageLoader
 	{
 		bool IsValid() const { return DxImage.GetImages() != nullptr; }
 
+		std::string Name;
 		std::string Filepath; // This may be empty, if the Image was loaded from memory
 		DirectX::ScratchImage DxImage;
 	};

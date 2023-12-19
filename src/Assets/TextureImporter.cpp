@@ -82,8 +82,10 @@ namespace Warp
 		default: WARP_ASSERT(false); break;
 		}
 
+		// TODO: We should check if a texture has filepath. If not, give another name
+		const std::string& textureName = "ImportedTexture_" + (image.Name.empty() ? image.Filepath : image.Name);
 		asset->Texture = RHITexture(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, desc);
-		asset->Texture.SetName(StringToWString(image.Filepath)); // TODO: We should check if a texture has filepath. If not, give another name
+		asset->Texture.SetName(StringToWString(textureName)); 
 		asset->SrvAllocation = Device->GetViewHeap()->Allocate(1);
 		asset->Srv = RHIShaderResourceView(Device, &asset->Texture, nullptr, asset->SrvAllocation);
 

@@ -18,6 +18,8 @@ struct OutVertex
     float3 PosInView : POSITION;
     float2 TexUv : TEXCOORD;
     float3 Normal : NORMAL;
+    float3 Tangent : TANGENT;
+    float3 Bitangent : BITANGENT;
 };
 
 struct Meshlet
@@ -71,11 +73,6 @@ OutVertex GetVertex(uint meshletIndex, uint vertexIndex)
     v.PosInView = posInView.xyz;
     v.TexUv = TexCoords[vertexIndex];
     v.Normal = normalize(mul(float4(Normals[vertexIndex], 0.0f), mv).xyz);
-    // v.color = float3(
-	//     float(meshletIndex & 1),
-	//     float(meshletIndex & 3) / 4,
-	//     float(meshletIndex & 7) / 8
-    // );
     return v;
 }
 
@@ -111,6 +108,10 @@ SamplerState StaticSampler : register(s0);
 
 float4 PSMain(OutVertex vertex) : SV_Target0
 {
+    // float3x3 TBN = float3x3(vertex.Tangent, vertex.Bitangent, vertex.Normal);
+    // float3 NSample = NormalMap.Sample(StaticSampler, vertex.TexUv).xyz * 2.0 - 1.0;
+    // float3 N = normalize(mul(TBN, NSample));
+    
     float3 L = normalize(-float3(-1.0, -2.0, -1.0));
     float3 V = normalize(-vertex.PosInView); // Camera is at origin now
     float3 N = normalize(vertex.Normal);
