@@ -6,8 +6,10 @@ tl;dr
 - [x] Renderer that supports three inflight frames being rendered simultaneously
 - [x] DXC shader compiler interface for easy shader retrieval
 - [x] Barebone PIX integration
-- [x] glTF model loader using cgltf (WIP)
-- [x] Meshlet rendering using Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline (still very unfinished)
+- [x] glTF mesh loader using cgltf (WIP)
+- [x] Meshlet rendering using Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline (still WIP)
+- [x] Asset system with Asset importer for textures and meshes
+- [x] World with ECS using entt. World is being rendered using Renderer 
 
-## Meshlet Visualization
-![HelloCubeImage](images/WE_Img_MeshletVisualization.jpg)
+## Mesh Rendering
+![HelloCubeImage](images/WE_Img_Texturing.jpg)
