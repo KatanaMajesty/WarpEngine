@@ -12,6 +12,7 @@
 #include "../Assets/AssetManager.h"
 #include "../Assets/MeshImporter.h"
 #include "../Assets/TextureImporter.h"
+#include "../WinAPI.h"
 
 namespace Warp
 {
@@ -53,7 +54,7 @@ namespace Warp
 		static Application& Get();
 
 		// Initialize (or reinitialize) the Application
-		void Init(void* hwnd);
+		void Init(HWND hwnd);
 		void RequestResize(uint32_t width, uint32_t height);
 
 		void Tick();
@@ -64,15 +65,13 @@ namespace Warp
 		inline Renderer* GetRenderer() const { return m_renderer.get(); }
 
 		// Returns the working directory
-		inline constexpr const std::filesystem::path& GetWorkingDirectory() const { return m_workingDirectory; }
+		inline const std::filesystem::path& GetWorkingDirectory() const { return m_workingDirectory; }
+		inline const std::filesystem::path& GetShaderPath() const { return m_shaderPath; }
+		inline const std::filesystem::path& GetAssetsPath() const { return m_assetsPath; }
+		inline void SetShaderPath(const std::filesystem::path& path) { m_shaderPath = path; }
+		inline void SetAssetsPath(const std::filesystem::path& path) { m_assetsPath = path; }
 
-		// Getters and setters for absolute Shader and Assets paths
-		inline constexpr const std::filesystem::path& GetShaderPath() const { return m_shaderPath; }
-		inline constexpr const std::filesystem::path& GetAssetsPath() const { return m_assetsPath; }
-		inline constexpr void SetShaderPath(const std::filesystem::path& path) { m_shaderPath = path; }
-		inline constexpr void SetAssetsPath(const std::filesystem::path& path) { m_assetsPath = path; }
-
-		inline constexpr bool IsWindowFocused() const noexcept { return m_isWindowFocused; }
+		inline bool IsWindowFocused() const noexcept { return m_isWindowFocused; }
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
 
 		inline MeshImporter* GetMeshImporter() const { return m_meshImporter.get(); }
@@ -83,6 +82,8 @@ namespace Warp
 		void Resize();
 
 		static inline Application* s_instance = nullptr;
+
+		HWND m_hwnd = nullptr;
 
 		Timer m_appTimer;
 		double m_lastFrameTime = 0.0;

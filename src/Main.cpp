@@ -210,6 +210,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             inputManager.SetKeyIsPressed(keycode, !isKeyReleased);
         }
     }; break;
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    {
+        // TODO: Rewrite this pls pls
+        Warp::InputManager& inputManager = application.GetInputManager();
+        if (uMsg == WM_LBUTTONDOWN) inputManager.SetButtonIsPressed(Warp::eMouseButton_Left, true);
+        if (uMsg == WM_LBUTTONUP)   inputManager.SetButtonIsPressed(Warp::eMouseButton_Left, false);
+        if (uMsg == WM_RBUTTONDOWN) inputManager.SetButtonIsPressed(Warp::eMouseButton_Right, true);
+        if (uMsg == WM_RBUTTONUP)   inputManager.SetButtonIsPressed(Warp::eMouseButton_Right, false);
+    }; break;
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

@@ -40,9 +40,11 @@ namespace Warp
 		return *s_instance;
 	}
 
-	void Application::Init(void* hwnd)
+	void Application::Init(HWND hwnd)
 	{
-		m_renderer = std::make_unique<Renderer>(reinterpret_cast<HWND>(hwnd));
+		m_hwnd = hwnd;
+
+		m_renderer = std::make_unique<Renderer>(hwnd);
 		m_world = std::make_unique<World>();
 		m_assetManager = std::make_unique<AssetManager>();
 		m_meshImporter = std::make_unique<MeshImporter>(m_renderer.get(), m_assetManager.get());
@@ -97,6 +99,16 @@ namespace Warp
 
 	void Application::Update(float timestep)
 	{
+		// TODO: Maybe remove this to Main.cpp? I thought it might be nice to move all the WinAPI stuff there
+		// and just to some callbacks to Application
+		POINT point;
+		if (GetCursorPos(&point) && ScreenToClient(m_hwnd, &point))
+		{
+			int64_t x = point.x;
+			int64_t y = int64_t(m_height) - point.y;
+			m_inputManager.SetCursorPos(x, y);
+		}
+
 		m_world->Update(timestep);
 	}
 

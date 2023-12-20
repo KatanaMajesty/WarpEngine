@@ -5,14 +5,19 @@
 namespace Warp
 {
 
-	struct CameraComponent
+	struct EulersCameraComponent
 	{
 		inline void SetView()
 		{
-			Math::Vector3 EyeTarget = EyePos + EyeDir;
-			EyeTarget.Normalize();
+			float rYaw = Math::ToRadians(Yaw);
+			float rPitch = Math::ToRadians(Pitch);
 
-			ViewMatrix = Math::Matrix::CreateLookAt(EyePos, EyeTarget, UpDir);
+			EyeDir.x = std::cos(rYaw) * std::cos(rPitch);
+			EyeDir.y = std::sin(rPitch);
+			EyeDir.z = std::sin(rYaw) * std::cos(rPitch);
+			EyeDir.Normalize();
+
+			ViewMatrix = Math::Matrix::CreateLookAt(EyePos, EyePos + EyeDir, UpDir);
 			ViewMatrix.Invert(ViewInvMatrix);
 		}
 
@@ -22,6 +27,10 @@ namespace Warp
 			ProjMatrix = Math::Matrix::CreatePerspectiveFieldOfView(Math::ToRadians(Fov), AspectRatio, NearPlane, FarPlane);
 			ProjMatrix.Invert(ProjInvMatrix);
 		}
+
+		float Pitch = 90.0f;
+		float Yaw = 0.0f;
+		// float Roll = 0.0f; // No roll for Eulers currently
 
 		Math::Vector3 EyePos;
 		Math::Vector3 EyeDir;

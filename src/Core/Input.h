@@ -25,6 +25,10 @@ namespace Warp
 	class InputManager
 	{
 	public:
+		void SetCursorPos(int64_t x, int64_t y);
+		inline int64_t GetCursorX() const { return m_cursorX; }
+		inline int64_t GetCursorY() const { return m_cursorY; }
+
 		void SetKeyIsPressed(EKeycode code, bool pressed);
 		void SetButtonIsPressed(EMouseButton button, bool pressed);
 
@@ -34,6 +38,8 @@ namespace Warp
 	private:
 		std::array<bool, eKeycode_NumKeycodes> m_keyStates;
 		std::array<bool, eMouseButton_NumButtons> m_mouseButtonStates;
+		int64_t m_cursorX = 0;
+		int64_t m_cursorY = 0;
 	};
 
 }

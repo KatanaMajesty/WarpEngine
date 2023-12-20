@@ -13,7 +13,7 @@ namespace Warp
 		: m_worldName(name)
 	{
 		m_worldCamera = CreateEntity(fmt::format("{} Camera", name));
-		CameraComponent& cameraComponent = m_worldCamera.AddComponent<CameraComponent>(CameraComponent{
+		EulersCameraComponent& cameraComponent = m_worldCamera.AddComponent<EulersCameraComponent>(EulersCameraComponent{
 				.EyePos = Math::Vector3(0.0f),
 				.EyeDir = Math::Vector3(0.0f, 0.0f, -1.0f),
 				.UpDir = Math::Vector3(0.0f, 1.0f, 0.0f),
@@ -32,37 +32,54 @@ namespace Warp
 			[this](TransformComponent& transformComponent)
 			{
 				float pitch = m_timeElapsed;
-				transformComponent.Rotation = Math::Vector3(0.0f, pitch, 0.0f);
+				//transformComponent.Rotation = Math::Vector3(0.0f, pitch, 0.0f);
 			}
 		);
 
-		InputManager& inputManager = Application::Get().GetInputManager();
-		float delta = 4.0f * timestep;
-
-		CameraComponent& cameraComponent = m_worldCamera.GetComponent<CameraComponent>();
+		EulersCameraComponent& cameraComponent = m_worldCamera.GetComponent<EulersCameraComponent>();
 		bool dirtyView = false;
-		if (inputManager.IsKeyPressed(eKeycode_W))
+
+		InputManager& inputManager = Application::Get().GetInputManager();
+		int64_t cx = inputManager.GetCursorX();
+		int64_t cy = inputManager.GetCursorY();
+		if (inputManager.IsButtonPressed(eMouseButton_Left) && (cx != m_lastCursorX || cy != m_lastCursorY))
 		{
-			cameraComponent.EyePos.z -= delta;
+			constexpr float Sensitivity = 0.4f;
+			
+			float xoffset = (cx - m_lastCursorX) * Sensitivity;
+			float yoffset = (cy - m_lastCursorY) * Sensitivity;
+			m_lastCursorX = cx;
+			m_lastCursorY = cy;
+
 			dirtyView = true;
+			cameraComponent.Yaw += xoffset;
+			cameraComponent.Pitch = Math::Clamp(cameraComponent.Pitch + yoffset, -89.0f, 89.0f);
 		}
 
-		if (inputManager.IsKeyPressed(eKeycode_A))
+		float delta = 4.0f * timestep;
+		if (inputManager.IsKeyPressed(eKeycode_W))
 		{
-			cameraComponent.EyePos.x -= delta;
 			dirtyView = true;
+			cameraComponent.EyePos += cameraComponent.EyeDir * delta;
 		}
 
 		if (inputManager.IsKeyPressed(eKeycode_S))
 		{
-			cameraComponent.EyePos.z += delta;
 			dirtyView = true;
+			cameraComponent.EyePos -= cameraComponent.EyeDir * delta;
+		}
+
+		Math::Vector3 eyeRight = cameraComponent.EyeDir.Cross(cameraComponent.UpDir);
+		if (inputManager.IsKeyPressed(eKeycode_A))
+		{
+			dirtyView = true;
+			cameraComponent.EyePos -= eyeRight * delta;
 		}
 
 		if (inputManager.IsKeyPressed(eKeycode_D))
 		{
-			cameraComponent.EyePos.x += delta;
 			dirtyView = true;
+			cameraComponent.EyePos += eyeRight * delta;
 		}
 
 		if (dirtyView)
@@ -74,7 +91,7 @@ namespace Warp
 		m_width = width;
 		m_height = height;
 
-		CameraComponent& cameraComponent = m_worldCamera.GetComponent<CameraComponent>();
+		EulersCameraComponent& cameraComponent = m_worldCamera.GetComponent<EulersCameraComponent>();
 		cameraComponent.SetProjection(width, height);
 	}
 

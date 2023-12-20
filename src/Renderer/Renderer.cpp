@@ -128,7 +128,7 @@ namespace Warp
 		}
 
 		Entity worldCamera = world->GetWorldCamera();
-		const CameraComponent& cameraComponent = worldCamera.GetComponent<CameraComponent>();
+		const EulersCameraComponent& cameraComponent = worldCamera.GetComponent<EulersCameraComponent>();
 
 		HlslViewData viewData = HlslViewData{
 			.ViewMatrix = cameraComponent.ViewMatrix,

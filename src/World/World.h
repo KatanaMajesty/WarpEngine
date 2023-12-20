@@ -52,7 +52,10 @@ namespace Warp
 		EntityContainer	m_entityContainer;
 		Entity m_worldCamera;
 
-		float m_timeElapsed = 0.0f; // TODO: Remove this from here...
+		// TODO: Remove this from here...
+		float m_timeElapsed = 0.0f;
+		int64_t m_lastCursorX = 0;
+		int64_t m_lastCursorY = 0;
 	};
 
 	template<typename ComponentType, typename... Args>

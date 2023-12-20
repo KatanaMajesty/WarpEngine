@@ -2,6 +2,11 @@
 
 namespace Warp
 {
+	void InputManager::SetCursorPos(int64_t x, int64_t y)
+	{
+		m_cursorX = x;
+		m_cursorY = y;
+	}
 
 	void InputManager::SetKeyIsPressed(EKeycode code, bool pressed)
 	{
