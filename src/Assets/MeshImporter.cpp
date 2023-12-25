@@ -125,33 +125,33 @@ namespace Warp
 
 			uint32_t stride = mesh->AttributeStrides[i];
 			size_t sizeInBytes = mesh->GetNumVertices() * stride;
-			uploadResources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
+			uploadResources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, sizeInBytes);
 
 			std::memcpy(uploadResources[i].GetCpuVirtualAddress<std::byte>(), mesh->Attributes[i].data(), sizeInBytes);
 
-			mesh->Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, stride, sizeInBytes);
+			mesh->Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, sizeInBytes);
 		}
 
 		static constexpr uint32_t MeshletStride = sizeof(DirectX::Meshlet);
 		static constexpr uint32_t UVIndexStride = sizeof(uint8_t);
 		static constexpr uint32_t PrimitiveIndicesStride = sizeof(DirectX::MeshletTriangle);
 
-		size_t meshletsInBytes = mesh->Meshlets.size() * sizeof(DirectX::Meshlet);
+		size_t meshletsInBytes = mesh->Meshlets.size() * MeshletStride;
 		size_t uniqueVertexIndicesInBytes = mesh->UniqueVertexIndices.size() * UVIndexStride;
 		size_t primitiveIndicesInBytes = mesh->PrimitiveIndices.size() * PrimitiveIndicesStride;
 
 		RHIBuffer uploadMeshletBuffer = RHIBuffer(Device,
 			D3D12_HEAP_TYPE_UPLOAD,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, MeshletStride, meshletsInBytes);
+			D3D12_RESOURCE_FLAG_NONE, meshletsInBytes);
 		RHIBuffer uploadUniqueVertexIndicesBuffer = RHIBuffer(Device,
 			D3D12_HEAP_TYPE_UPLOAD,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, UVIndexStride, uniqueVertexIndicesInBytes);
+			D3D12_RESOURCE_FLAG_NONE, uniqueVertexIndicesInBytes);
 		RHIBuffer uploadPrimitiveIndicesBuffer = RHIBuffer(Device,
 			D3D12_HEAP_TYPE_UPLOAD,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, PrimitiveIndicesStride, primitiveIndicesInBytes);
+			D3D12_RESOURCE_FLAG_NONE, primitiveIndicesInBytes);
 
 		std::memcpy(uploadMeshletBuffer.GetCpuVirtualAddress<std::byte>(), mesh->Meshlets.data(), meshletsInBytes);
 		std::memcpy(uploadUniqueVertexIndicesBuffer.GetCpuVirtualAddress<std::byte>(), mesh->UniqueVertexIndices.data(), uniqueVertexIndicesInBytes);
@@ -164,15 +164,15 @@ namespace Warp
 		mesh->MeshletBuffer = RHIBuffer(Device,
 			D3D12_HEAP_TYPE_DEFAULT,
 			D3D12_RESOURCE_STATE_COMMON,
-			D3D12_RESOURCE_FLAG_NONE, MeshletStride, meshletsInBytes);
+			D3D12_RESOURCE_FLAG_NONE, meshletsInBytes);
 		mesh->UniqueVertexIndicesBuffer = RHIBuffer(Device,
 			D3D12_HEAP_TYPE_DEFAULT,
 			D3D12_RESOURCE_STATE_COMMON,
-			D3D12_RESOURCE_FLAG_NONE, UVIndexStride, uniqueVertexIndicesInBytes);
+			D3D12_RESOURCE_FLAG_NONE, uniqueVertexIndicesInBytes);
 		mesh->PrimitiveIndicesBuffer = RHIBuffer(Device,
 			D3D12_HEAP_TYPE_DEFAULT,
 			D3D12_RESOURCE_STATE_COMMON,
-			D3D12_RESOURCE_FLAG_NONE, PrimitiveIndicesStride, primitiveIndicesInBytes);
+			D3D12_RESOURCE_FLAG_NONE, primitiveIndicesInBytes);
 
 		// Now perform resource copying from UPLOAD heap to DEFAULT heap (our mesh resource)
 		RHICommandContext& copyContext = renderer->GetCopyContext();

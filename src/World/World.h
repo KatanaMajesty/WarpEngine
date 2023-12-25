@@ -54,6 +54,7 @@ namespace Warp
 
 		// TODO: Remove this from here...
 		float m_timeElapsed = 0.0f;
+		bool m_firstLMBClick = false;
 		int64_t m_lastCursorX = 0;
 		int64_t m_lastCursorY = 0;
 	};

@@ -17,7 +17,7 @@ namespace Warp
 				.EyePos = Math::Vector3(0.0f),
 				.EyeDir = Math::Vector3(0.0f, 0.0f, -1.0f),
 				.UpDir = Math::Vector3(0.0f, 1.0f, 0.0f),
-				//.Fov = 45.0f, // They are default
+				//.Fov = 90.0f, // They are default
 				//.NearPlane = 0.1f,
 				//.FarPlane = 1000.0f
 			});
@@ -32,7 +32,7 @@ namespace Warp
 			[this](TransformComponent& transformComponent)
 			{
 				float pitch = m_timeElapsed;
-				//transformComponent.Rotation = Math::Vector3(0.0f, pitch, 0.0f);
+				transformComponent.Rotation = Math::Vector3(0.0f, pitch, 0.0f);
 			}
 		);
 
@@ -42,19 +42,30 @@ namespace Warp
 		InputManager& inputManager = Application::Get().GetInputManager();
 		int64_t cx = inputManager.GetCursorX();
 		int64_t cy = inputManager.GetCursorY();
-		if (inputManager.IsButtonPressed(eMouseButton_Left) && (cx != m_lastCursorX || cy != m_lastCursorY))
+		if (inputManager.IsButtonPressed(eMouseButton_Left))
 		{
-			constexpr float Sensitivity = 0.4f;
-			
-			float xoffset = (cx - m_lastCursorX) * Sensitivity;
-			float yoffset = (cy - m_lastCursorY) * Sensitivity;
-			m_lastCursorX = cx;
-			m_lastCursorY = cy;
+			if (!m_firstLMBClick)
+			{
+				m_firstLMBClick = true;
+				m_lastCursorX = cx;
+				m_lastCursorY = cy;
+			}
 
-			dirtyView = true;
-			cameraComponent.Yaw += xoffset;
-			cameraComponent.Pitch = Math::Clamp(cameraComponent.Pitch + yoffset, -89.0f, 89.0f);
+			if (cx != m_lastCursorX || cy != m_lastCursorY)
+			{
+				constexpr float Sensitivity = 0.4f;
+
+				float xoffset = (cx - m_lastCursorX) * Sensitivity;
+				float yoffset = (cy - m_lastCursorY) * Sensitivity;
+				m_lastCursorX = cx;
+				m_lastCursorY = cy;
+
+				dirtyView = true;
+				cameraComponent.Yaw += xoffset;
+				cameraComponent.Pitch = Math::Clamp(cameraComponent.Pitch + yoffset, -89.0f, 89.0f);
+			}
 		}
+		else m_firstLMBClick = false;
 
 		float delta = 4.0f * timestep;
 		if (inputManager.IsKeyPressed(eKeycode_W))

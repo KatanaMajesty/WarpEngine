@@ -126,7 +126,7 @@ float4 PSMain(OutVertex vertex) : SV_Target0
     float specAngle = saturate(dot(H, N));
     float specular = pow(specAngle, 32.0);
     
-    const float3 ambientColor = float3(0.05, 0.0, 0.1);
+    const float3 ambientColor = float3(0.03, 0.03, 0.1);
     float3 color = ambientColor + diffuse + specular;
     
     return float4(color, alpha);

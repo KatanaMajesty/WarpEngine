@@ -130,12 +130,6 @@ namespace Warp
 		Entity worldCamera = world->GetWorldCamera();
 		const EulersCameraComponent& cameraComponent = worldCamera.GetComponent<EulersCameraComponent>();
 
-		HlslViewData viewData = HlslViewData{
-			.ViewMatrix = cameraComponent.ViewMatrix,
-			.ProjMatrix = cameraComponent.ProjMatrix
-		};
-		memcpy(m_cbViewData.GetCpuVirtualAddress<HlslViewData>(), &viewData, sizeof(HlslViewData));
-
 		RHIDevice* Device = m_device.get();
 
 		UINT frameIndex = m_swapchain->GetCurrentBackbufferIndex();
@@ -187,17 +181,36 @@ namespace Warp
 			{
 				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_DispatchMeshes");
 
+				RHIBuffer& constantBuffer = m_constantBuffers[frameIndex];
+
+				UINT currentCbOffset = 0;
+				HlslViewData viewData = HlslViewData{
+					.ViewMatrix = cameraComponent.ViewMatrix,
+					.ProjMatrix = cameraComponent.ProjMatrix
+				};
+				RHIBufferAddress cbViewData(sizeof(HlslViewData), currentCbOffset);
+				currentCbOffset += sizeof(HlslViewData);
+
+				memcpy(cbViewData.GetCpuAddress(constantBuffer.GetCpuVirtualAddress()), &viewData, sizeof(HlslViewData));
+
 				m_graphicsContext.SetGraphicsRootSignature(m_basicRootSignature);
-				m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbViewData, m_cbViewData.GetGpuVirtualAddress());
+				m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbViewData, cbViewData.GetGpuAddress(constantBuffer.GetGpuVirtualAddress()));
 
 				for (MeshInstance& meshInstance : meshInstances)
 				{
 					HlslDrawData drawData = HlslDrawData{
 						.MeshToWorld = meshInstance.InstanceToWorld
 					};
-					memcpy(m_cbDrawData.GetCpuVirtualAddress<HlslDrawData>(), &drawData, sizeof(HlslDrawData));
 
-					m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbDrawData, m_cbDrawData.GetGpuVirtualAddress());
+					WARP_ASSERT(currentCbOffset < SizeOfGlobalCb, "Handle this! This is the time!");
+
+					RHIBufferAddress cbDrawData(sizeof(HlslDrawData), currentCbOffset);
+					currentCbOffset += sizeof(HlslDrawData);
+
+					// TODO: The problem is that we update values here but do not wait for GPU to finish drawing, thus changing the values it uses... bad
+					memcpy(cbDrawData.GetCpuAddress(constantBuffer.GetCpuVirtualAddress()), &drawData, sizeof(HlslDrawData));
+
+					m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbDrawData, cbDrawData.GetGpuAddress(constantBuffer.GetGpuVirtualAddress()));
 					m_graphicsContext.SetPipelineState(m_basicPSO);
 
 					MeshAsset* mesh = meshInstance.Mesh;
@@ -264,7 +277,7 @@ namespace Warp
 			D3D12_HEAP_TYPE_UPLOAD,
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			D3D12_RESOURCE_FLAG_NONE,
-			0, Device->GetCopyableBytes(dest, subresourceOffset, numSubresources));
+			Device->GetCopyableBytes(dest, subresourceOffset, numSubresources));
 		uploadBuffer.SetName(L"Renderer_UploadSubresources_IntermediateUploadBuffer");
 
 		m_copyContext.Open();
@@ -341,17 +354,14 @@ namespace Warp
 
 		RHIDevice* Device = m_device.get();
 
-		m_cbViewData = RHIBuffer(Device, 
-			D3D12_HEAP_TYPE_UPLOAD, 
-			D3D12_RESOURCE_STATE_GENERIC_READ, 
-			D3D12_RESOURCE_FLAG_NONE, sizeof(HlslViewData), sizeof(HlslViewData));
-		m_cbViewData.SetName(L"Cb_ViewData");
-
-		m_cbDrawData = RHIBuffer(Device,
-			D3D12_HEAP_TYPE_UPLOAD,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, sizeof(HlslDrawData), sizeof(HlslDrawData));
-		m_cbViewData.SetName(L"Cb_DrawData");
+		for (size_t i = 0; i < SimultaneousFrames; ++i)
+		{
+			m_constantBuffers[i] = RHIBuffer(Device,
+				D3D12_HEAP_TYPE_UPLOAD,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				D3D12_RESOURCE_FLAG_NONE, SizeOfGlobalCb);
+			m_constantBuffers[i].SetName(L"GlobalCb");
+		}
 
 		// TODO: Figure out why MESH visibility wont work
 		m_basicRootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc(1)

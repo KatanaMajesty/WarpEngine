@@ -223,7 +223,6 @@ namespace Warp
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState,
 		D3D12_RESOURCE_FLAGS flags,
-		UINT strideInBytes, 
 		UINT64 sizeInBytes)
 		: RHIResource(device,
 			heapType,
@@ -241,7 +240,7 @@ namespace Warp
 				.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR,
 				.Flags = flags,
 			}, nullptr)
-		, m_strideInBytes(strideInBytes)
+		//, m_strideInBytes(strideInBytes)
 		, m_sizeInBytes(sizeInBytes)
 	{
 		// TODO: Add HEAP_TYPE_READBACK aswell
@@ -256,7 +255,7 @@ namespace Warp
 		}
 	}
 
-	RHIVertexBufferView RHIBuffer::GetVertexBufferView() const
+	RHIVertexBufferView RHIBuffer::GetVertexBufferView(UINT strideInBytes) const
 	{
 		WARP_ASSERT(IsValid() && IsSrvAllowed(), 
 			"The resource is either invalid or is not allowed to be represented as shader resource");
@@ -264,7 +263,7 @@ namespace Warp
 		D3D12_VERTEX_BUFFER_VIEW vbv;
 		vbv.BufferLocation = GetD3D12Resource()->GetGPUVirtualAddress();
 		vbv.SizeInBytes = static_cast<UINT>(GetSizeInBytes());
-		vbv.StrideInBytes = GetStrideInBytes();
+		vbv.StrideInBytes = strideInBytes;
 		return vbv;
 	}
 

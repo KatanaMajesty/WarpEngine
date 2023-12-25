@@ -61,6 +61,16 @@ namespace Warp
 			antiqueEntity.AddComponent<TransformComponent>(transform);
 			antiqueEntity.AddComponent<MeshComponent>(m_meshImporter->GetAssetManager(), meshes[i]);
 		}
+
+		std::vector<AssetProxy> asteroid = m_meshImporter->ImportFromFile((GetAssetsPath() / "asteroid" / "Asteroid.gltf").string());
+		TransformComponent asteroidTransform = TransformComponent(Math::Vector3(3.0f, -2.0f, -8.0f), Math::Vector3(), Math::Vector3(1.0f));
+
+		for (size_t i = 0; i < asteroid.size(); ++i)
+		{
+			Entity asteroidEntity = m_world->CreateEntity(fmt::format("Asteroid Mesh {}", i));
+			asteroidEntity.AddComponent<TransformComponent>(asteroidTransform);
+			asteroidEntity.AddComponent<MeshComponent>(m_meshImporter->GetAssetManager(), asteroid[i]);
+		}
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)

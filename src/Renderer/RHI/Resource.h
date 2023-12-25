@@ -12,7 +12,22 @@
 namespace Warp
 {
 
-	// TODO: Implement implicit state decay/promotion
+	// TODO: Maybe Remove?
+	struct RHIBufferAddress
+	{
+		RHIBufferAddress() = default;
+		RHIBufferAddress(UINT sizeInBytes, UINT offsetInBytes)
+			: SizeInBytes(sizeInBytes)
+			, OffsetInBytes(offsetInBytes)
+		{
+		}
+
+		D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress(D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) const { return bufferLocation + OffsetInBytes; }
+		void* GetCpuAddress(void* mapping) const { return static_cast<uint8_t*>(mapping) + OffsetInBytes; }
+
+		UINT SizeInBytes = 0;
+		UINT OffsetInBytes = 0;
+	};
 
 	struct RHIVertexBufferView
 	{
@@ -159,7 +174,6 @@ namespace Warp
 			D3D12_HEAP_TYPE heapType,
 			D3D12_RESOURCE_STATES initialState,
 			D3D12_RESOURCE_FLAGS flags,
-			UINT strideInBytes,
 			UINT64 sizeInBytes);
 
 		RHIBuffer(const RHIBuffer&) = default;
@@ -168,17 +182,17 @@ namespace Warp
 		RHIBuffer(RHIBuffer&&) = default;
 		RHIBuffer& operator=(RHIBuffer&&) = default;
 
-		inline constexpr UINT GetStrideInBytes() const { return m_strideInBytes; }
+		//inline constexpr UINT GetStrideInBytes() const { return m_strideInBytes; }
 		inline constexpr UINT64 GetSizeInBytes() const { return m_sizeInBytes; }
 
 		inline constexpr bool IsUavAllowed() const { return m_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS; }
 		inline constexpr bool IsSrvAllowed() const { return !(m_desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE); }
 
-		RHIVertexBufferView GetVertexBufferView() const;
+		RHIVertexBufferView GetVertexBufferView(UINT strideInBytes) const;
 		RHIIndexBufferView	GetIndexBufferView(DXGI_FORMAT format = DXGI_FORMAT_R32_UINT) const;
 
 		// It may be nullptr, if the type of the HEAP where the buffer resides is not UPLOAD_HEAP
-		template<typename T>
+		template<typename T = void>
 		WARP_ATTR_NODISCARD T* GetCpuVirtualAddress() const
 		{
 			WARP_ASSERT(m_cpuMapping && "CPU mapping is not supported for the resource");
@@ -186,7 +200,7 @@ namespace Warp
 		}
 
 	private:
-		UINT m_strideInBytes = 0;
+		//UINT m_strideInBytes = 0;
 		UINT64 m_sizeInBytes = 0;
 		void* m_cpuMapping = nullptr;
 	};

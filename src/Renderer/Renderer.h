@@ -76,13 +76,14 @@ namespace Warp
 		
 		std::unique_ptr<RHITexture> m_depthStencil;
 		RHIDepthStencilView m_depthStencilView;
-		RHIBuffer m_cbViewData;
-		RHIBuffer m_cbDrawData;
 		RHIRootSignature m_basicRootSignature;
 		RHIMeshPipelineState m_basicPSO;
 		CShaderCompiler m_shaderCompiler;
 		CShader m_MSBasic;
 		CShader m_PSBasic;
+		
+		static constexpr size_t SizeOfGlobalCb = 64 * 256;
+		RHIBuffer m_constantBuffers[SimultaneousFrames];
 
 		struct UploadResourceTrackedState
 		{
