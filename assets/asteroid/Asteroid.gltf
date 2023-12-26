@@ -38,7 +38,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Mesh",
+			"name":"Asteroid",
 			"primitives":[
 				{
 					"attributes":{
@@ -88,73 +88,73 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":1649,
+			"count":559,
 			"max":[
-				0.8395062685012817,
-				0.8395062685012817,
-				0.8395062685012817
+				0.9999997019767761,
+				1,
+				0.9999993443489075
 			],
 			"min":[
-				-0.8395062685012817,
-				-0.8395062685012817,
-				-0.8395062685012817
+				-0.9999990463256836,
+				-1,
+				-1
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":1649,
+			"count":559,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":1649,
+			"count":559,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5126,
-			"count":1649,
+			"count":559,
 			"type":"VEC4"
 		},
 		{
 			"bufferView":4,
 			"componentType":5123,
-			"count":9216,
+			"count":2880,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":19788,
+			"byteLength":6708,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":19788,
-			"byteOffset":19788,
+			"byteLength":6708,
+			"byteOffset":6708,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":13192,
-			"byteOffset":39576,
+			"byteLength":4472,
+			"byteOffset":13416,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":26384,
-			"byteOffset":52768,
+			"byteLength":8944,
+			"byteOffset":17888,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":18432,
-			"byteOffset":79152,
+			"byteLength":5760,
+			"byteOffset":26832,
 			"target":34963
 		}
 	],
@@ -166,7 +166,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":97584,
+			"byteLength":32592,
 			"uri":"Asteroid.bin"
 		}
 	]

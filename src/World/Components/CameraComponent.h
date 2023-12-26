@@ -28,7 +28,7 @@ namespace Warp
 			ProjMatrix.Invert(ProjInvMatrix);
 		}
 
-		float Pitch = 90.0f;
+		float Pitch = 0.0f;
 		float Yaw = 0.0f;
 		// float Roll = 0.0f; // No roll for Eulers currently
 

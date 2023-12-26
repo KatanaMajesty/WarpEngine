@@ -14,13 +14,11 @@ namespace Warp
 	{
 		m_worldCamera = CreateEntity(fmt::format("{} Camera", name));
 		EulersCameraComponent& cameraComponent = m_worldCamera.AddComponent<EulersCameraComponent>(EulersCameraComponent{
-				.EyePos = Math::Vector3(0.0f),
-				.EyeDir = Math::Vector3(0.0f, 0.0f, -1.0f),
-				.UpDir = Math::Vector3(0.0f, 1.0f, 0.0f),
-				//.Fov = 90.0f, // They are default
-				//.NearPlane = 0.1f,
-				//.FarPlane = 1000.0f
-			});
+			.Pitch = 0.0f,
+			.Yaw = -90.0f,
+			.EyePos = Math::Vector3(0.0f),
+			.UpDir = Math::Vector3(0.0f, 1.0f, 0.0f),
+		});
 		cameraComponent.SetView();
 	}
 

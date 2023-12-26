@@ -19,12 +19,26 @@ namespace Warp
 	struct alignas(256) HlslViewData
 	{
 		Math::Matrix ViewMatrix;
+		Math::Matrix ViewInvMatrix;
 		Math::Matrix ProjMatrix;
+	};
+
+	using EHlslDrawPropertyFlags = uint32_t;
+	enum EHlslDrawPropertyFlag
+	{
+		eHlslDrawPropertyFlag_None = 0,
+		eHlslDrawPropertyFlag_HasTexCoords = 1,
+		eHlslDrawPropertyFlag_HasTangents = 2,
+		eHlslDrawPropertyFlag_HasBitangents = 4,
+		eHlslDrawPropertyFlag_NoNormalMap = 8,
+		eHlslDrawPropertyFlag_NoRoughnessMetalnessMap = 16,
 	};
 
 	struct alignas(256) HlslDrawData
 	{
-		Math::Matrix MeshToWorld;
+		Math::Matrix InstanceToWorld;
+		Math::Matrix NormalMatrix;
+		EHlslDrawPropertyFlags DrawFlags;
 	};
 
 	// Represents indices of Basic.hlsl root signature
@@ -103,6 +117,8 @@ namespace Warp
 		struct MeshInstance
 		{
 			Math::Matrix InstanceToWorld;
+			Math::Matrix NormalMatrix;
+			EHlslDrawPropertyFlags DrawFlags;
 			MeshAsset* Mesh;
 		};
 
@@ -116,9 +132,36 @@ namespace Warp
 				Math::Matrix translation = Math::Matrix::CreateTranslation(transformComponent.Translation);
 				Math::Matrix rotation = Math::Matrix::CreateFromYawPitchRoll(transformComponent.Rotation);
 				Math::Matrix scale = Math::Matrix::CreateScale(transformComponent.Scaling);
+
+				// TODO: Implement non-uniform scaling for meshes, thus normals would not be affected by this
+				// I fixed this right away, check if it is working
+				// WARP_MAYBE_UNUSED auto [sx, sy, sz] = transformComponent.Scaling;
+				// WARP_ASSERT(sx == sy && sx == sz, "Non-Uniform Scaling will ruin normals! We do not support non-uniform scaling yet!");
 				
+				MeshAsset* mesh = meshComponent.GetMesh();
+
 				instance.InstanceToWorld = scale * rotation * translation;
-				instance.Mesh = meshComponent.GetMesh();
+				instance.InstanceToWorld.Invert(instance.NormalMatrix);
+				instance.NormalMatrix.Transpose();
+				instance.Mesh = mesh;
+				instance.DrawFlags = eHlslDrawPropertyFlag_None;
+
+				if (mesh->HasAttributes(EVertexAttributes_TextureCoords))
+					instance.DrawFlags |= eHlslDrawPropertyFlag_HasTexCoords;
+
+				if (mesh->HasAttributes(EVertexAttributes_Tangents))
+					instance.DrawFlags |= eHlslDrawPropertyFlag_HasTangents;
+
+				if (mesh->HasAttributes(EVertexAttributes_Bitangents))
+					instance.DrawFlags |= eHlslDrawPropertyFlag_HasBitangents;
+
+				if (!mesh->Material.HasNormalMap() || 
+					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.NormalMapProxy))
+					instance.DrawFlags |= eHlslDrawPropertyFlag_NoNormalMap;
+
+				if (!mesh->Material.HasMetalnessRoughnessMap() || 
+					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.MetalnessRoughnessMapProxy))
+					instance.DrawFlags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
 			}
 		);
 
@@ -186,10 +229,11 @@ namespace Warp
 				UINT currentCbOffset = 0;
 				HlslViewData viewData = HlslViewData{
 					.ViewMatrix = cameraComponent.ViewMatrix,
-					.ProjMatrix = cameraComponent.ProjMatrix
+					.ViewInvMatrix = cameraComponent.ViewInvMatrix,
+					.ProjMatrix = cameraComponent.ProjMatrix,
 				};
 				RHIBufferAddress cbViewData(sizeof(HlslViewData), currentCbOffset);
-				currentCbOffset += sizeof(HlslViewData);
+				currentCbOffset += cbViewData.SizeInBytes;
 
 				memcpy(cbViewData.GetCpuAddress(constantBuffer.GetCpuVirtualAddress()), &viewData, sizeof(HlslViewData));
 
@@ -199,13 +243,15 @@ namespace Warp
 				for (MeshInstance& meshInstance : meshInstances)
 				{
 					HlslDrawData drawData = HlslDrawData{
-						.MeshToWorld = meshInstance.InstanceToWorld
+						.InstanceToWorld = meshInstance.InstanceToWorld,
+						.NormalMatrix = meshInstance.NormalMatrix,
+						.DrawFlags = meshInstance.DrawFlags
 					};
 
 					WARP_ASSERT(currentCbOffset < SizeOfGlobalCb, "Handle this! This is the time!");
 
 					RHIBufferAddress cbDrawData(sizeof(HlslDrawData), currentCbOffset);
-					currentCbOffset += sizeof(HlslDrawData);
+					currentCbOffset += cbDrawData.SizeInBytes;
 
 					// TODO: The problem is that we update values here but do not wait for GPU to finish drawing, thus changing the values it uses... bad
 					memcpy(cbDrawData.GetCpuAddress(constantBuffer.GetCpuVirtualAddress()), &drawData, sizeof(HlslDrawData));
