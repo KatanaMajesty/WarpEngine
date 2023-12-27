@@ -142,7 +142,7 @@ namespace Warp
 
 				instance.InstanceToWorld = scale * rotation * translation;
 				instance.InstanceToWorld.Invert(instance.NormalMatrix);
-				instance.NormalMatrix.Transpose();
+				instance.NormalMatrix.Transpose(instance.NormalMatrix);
 				instance.Mesh = mesh;
 				instance.DrawFlags = eHlslDrawPropertyFlag_None;
 

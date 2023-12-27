@@ -133,9 +133,11 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         (CbDrawData.DrawFlags & DRAWFLAG_HAS_TANGENTS) && 
         (CbDrawData.DrawFlags & DRAWFLAG_HAS_BITANGENTS))
     {
-        float3x3 TBN = float3x3(vertex.Tangent, vertex.Bitangent, N);
+        float3 tangent = normalize(vertex.Tangent);
+        float3 bitangent = normalize(vertex.Bitangent);
+        float3x3 TBN = float3x3(tangent, bitangent, N);
         float3 NSample = NormalMap.Sample(StaticSampler, vertex.TexUv).xyz * 2.0 - 1.0;
-        N = normalize(mul(TBN, NSample));
+        N = normalize(mul(NSample, TBN));
     }
     
     float3 L = normalize(-float3(-1.0, -2.0, -1.0));
