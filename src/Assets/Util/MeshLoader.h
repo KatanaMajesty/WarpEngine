@@ -43,6 +43,13 @@ namespace Warp::MeshLoader
 		MeshMaterial Material;
 	};
 
-	std::vector<Mesh> LoadFromGltfFile(std::string_view filepath);
+	struct LoadDesc
+	{
+		// Determines whether or not to generate tangents and bitangents (binormals)
+		bool GenerateTangents = false;
+	};
+
+	
+	std::vector<Mesh> LoadFromGltfFile(std::string_view filepath, const LoadDesc& desc);
 
 }

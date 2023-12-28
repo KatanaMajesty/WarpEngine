@@ -40,8 +40,9 @@ namespace Warp::MeshLoader
 	// Quickstart with glTF https://www.khronos.org/files/gltf20-reference-guide.pdf
 	// Afterwards we chill here - https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
-	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, const std::filesystem::path& folder, cgltf_node* node);
-	std::vector<Mesh> LoadFromGltfFile(std::string_view filepath)
+	void ProcessStaticMeshNode(std::vector<Mesh>&, const std::filesystem::path& folder, const LoadDesc&, cgltf_node*);
+
+	std::vector<Mesh> LoadFromGltfFile(std::string_view filepath, const LoadDesc& desc)
 	{
 		cgltf_data* data = nullptr;
 		cgltf_options options = {};
@@ -72,7 +73,7 @@ namespace Warp::MeshLoader
 				cgltf_node* node = scene.nodes[nodeIndex];
 
 				// Process mesh
-				ProcessStaticMeshNode(meshes, folder, node);
+				ProcessStaticMeshNode(meshes, folder, desc, node);
 			}
 		}
 
@@ -136,37 +137,6 @@ namespace Warp::MeshLoader
 		}
 	}
 
-	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive);
-	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, const std::filesystem::path& folder, cgltf_node* node)
-	{
-		Math::Matrix LocalToModel = GetLocalToModel(node);
-
-		cgltf_mesh* glTFMsh = node->mesh;
-		WARP_ASSERT(glTFMsh, "Damaged glTF mesh?");
-
-		for (size_t primitiveIndex = 0; primitiveIndex < glTFMsh->primitives_count; ++primitiveIndex)
-		{
-			Mesh& mesh = meshes.emplace_back();
-
-			mesh.Name = fmt::format("{}_{}", glTFMsh->name, primitiveIndex);
-			cgltf_primitive& primitive = glTFMsh->primitives[primitiveIndex];
-			cgltf_primitive_type type = primitive.type;
-
-			cgltf_material* glTFMaterial = primitive.material;
-			ProcessMaterial(mesh, folder, glTFMaterial);
-
-			// We only use triangles for now. Will be removed in future. This is just in case
-			WARP_ASSERT(type == cgltf_primitive_type_triangles);
-			ProcessStaticMeshAttributes(mesh, LocalToModel, &primitive);
-		}
-
-		// Process all its children
-		for (size_t i = 0; i < node->children_count; ++i)
-		{
-			ProcessStaticMeshNode(meshes, folder, node->children[i]);
-		}
-	}
-
 	template<typename AttributeType, cgltf_component_type ReqType>
 	void FillFromAccessor(std::vector<AttributeType>& dest, cgltf_accessor* accessor)
 	{
@@ -204,7 +174,7 @@ namespace Warp::MeshLoader
 		stride = static_cast<uint32_t>(accessor->stride);
 	}
 
-	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, cgltf_primitive* primitive)
+	void ProcessStaticMeshAttributes(Mesh& mesh, const Math::Matrix& localToModel, const LoadDesc& desc, cgltf_primitive* primitive)
 	{
 		cgltf_accessor* indices = primitive->indices;
 		if (!indices)
@@ -289,46 +259,90 @@ namespace Warp::MeshLoader
 			WARP_MAYBE_UNUSED size_t numAttributes = mesh.Attributes[i].size() / mesh.AttributeStrides[i];
 			WARP_ASSERT(numVertices == numAttributes);
 		}
-		WARP_ASSERT(numIndices % 3 == 0);
+		WARP_ASSERT(numIndices % 3 == 0); // triangles only!
+		WARP_ASSERT(mesh.AttributeStrides[EVertexAttributes_Normals] == sizeof(Math::Vector3)); // TODO: One more sanity check, just in case. Remove it 
+
+		Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh.Attributes[EVertexAttributes_Positions].data());
+		Math::Vector3* meshNormals = reinterpret_cast<Math::Vector3*>(mesh.Attributes[EVertexAttributes_Normals].data());
 
 		// Process tangents/bitangents
-		if (!gltfTangents.empty())
+		bool ableToGenerateTangents = (desc.GenerateTangents && !mesh.Attributes[EVertexAttributes_TextureCoords].empty());
+		if (!gltfTangents.empty() || ableToGenerateTangents)
 		{
-			// TODO: Remove redundant copying of tangents, we can write immediately into the mesh->StreamOfVertices
-			std::vector<Math::Vector3> tangents(numVertices);
-			std::vector<Math::Vector3> bitangents(numVertices);
 			static constexpr size_t TangentStride = sizeof(Math::Vector3);
-
-			size_t normalStride = mesh.AttributeStrides[EVertexAttributes_Normals];
-			WARP_ASSERT(normalStride == sizeof(Math::Vector3)); // TODO: One more sanity check, just in case. Remove it 
-
-			// If tangents non-empty, assume there are numVertices of them
-			for (size_t i = 0; i < numVertices; ++i)
-			{
-				// Get normal from byte array
-				Math::Vector3& normal = reinterpret_cast<Math::Vector3&>(mesh.Attributes[EVertexAttributes_Normals][i * normalStride]);
-				tangents[i] = Math::Vector3(gltfTangents[i]);
-				bitangents[i] = normal.Cross(tangents[i]) * gltfTangents[i].w;
-			}
-
 			size_t bytesToCopy = TangentStride * numVertices;
 
-			auto& streamOfTangents = mesh.Attributes[EVertexAttributes_Tangents];
+			std::vector<std::byte>& streamOfTangents = mesh.Attributes[EVertexAttributes_Tangents];
 			streamOfTangents.clear();
 			streamOfTangents.resize(bytesToCopy);
-			std::memcpy(streamOfTangents.data(), tangents.data(), bytesToCopy);
 
-			auto& streamOfBitangents = mesh.Attributes[EVertexAttributes_Bitangents];
+			std::vector<std::byte>& streamOfBitangents = mesh.Attributes[EVertexAttributes_Bitangents];
 			streamOfBitangents.clear();
 			streamOfBitangents.resize(bytesToCopy);
-			std::memcpy(streamOfBitangents.data(), bitangents.data(), bytesToCopy);
 
 			mesh.AttributeStrides[EVertexAttributes_Tangents] = TangentStride;
 			mesh.AttributeStrides[EVertexAttributes_Bitangents] = TangentStride;
+
+			Math::Vector3* meshTangents = reinterpret_cast<Math::Vector3*>(streamOfTangents.data());
+			Math::Vector3* meshBitangents = reinterpret_cast<Math::Vector3*>(streamOfBitangents.data());
+
+			if (!gltfTangents.empty())
+			{
+				// If tangents non-empty, assume there are numVertices of them and there are tex uvs ofcourse
+				WARP_ASSERT(!mesh.Attributes[EVertexAttributes_TextureCoords].empty());
+				WARP_ASSERT(static_cast<uint32_t>(gltfTangents.size()) == numVertices)
+				for (size_t i = 0; i < numVertices; ++i)
+				{
+					// Get normal from byte array
+					Math::Vector3& normal = meshNormals[i];
+					meshTangents[i] = Math::Vector3(gltfTangents[i]);
+					meshBitangents[i] = normal.Cross(meshTangents[i]) * gltfTangents[i].w;
+				}
+			}
+			else // If we requested tangents to be generated - generate them here
+			{
+				Math::Vector2* meshUvs = reinterpret_cast<Math::Vector2*>(mesh.Attributes[EVertexAttributes_TextureCoords].data());
+
+				uint32_t numPrimitives = numIndices / 3;
+				for (uint32_t i = 0; i < numPrimitives; ++i)
+				{
+					uint32_t i0 = mesh.Indices[i * 3 + 0];
+					uint32_t i1 = mesh.Indices[i * 3 + 1];
+					uint32_t i2 = mesh.Indices[i * 3 + 2];
+
+					const Math::Vector3& pos0 = meshPositions[i0];
+					const Math::Vector3& pos1 = meshPositions[i1];
+					const Math::Vector3& pos2 = meshPositions[i2];
+					Math::Vector3 deltaPos1 = pos1 - pos0;
+					Math::Vector3 deltaPos2 = pos2 - pos0;
+
+					const Math::Vector2& uv0 = meshUvs[i0];
+					const Math::Vector2& uv1 = meshUvs[i1];
+					const Math::Vector2& uv2 = meshUvs[i2];
+					Math::Vector2 deltaUv1 = uv1 - uv0;
+					Math::Vector2 deltaUv2 = uv2 - uv0;
+
+					float r = 1.0f / (deltaUv1.x * deltaUv2.y - deltaUv1.y * deltaUv2.x);
+					Math::Vector3 tangent = (deltaPos1 * deltaUv2.y - deltaPos2 * deltaUv1.y) * r;
+					Math::Vector3 bitangent = (deltaPos2 * deltaUv1.x - deltaPos1 * deltaUv2.x) * r;
+
+					meshTangents[i0] += tangent;
+					meshTangents[i1] += tangent;
+					meshTangents[i2] += tangent;
+					meshBitangents[i0] += bitangent;
+					meshBitangents[i1] += bitangent;
+					meshBitangents[i2] += bitangent;
+				}
+
+				for (uint32_t i = 0; i < numVertices; ++i)
+				{
+					meshTangents[i].Normalize();
+					meshBitangents[i].Normalize();
+				}
+			}
 		}
 
 		// Transform vertices from local to model space
-		Math::Vector3* meshPositions = reinterpret_cast<Math::Vector3*>(mesh.Attributes[EVertexAttributes_Positions].data());
 		XMVector3TransformCoordStream(
 			meshPositions, sizeof(Math::Vector3),
 			meshPositions, sizeof(Math::Vector3),
@@ -337,12 +351,43 @@ namespace Warp::MeshLoader
 		// Check if mesh has normals
 		if (!mesh.Attributes[EVertexAttributes_Normals].empty())
 		{
-			Math::Vector3* meshNormals = reinterpret_cast<Math::Vector3*>(mesh.Attributes[EVertexAttributes_Normals].data());
 			XMVector3TransformNormalStream(
 				meshNormals, sizeof(Math::Vector3),
 				meshNormals, sizeof(Math::Vector3),
 				numVertices, localToModel);
 		}
 	}
+
+	void ProcessStaticMeshNode(std::vector<Mesh>& meshes, const std::filesystem::path& folder, const LoadDesc& desc, cgltf_node* node)
+	{
+		Math::Matrix LocalToModel = GetLocalToModel(node);
+
+		cgltf_mesh* glTFMsh = node->mesh;
+		WARP_ASSERT(glTFMsh, "Damaged glTF mesh?");
+
+		for (size_t primitiveIndex = 0; primitiveIndex < glTFMsh->primitives_count; ++primitiveIndex)
+		{
+			Mesh& mesh = meshes.emplace_back();
+
+			mesh.Name = fmt::format("{}_{}", glTFMsh->name, primitiveIndex);
+			cgltf_primitive& primitive = glTFMsh->primitives[primitiveIndex];
+			cgltf_primitive_type type = primitive.type;
+
+			cgltf_material* glTFMaterial = primitive.material;
+			ProcessMaterial(mesh, folder, glTFMaterial);
+
+			// We only use triangles for now. Will be removed in future. This is just in case
+			WARP_ASSERT(type == cgltf_primitive_type_triangles);
+			ProcessStaticMeshAttributes(mesh, LocalToModel, desc, &primitive);
+		}
+
+		// Process all its children
+		for (size_t i = 0; i < node->children_count; ++i)
+		{
+			ProcessStaticMeshNode(meshes, folder, desc, node->children[i]);
+		}
+	}
+
+	
 
 }

@@ -22,7 +22,7 @@ namespace Warp
 		switch (extension)
 		{
 		case AssetFileExtension::Gltf: 
-			loadedMeshes = MeshLoader::LoadFromGltfFile(filepath);
+			loadedMeshes = MeshLoader::LoadFromGltfFile(filepath, MeshLoader::LoadDesc{ .GenerateTangents = true });
 			break;
 		default: WARP_ASSERT(false, "Shouldnt happen"); return {};
 		}
