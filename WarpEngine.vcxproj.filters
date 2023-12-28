@@ -124,7 +124,9 @@
     <ClCompile Include="src\Assets\Util\MeshLoader.cpp">
       <Filter>Assets\AssetUtils</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\Input.cpp" />
+    <ClCompile Include="src\Core\Input.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -275,8 +277,12 @@
     <ClInclude Include="src\Assets\Util\MeshLoader.h">
       <Filter>Assets\AssetUtils</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\Input.h" />
-    <ClInclude Include="src\World\EntityRegistry.h" />
+    <ClInclude Include="src\World\EntityRegistry.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Core\Input.h">
+      <Filter>Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
