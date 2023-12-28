@@ -96,7 +96,7 @@ namespace Warp::MeshLoader
 			WARP_ASSERT(img->uri);
 			// TODO: Currently we do not support DDS extension, but we will definitely!
 			std::string imagePath = (folder / img->uri).string();
-			outImage = ImageLoader::LoadWICFromFile(imagePath, false);
+			outImage = ImageLoader::LoadWICFromFile(imagePath, true);
 			outImage.Name = img->name;
 		}
 	}

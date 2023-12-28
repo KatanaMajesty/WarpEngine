@@ -133,11 +133,6 @@ namespace Warp
 				Math::Matrix rotation = Math::Matrix::CreateFromYawPitchRoll(transformComponent.Rotation);
 				Math::Matrix scale = Math::Matrix::CreateScale(transformComponent.Scaling);
 
-				// TODO: Implement non-uniform scaling for meshes, thus normals would not be affected by this
-				// I fixed this right away, check if it is working
-				// WARP_MAYBE_UNUSED auto [sx, sy, sz] = transformComponent.Scaling;
-				// WARP_ASSERT(sx == sy && sx == sz, "Non-Uniform Scaling will ruin normals! We do not support non-uniform scaling yet!");
-				
 				MeshAsset* mesh = meshComponent.GetMesh();
 
 				instance.InstanceToWorld = scale * rotation * translation;
@@ -211,7 +206,7 @@ namespace Warp
 				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_depthStencilView.GetCpuAddress();
 				m_graphicsContext->OMSetRenderTargets(1, &rtvHandle, false, &dsvHandle);
 
-				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+				const float clearColor[] = { 0.15f, 0.15f, 0.16f, 1.0f };
 				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearColor, 0, nullptr);
 				m_graphicsContext.ClearDsv(m_depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 			}
