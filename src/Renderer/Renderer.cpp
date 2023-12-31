@@ -16,6 +16,25 @@
 namespace Warp
 {
 
+	// We want 16-byte boundary alignment for components
+	// Previously we had 28-byte boundary here, which lead to issues
+	struct alignas(16) HlslDirectionalLight
+	{
+		float Intensity;
+		Math::Vector3 Direction;
+		Math::Vector3 Radiance;
+	};
+
+	struct alignas(256) HlslLightEnvironment
+	{
+		static constexpr uint32_t MaxDirectionalLights = 3;
+		static constexpr uint32_t MaxSphereLights = 0; // NOIMPL
+		static constexpr uint32_t MaxSpotLights = 0; // NOIMPL
+
+		uint32_t NumDirectionalLights = 0;
+		HlslDirectionalLight DirectionalLights[MaxDirectionalLights];
+	};
+
 	struct alignas(256) HlslViewData
 	{
 		Math::Matrix ViewMatrix;
@@ -44,6 +63,7 @@ namespace Warp
 	// Represents indices of Basic.hlsl root signature
 	enum BasicRootParameterIndex
 	{
+		BasicRootParameterIndex_CbLightEnv,
 		BasicRootParameterIndex_CbViewData,
 		BasicRootParameterIndex_CbDrawData,
 		BasicRootParameterIndex_Positions,
@@ -123,8 +143,7 @@ namespace Warp
 		};
 
 		std::vector<MeshInstance> meshInstances;
-
-		world->ViewOf<MeshComponent, TransformComponent>().each(
+		world->GetEntityRegistry().view<MeshComponent, TransformComponent>().each(
 			[&meshInstances](MeshComponent& meshComponent, const TransformComponent& transformComponent)
 			{
 				MeshInstance& instance = meshInstances.emplace_back();
@@ -163,6 +182,22 @@ namespace Warp
 		if (meshInstances.empty())
 		{
 			return;
+		}
+
+		HlslLightEnvironment environment = HlslLightEnvironment();
+		for (auto&& [_, dirLightComponent] : world->GetEntityRegistry().view<DirectionalLightComponent>().each())
+		{
+			if (environment.NumDirectionalLights >= HlslLightEnvironment::MaxDirectionalLights)
+			{
+				WARP_ASSERT(false, "Too many dir lights! Handle this");
+				break;
+			}
+
+			environment.DirectionalLights[environment.NumDirectionalLights++] = HlslDirectionalLight{
+				.Intensity = dirLightComponent.Intensity,
+				.Direction = dirLightComponent.Direction,
+				.Radiance = dirLightComponent.Radiance,
+			};
 		}
 
 		Entity worldCamera = world->GetWorldCamera();
@@ -222,6 +257,13 @@ namespace Warp
 				RHIBuffer& constantBuffer = m_constantBuffers[frameIndex];
 
 				UINT currentCbOffset = 0;
+				RHIBufferAddress cbLightEnv(sizeof(HlslLightEnvironment), currentCbOffset);
+				memcpy(cbLightEnv.GetCpuAddress(constantBuffer.GetCpuVirtualAddress()), &environment, sizeof(HlslLightEnvironment));
+				currentCbOffset += cbLightEnv.SizeInBytes;
+				
+				m_graphicsContext.SetGraphicsRootSignature(m_basicRootSignature);
+				m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbLightEnv, cbLightEnv.GetGpuAddress(constantBuffer.GetGpuVirtualAddress()));
+
 				HlslViewData viewData = HlslViewData{
 					.ViewMatrix = cameraComponent.ViewMatrix,
 					.ViewInvMatrix = cameraComponent.ViewInvMatrix,
@@ -232,7 +274,6 @@ namespace Warp
 
 				memcpy(cbViewData.GetCpuAddress(constantBuffer.GetCpuVirtualAddress()), &viewData, sizeof(HlslViewData));
 
-				m_graphicsContext.SetGraphicsRootSignature(m_basicRootSignature);
 				m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParameterIndex_CbViewData, cbViewData.GetGpuAddress(constantBuffer.GetGpuVirtualAddress()));
 
 				for (MeshInstance& meshInstance : meshInstances)
@@ -408,6 +449,7 @@ namespace Warp
 		m_basicRootSignature = RHIRootSignature(GetDevice(), RHIRootSignatureDesc(1)
 			.AddConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL)
 			.AddConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.AddConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_ALL)
 			.AddShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_ALL) // Vertex attributes // 1
 			.AddShaderResourceView(0, 1, D3D12_SHADER_VISIBILITY_ALL) // 2
 			.AddShaderResourceView(0, 2, D3D12_SHADER_VISIBILITY_ALL) // 3

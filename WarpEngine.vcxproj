@@ -95,6 +95,7 @@
     <ClInclude Include="src\WinAPI.h" />
     <ClInclude Include="src\World\Components.h" />
     <ClInclude Include="src\World\Components\CameraComponent.h" />
+    <ClInclude Include="src\World\Components\LightComponent.h" />
     <ClInclude Include="src\World\Components\MeshComponent.h" />
     <ClInclude Include="src\World\Components\NametagComponent.h" />
     <ClInclude Include="src\World\Components\TransformComponent.h" />

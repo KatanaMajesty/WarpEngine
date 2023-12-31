@@ -29,9 +29,6 @@ namespace Warp
 		inline constexpr auto& GetEntityRegistry() const { return m_entityRegistry; }
 		inline Entity GetWorldCamera() { return m_worldCamera; }
 
-		template<typename... ComponentTypes>
-		inline auto ViewOf() { return GetEntityRegistry().view<ComponentTypes...>(); }
-
 	private:
 		// TODO: Do we even need this EntityContainer? Maybe remove?
 		struct EntityContainer

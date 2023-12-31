@@ -74,6 +74,7 @@ namespace Warp
 		inline bool IsWindowFocused() const noexcept { return m_isWindowFocused; }
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
 
+		inline World* GetWorld() const { return m_world.get(); }
 		inline MeshImporter* GetMeshImporter() const { return m_meshImporter.get(); }
 		inline TextureImporter* GetTextureImporter() const { return m_textureImporter.get(); }
 

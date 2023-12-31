@@ -15,10 +15,7 @@
 #include "RHI/Swapchain.h"
 #include "RHI/RootSignature.h"
 #include "ShaderCompiler.h"
-
-// TODO: Remove these asap
-#include "../Assets/MeshAsset.h"
-// #include "../World/World.h" // Moved to renderer.cpp
+#include "../Math/Math.h"
 
 namespace Warp
 {
@@ -54,10 +51,8 @@ namespace Warp
 		void UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset);
 
 	private:
-		// Waits for graphics queue to finish executing on the particular specified frame
+		// Waits for graphics queue to finish executing on the particular specified frame or on all frames
 		void WaitForGfxOnFrameToFinish(uint32_t frameIndex);
-
-		// Wait for graphics queue to finish executing all the commands on all frames
 		void WaitForGfxToFinish();
 
 		std::unique_ptr<RHIPhysicalDevice> m_physicalDevice;

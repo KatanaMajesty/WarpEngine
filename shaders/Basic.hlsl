@@ -20,8 +20,22 @@ struct DrawData
     uint DrawFlags;
 };
 
-ConstantBuffer<ViewData> CbViewData : register(b0);
-ConstantBuffer<DrawData> CbDrawData : register(b1);
+struct DirectionalLight
+{
+    float Intensity;
+    float3 Direction;
+    float3 Radiance;
+};
+
+struct LightEnvironment
+{
+    uint NumDirLights;
+    DirectionalLight DirLights[3];
+};
+
+ConstantBuffer<LightEnvironment> CbLightEnv : register(b0);
+ConstantBuffer<ViewData> CbViewData : register(b1);
+ConstantBuffer<DrawData> CbDrawData : register(b2);
 
 struct OutVertex
 {
@@ -140,21 +154,24 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         N = normalize(mul(NSample, TBN));
     }
     
-    float3 L = normalize(-float3(-1.0, -2.0, -1.0));
-    float3 V = normalize(Eye - vertex.PosWorld);
-    float3 H = normalize(L + V);
-    
-    float lambertian = saturate(dot(N, L));
-    
     float4 baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
-    float alpha = baseColor.a;
+    float3 color = 0.0;
+    for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
+    {
+        DirectionalLight light = CbLightEnv.DirLights[i];
+        float3 L = normalize(-light.Direction);
+        float3 V = normalize(Eye - vertex.PosWorld);
+        float3 H = normalize(L + V);
     
-    float3 diffuse = lambertian * baseColor.xyz;
-    float specAngle = saturate(dot(H, N));
-    float specular = pow(specAngle, 32.0);
+        float lambertian = saturate(dot(N, L));
+        float3 diffuse = light.Intensity * light.Radiance * lambertian * baseColor.rgb;
     
-    const float3 ambientColor = float3(0.03, 0.03, 0.1);
-    float3 color = ambientColor + diffuse + specular;
+        float specAngle = saturate(dot(H, N));
+        float specular = pow(specAngle, 32.0);
     
-    return float4(color, alpha);
+        const float3 ambientColor = float3(0.03, 0.03, 0.1);
+        color += ambientColor + diffuse + specular;
+    }
+    
+    return float4(color, baseColor.a);
 }

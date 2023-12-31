@@ -40,6 +40,24 @@ namespace Warp
 		return *s_instance;
 	}
 
+	static void AddEntityFromMesh(
+		const std::filesystem::path& assetsPath, 
+		const std::string& filename, 
+		MeshImporter* meshImporter, 
+		World* world, 
+		const TransformComponent& transform)
+	{
+		std::filesystem::path filepath = assetsPath / filename;
+		std::vector<AssetProxy> meshes = meshImporter->ImportFromFile(filepath.string());
+
+		for (size_t i = 0; i < meshes.size(); ++i)
+		{
+			Entity antiqueEntity = world->CreateEntity(fmt::format("{} Mesh {}", filename, i));
+			antiqueEntity.AddComponent<TransformComponent>(transform);
+			antiqueEntity.AddComponent<MeshComponent>(meshImporter->GetAssetManager(), meshes[i]);
+		}
+	}
+
 	void Application::Init(HWND hwnd)
 	{
 		m_hwnd = hwnd;
@@ -50,27 +68,17 @@ namespace Warp
 		m_meshImporter = std::make_unique<MeshImporter>(m_renderer.get(), m_assetManager.get());
 		m_textureImporter = std::make_unique<TextureImporter>(m_renderer.get(), m_assetManager.get());
 
-		std::filesystem::path filepath = GetAssetsPath() / "antique_camera";
+		AddEntityFromMesh(GetAssetsPath(), "antique_camera/AntiqueCamera.gltf", 
+			GetMeshImporter(), 
+			GetWorld(),
+			TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f))
+		);
 
-		std::vector<AssetProxy> meshes = m_meshImporter->ImportFromFile((filepath / "AntiqueCamera.gltf").string());
-		TransformComponent transform = TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f));
-
-		for (size_t i = 0; i < meshes.size(); ++i)
-		{
-			Entity antiqueEntity = m_world->CreateEntity(fmt::format("Antique Camera Entity Mesh {}", i));
-			antiqueEntity.AddComponent<TransformComponent>(transform);
-			antiqueEntity.AddComponent<MeshComponent>(m_meshImporter->GetAssetManager(), meshes[i]);
-		}
-
-		std::vector<AssetProxy> asteroid = m_meshImporter->ImportFromFile((GetAssetsPath() / "asteroid" / "Asteroid.gltf").string());
-		TransformComponent asteroidTransform = TransformComponent(Math::Vector3(3.0f, -2.0f, -8.0f), Math::Vector3(), Math::Vector3(1.0f));
-
-		for (size_t i = 0; i < asteroid.size(); ++i)
-		{
-			Entity asteroidEntity = m_world->CreateEntity(fmt::format("Asteroid Mesh {}", i));
-			asteroidEntity.AddComponent<TransformComponent>(asteroidTransform);
-			asteroidEntity.AddComponent<MeshComponent>(m_meshImporter->GetAssetManager(), asteroid[i]);
-		}
+		AddEntityFromMesh(GetAssetsPath(), "asteroid/Asteroid.gltf",
+			GetMeshImporter(),
+			GetWorld(),
+			TransformComponent(Math::Vector3(3.0f, -2.0f, -8.0f), Math::Vector3(), Math::Vector3(1.0f))
+		);
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)

@@ -283,6 +283,9 @@
     <ClInclude Include="src\Core\Input.h">
       <Filter>Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\World\Components\LightComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
