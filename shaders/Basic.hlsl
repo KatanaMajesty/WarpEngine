@@ -12,6 +12,7 @@ struct ViewData
 #define DRAWFLAG_HAS_BITANGENTS 4
 #define DRAWFLAG_NO_NORMALMAP 8
 #define DRAWFLAG_NO_ROUGHNESSMETALNESSMAP 16
+#define DRAWFLAG_NO_BASECOLORMAP 32
 
 struct DrawData
 {
@@ -154,7 +155,12 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         N = normalize(mul(NSample, TBN));
     }
     
-    float4 baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
+    float4 baseColor = float4(1.0, 0.0, 0.0, 1.0);
+    if ((CbDrawData.DrawFlags & DRAWFLAG_NO_BASECOLORMAP) == 0)
+    {
+        baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
+    }
+    
     float3 color = 0.0;
     for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
     {

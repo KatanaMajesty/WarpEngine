@@ -160,28 +160,35 @@ namespace Warp
 		m_commandList->ClearDepthStencilView(descriptor.GetCpuAddress(), flags, depth, stencil, numDirtyRects, dirtyRects);
 	}
 
-	void RHICommandContext::CopyResource(RHIResource* dest, RHIResource* src)
+	RHICopyCommandContext::RHICopyCommandContext(std::wstring_view name, RHICommandQueue* copyQueue)
+		: RHICommandContext(name, copyQueue)
 	{
 		WARP_EXPAND_DEBUG_ONLY(
-			if (m_queue->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
+			if (copyQueue->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
 			{
-				WARP_LOG_WARN("Trying to copy a resource from non-copy context. Was that intentional? Always prefer using copy context for that");
+				WARP_LOG_WARN("Trying to create a context from non-copy queue. Was that intentional? Always prefer using copy queue for copy context");
 			}
 		);
+	}
 
+	void RHICopyCommandContext::BeginCopy()
+	{
+		m_uploadBufferTrackingContext.Open(m_queue);
+	}
+
+	void RHICopyCommandContext::EndCopy(UINT64 fenceValue)
+	{
+		m_uploadBufferTrackingContext.Close(fenceValue);
+	}
+
+	void RHICopyCommandContext::CopyResource(RHIResource* dest, RHIResource* src)
+	{
 		WARP_ASSERT(dest && src);
 		m_commandList->CopyResource(dest->GetD3D12Resource(), src->GetD3D12Resource());
 	}
 
-	void RHICommandContext::UploadSubresources(RHIResource* dest, RHIResource* uploadBuffer, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset)
+	void RHICopyCommandContext::UploadSubresources(RHIResource* dest, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset)
 	{
-		WARP_EXPAND_DEBUG_ONLY(
-			if (m_queue->GetType() != D3D12_COMMAND_LIST_TYPE_COPY)
-			{
-				WARP_LOG_WARN("Trying to upload a resource from non-copy context. Was that intentional? Always prefer using copy context for that");
-			}
-		);
-
 		if (subresourceData.empty())
 		{
 			return;
@@ -191,14 +198,48 @@ namespace Warp
 		WARP_ASSERT(dest);
 		WARP_ASSERT(numSubresources + subresourceOffset <= dest->GetNumSubresources());
 
-		UINT64 a = UpdateSubresources(m_commandList.GetD3D12CommandList(),
+		RHIDevice* Device = m_queue->GetDevice();
+		RHIBuffer uploadBuffer = RHIBuffer(Device,
+			D3D12_HEAP_TYPE_UPLOAD,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_FLAG_NONE,
+			Device->GetCopyableBytes(dest, subresourceOffset, numSubresources));
+		uploadBuffer.SetName(L"CopyContext_UploadSubresources_IntermediateUploadBuffer");
+
+		UploadSubresources(dest, subresourceData, subresourceOffset, &uploadBuffer);
+
+		m_uploadBufferTrackingContext.AddTrackedResource(std::move(uploadBuffer));
+	}
+
+	void RHICopyCommandContext::UploadSubresources(RHIResource* dest, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset, RHIResource* uploadBuffer)
+	{
+		UINT numSubresources = static_cast<UINT>(subresourceData.size());
+		WARP_ASSERT(dest);
+		WARP_ASSERT(numSubresources + subresourceOffset <= dest->GetNumSubresources());
+
+		UINT64 processedBytes = UpdateSubresources(m_commandList.GetD3D12CommandList(),
 			dest->GetD3D12Resource(),
 			uploadBuffer->GetD3D12Resource(), 0,
-			subresourceOffset, 
-			numSubresources, 
+			subresourceOffset,
+			numSubresources,
 			subresourceData.data());
 
-		WARP_ASSERT(a > 0, "Upload was unsuccessful");
+		WARP_ASSERT(processedBytes > 0, "Upload was unsuccessful");
+	}
+
+	void RHICopyCommandContext::UploadToBuffer(RHIBuffer* dest, void* src, size_t numBytes)
+	{
+		RHIDevice* Device = m_queue->GetDevice();
+		RHIBuffer uploadBuffer = RHIBuffer(Device,
+			D3D12_HEAP_TYPE_UPLOAD,
+			D3D12_RESOURCE_STATE_GENERIC_READ,
+			D3D12_RESOURCE_FLAG_NONE, numBytes);
+		uploadBuffer.SetName(L"CopyContext_UploadToBuffer_IntermediateUploadBuffer");
+		std::memcpy(uploadBuffer.GetCpuVirtualAddress<std::byte>(), src, numBytes);
+
+		CopyResource(dest, &uploadBuffer);
+
+		m_uploadBufferTrackingContext.AddTrackedResource(std::move(uploadBuffer));
 	}
 
 }

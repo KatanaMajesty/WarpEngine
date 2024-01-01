@@ -114,24 +114,6 @@ namespace Warp
 		Renderer* renderer = GetRenderer();
 		RHIDevice* Device = renderer->GetDevice();
 
-		MeshAsset::AttributeArray<RHIBuffer> uploadResources;
-		for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
-		{
-			// Skip if no attribute
-			if (!mesh->HasAttributes(i))
-			{
-				continue;
-			}
-
-			uint32_t stride = mesh->AttributeStrides[i];
-			size_t sizeInBytes = mesh->GetNumVertices() * stride;
-			uploadResources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_UPLOAD, D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_FLAG_NONE, sizeInBytes);
-
-			std::memcpy(uploadResources[i].GetCpuVirtualAddress<std::byte>(), mesh->Attributes[i].data(), sizeInBytes);
-
-			mesh->Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, sizeInBytes);
-		}
-
 		static constexpr uint32_t MeshletStride = sizeof(DirectX::Meshlet);
 		static constexpr uint32_t UVIndexStride = sizeof(uint8_t);
 		static constexpr uint32_t PrimitiveIndicesStride = sizeof(DirectX::MeshletTriangle);
@@ -139,23 +121,6 @@ namespace Warp
 		size_t meshletsInBytes = mesh->Meshlets.size() * MeshletStride;
 		size_t uniqueVertexIndicesInBytes = mesh->UniqueVertexIndices.size() * UVIndexStride;
 		size_t primitiveIndicesInBytes = mesh->PrimitiveIndices.size() * PrimitiveIndicesStride;
-
-		RHIBuffer uploadMeshletBuffer = RHIBuffer(Device,
-			D3D12_HEAP_TYPE_UPLOAD,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, meshletsInBytes);
-		RHIBuffer uploadUniqueVertexIndicesBuffer = RHIBuffer(Device,
-			D3D12_HEAP_TYPE_UPLOAD,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, uniqueVertexIndicesInBytes);
-		RHIBuffer uploadPrimitiveIndicesBuffer = RHIBuffer(Device,
-			D3D12_HEAP_TYPE_UPLOAD,
-			D3D12_RESOURCE_STATE_GENERIC_READ,
-			D3D12_RESOURCE_FLAG_NONE, primitiveIndicesInBytes);
-
-		std::memcpy(uploadMeshletBuffer.GetCpuVirtualAddress<std::byte>(), mesh->Meshlets.data(), meshletsInBytes);
-		std::memcpy(uploadUniqueVertexIndicesBuffer.GetCpuVirtualAddress<std::byte>(), mesh->UniqueVertexIndices.data(), uniqueVertexIndicesInBytes);
-		std::memcpy(uploadPrimitiveIndicesBuffer.GetCpuVirtualAddress<std::byte>(), mesh->PrimitiveIndices.data(), primitiveIndicesInBytes);
 
 		// Note of the FIX with "Wrong resource state"
 		// The COPY flags (COPY_DEST and COPY_SOURCE) used as initial states represent states in the 3D/Compute type class. 
@@ -175,13 +140,13 @@ namespace Warp
 			D3D12_RESOURCE_FLAG_NONE, primitiveIndicesInBytes);
 
 		// Now perform resource copying from UPLOAD heap to DEFAULT heap (our mesh resource)
-		RHICommandContext& copyContext = renderer->GetCopyContext();
+		RHICopyCommandContext& copyContext = renderer->GetCopyContext();
+		copyContext.BeginCopy();
 		copyContext.Open();
 		{
 			// NOTICE!
 			// Specifically, a resource must be in the COMMON state before being used on DIRECT/COMPUTE (when previously used on COPY). 
 			// This restriction doesn't exist when accessing data between DIRECT and COMPUTE queues.
-			//copyContext.CopyResource(&mesh->IndexBuffer, &uploadIndexBuffer);
 			for (size_t i = 0; i < EVertexAttributes_NumAttributes; ++i)
 			{
 				// Skip if no attribute
@@ -190,15 +155,21 @@ namespace Warp
 					continue;
 				}
 
-				copyContext.CopyResource(&mesh->Resources[i], &uploadResources[i]);
+				uint32_t stride = mesh->AttributeStrides[i];
+				size_t sizeInBytes = mesh->GetNumVertices() * stride;
+				mesh->Resources[i] = RHIBuffer(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_NONE, sizeInBytes);
+
+				copyContext.UploadToBuffer(&mesh->Resources[i], mesh->Attributes[i].data(), sizeInBytes);
 			}
 
-			copyContext.CopyResource(&mesh->MeshletBuffer, &uploadMeshletBuffer);
-			copyContext.CopyResource(&mesh->UniqueVertexIndicesBuffer, &uploadUniqueVertexIndicesBuffer);
-			copyContext.CopyResource(&mesh->PrimitiveIndicesBuffer, &uploadPrimitiveIndicesBuffer);
+			copyContext.UploadToBuffer(&mesh->MeshletBuffer, mesh->Meshlets.data(), meshletsInBytes);
+			copyContext.UploadToBuffer(&mesh->UniqueVertexIndicesBuffer, mesh->UniqueVertexIndices.data(), uniqueVertexIndicesInBytes);
+			copyContext.UploadToBuffer(&mesh->PrimitiveIndicesBuffer, mesh->PrimitiveIndices.data(), primitiveIndicesInBytes);
 		}
 		copyContext.Close();
-		copyContext.Execute(true); // TODO: We wait for completion, though shouldnt
+
+		UINT64 fenceValue = copyContext.Execute(false);
+		copyContext.EndCopy(fenceValue);
 	}
 
 }

@@ -79,6 +79,18 @@ namespace Warp
 			GetWorld(),
 			TransformComponent(Math::Vector3(3.0f, -2.0f, -8.0f), Math::Vector3(), Math::Vector3(1.0f))
 		);
+
+		AddEntityFromMesh(GetAssetsPath(), "wood/wood.gltf",
+			GetMeshImporter(),
+			GetWorld(),
+			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(4.0f, 0.05f, 4.0f))
+		);
+
+		GetWorld()->CreateEntity("Dirlight1").AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
+				.Intensity = 0.5f,
+				.Direction = Math::Vector3(-1.0f, -2.0f, -1.0f),
+				.Radiance = Math::Vector3(0.76f, 0.89f, 0.98f)
+			});
 	}
 
 	void Application::RequestResize(uint32_t width, uint32_t height)

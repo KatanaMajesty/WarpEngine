@@ -286,6 +286,9 @@
     <ClInclude Include="src\World\Components\LightComponent.h">
       <Filter>World\Components</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\ResourceTrackingContext.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">

@@ -10,6 +10,7 @@
 #include "RHI/DescriptorHeap.h"
 #include "RHI/PhysicalDevice.h"
 #include "RHI/Resource.h"
+#include "RHI/ResourceTrackingContext.h"
 #include "RHI/CommandContext.h"
 #include "RHI/PipelineState.h"
 #include "RHI/Swapchain.h"
@@ -44,11 +45,13 @@ namespace Warp
 		inline RHIDevice* GetDevice() const { return m_device.get(); }
 
 		inline RHICommandContext& GetGraphicsContext() { return m_graphicsContext; }
-		inline RHICommandContext& GetCopyContext() { return m_copyContext; }
 		inline RHICommandContext& GetComputeContext() { return m_computeContext; }
+		inline RHICopyCommandContext& GetCopyContext() { return m_copyContext; }
 
+		// TODO: Should be removed. RHI functionality should not be present in renderer's API
 		// Utility function that manages copy context, creates intermediate resource and calls Context::UploadSubresources
-		void UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset);
+		// void UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset);
+		// void UploadToBuffer(RHIBuffer* dest, void* src, size_t numBytes);
 
 	private:
 		// Waits for graphics queue to finish executing on the particular specified frame or on all frames
@@ -61,8 +64,8 @@ namespace Warp
 
 		UINT64 m_frameFenceValues[SimultaneousFrames];
 		RHICommandContext m_graphicsContext;
-		RHICommandContext m_copyContext;
 		RHICommandContext m_computeContext;
+		RHICopyCommandContext m_copyContext;
 
 		// TODO: Remove/move
 		void InitDepthStencil();
@@ -80,11 +83,6 @@ namespace Warp
 		static constexpr size_t SizeOfGlobalCb = 64 * 256;
 		RHIBuffer m_constantBuffers[SimultaneousFrames];
 
-		struct UploadResourceTrackedState
-		{
-			RHIBuffer UploadBuffer;
-			UINT64 FenceValue;
-		};
-		std::vector<UploadResourceTrackedState> m_uploadResourceTrackedStates;
+		RHIResourceTrackingContext<RHIBuffer> m_uploadBufferTrackingContext;
 	};
 }

@@ -101,7 +101,16 @@ namespace Warp
 			});
 		}
 
-		renderer->UploadSubresources(&asset->Texture, subresources, 0);
+		RHICopyCommandContext& copyContext = renderer->GetCopyContext();
+		copyContext.BeginCopy();
+		copyContext.Open();
+		{
+			copyContext.UploadSubresources(&asset->Texture, subresources, 0);
+		}
+		copyContext.Close();
+
+		UINT64 fenceValue = copyContext.Execute(false);
+		copyContext.EndCopy(fenceValue);
 
 		// Add loaded texture to cache before returning
 		if (!image.Filepath.empty())

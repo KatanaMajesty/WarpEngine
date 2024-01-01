@@ -40,14 +40,14 @@ namespace Warp
 		// returns an updated proxy, that will 
 		WARP_ATTR_NODISCARD AssetProxy DestroyAsset(AssetProxy proxy);
 
-		// A very quick search of an asset (linear O(1) essentially, just an array lookup). In release configuration performs no checks on whether the asset proxy is valid
+		// A very quick search of an asset (linear O(1) essentially, just an array lookup). As of 31/12/23 performs checks on whether the asset proxy is valid
+		// And if the proxy is not valid - nullptr is returned
 		// In debug configuration only assertions are performed to check whether to proxy is valid and can be used to retrieve an asset
 		template<ValidAssetType T>
 		T* GetAs(AssetProxy proxy)
 		{
 			Registry<T>* registry = this->GetRegistry<T>();
-			WARP_ASSERT(registry->IsValid(proxy), "Proxy is invalid!");
-			return registry->GetAsset(proxy);
+			return registry->IsValid(proxy) ? registry->GetAsset(proxy) : nullptr;
 		}
 
 		template<ValidAssetType T>

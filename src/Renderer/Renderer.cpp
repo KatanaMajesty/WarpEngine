@@ -51,6 +51,7 @@ namespace Warp
 		eHlslDrawPropertyFlag_HasBitangents = 4,
 		eHlslDrawPropertyFlag_NoNormalMap = 8,
 		eHlslDrawPropertyFlag_NoRoughnessMetalnessMap = 16,
+		eHlslDrawPropertyFlag_NoBaseColorMap = 32,
 	};
 
 	struct alignas(256) HlslDrawData
@@ -96,7 +97,7 @@ namespace Warp
 			}())
 		, m_device(std::make_unique<RHIDevice>(GetPhysicalDevice()))
 		, m_graphicsContext(RHICommandContext(L"RHICommandContext_Graphics", m_device->GetGraphicsQueue()))
-		, m_copyContext(RHICommandContext(L"RHICommandContext_Copy", m_device->GetCopyQueue()))
+		, m_copyContext(RHICopyCommandContext(L"RHICommandContext_Copy", m_device->GetCopyQueue()))
 		, m_computeContext(RHICommandContext(L"RHICommandContext_Compute", m_device->GetComputeQueue()))
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
@@ -176,6 +177,10 @@ namespace Warp
 				if (!mesh->Material.HasMetalnessRoughnessMap() || 
 					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.MetalnessRoughnessMapProxy))
 					instance.DrawFlags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
+
+				if (!mesh->Material.HasBaseColor() ||
+					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.BaseColorProxy))
+					instance.DrawFlags |= eHlslDrawPropertyFlag_NoBaseColorMap;
 			}
 		);
 
@@ -322,14 +327,24 @@ namespace Warp
 						m_graphicsContext->SetGraphicsRootShaderResourceView(BasicRootParameterIndex_Meshlets + i, meshletResources[i]->GetGpuVirtualAddress());
 					}
 
+					// We need a default texture for meshes with no basecolor. This is a better solution rather than doing float4 basecolor (as it is now in material)
 					auto baseColor = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.BaseColorProxy);
-					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_BaseColor, baseColor->Srv.GetGpuAddress());
+					if (baseColor)
+					{
+						m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_BaseColor, baseColor->Srv.GetGpuAddress());
+					}
 
 					auto normalMap = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.NormalMapProxy);
-					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_NormalMap, normalMap->Srv.GetGpuAddress());
+					if (normalMap)
+					{
+						m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_NormalMap, normalMap->Srv.GetGpuAddress());
+					}
 
 					auto metalnessRoughnessMap = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.MetalnessRoughnessMapProxy);
-					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_MetalnessRoughnessMap, metalnessRoughnessMap->Srv.GetGpuAddress());
+					if (metalnessRoughnessMap)
+					{
+						m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParameterIndex_MetalnessRoughnessMap, metalnessRoughnessMap->Srv.GetGpuAddress());
+					}
 
 					m_graphicsContext.DispatchMesh(mesh->GetNumMeshlets(), 1, 1); // should be good enough for now
 				}
@@ -345,13 +360,8 @@ namespace Warp
 		Device->EndFrame();
 	}
 
-	void Renderer::UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset)
+	/*void Renderer::UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset)
 	{
-		std::erase_if(m_uploadResourceTrackedStates, [this](const UploadResourceTrackedState& trackedState) -> bool
-			{
-				return m_copyContext.GetQueue()->IsFenceComplete(trackedState.FenceValue);
-			});
-
 		uint32_t numSubresources = static_cast<uint32_t>(subresources.size());
 
 		RHIDevice* Device = m_device.get();
@@ -369,8 +379,26 @@ namespace Warp
 		m_copyContext.Close();
 		UINT64 fenceValue = m_copyContext.Execute(false);
 
-		m_uploadResourceTrackedStates.emplace_back(std::move(uploadBuffer), fenceValue);
-	}
+		m_uploadBufferTrackingContext.CleanupCompletedResources(m_copyContext.GetQueue());
+		m_uploadBufferTrackingContext.AddTrackedResource(std::move(uploadBuffer), fenceValue);
+	}*/
+
+	//void Renderer::UploadToBuffer(RHIBuffer* dest, void* src, size_t numBytes)
+	//{
+	//	/*RHIDevice* Device = m_device.get();
+	//	RHIBuffer uploadBuffer = RHIBuffer(Device,
+	//		D3D12_HEAP_TYPE_UPLOAD,
+	//		D3D12_RESOURCE_STATE_GENERIC_READ,
+	//		D3D12_RESOURCE_FLAG_NONE, numBytes);
+	//	uploadBuffer.SetName(L"Renderer_UploadToBuffer_IntermediateUploadBuffer");
+
+	//	std::memcpy(uploadBuffer.GetCpuVirtualAddress<std::byte>(), src, numBytes);
+
+	//	m_copyContext.CopyResource(dest, &uploadBuffer);
+
+	//	m_uploadBufferTrackingContext.CleanupCompletedResources(m_copyContext.GetQueue());
+	//	m_uploadBufferTrackingContext.AddTrackedResource(std::move(uploadBuffer), fenceValue);*/
+	//}
 
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{

@@ -374,7 +374,10 @@ namespace Warp::MeshLoader
 			cgltf_primitive_type type = primitive.type;
 
 			cgltf_material* glTFMaterial = primitive.material;
-			ProcessMaterial(mesh, folder, glTFMaterial);
+			if (glTFMaterial)
+			{
+				ProcessMaterial(mesh, folder, glTFMaterial);
+			}
 
 			// We only use triangles for now. Will be removed in future. This is just in case
 			WARP_ASSERT(type == cgltf_primitive_type_triangles);

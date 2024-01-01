@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "Resource.h"
+#include "ResourceTrackingContext.h"
 #include "CommandList.h"
 #include "CommandQueue.h"
 #include "PipelineState.h"
@@ -67,16 +68,31 @@ namespace Warp
 		void ClearRtv(const RHIRenderTargetView& descriptor, const float* rgba, UINT numDirtyRects, const D3D12_RECT* dirtyRects);
 		void ClearDsv(const RHIDepthStencilView& descriptor, D3D12_CLEAR_FLAGS flags, float depth, UINT8 stencil, UINT numDirtyRects, const D3D12_RECT* dirtyRects);
 
-		void CopyResource(RHIResource* dest, RHIResource* src);
-		void UploadSubresources(RHIResource* dest, RHIResource* uploadBuffer, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset);
-
-	private:
+	protected:
 		static constexpr UINT NumResourceBarriersPerBatch = 16;
 
 		RHICommandQueue* m_queue = nullptr;
 		RHICommandList m_commandList;
 		ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 		RHICommandAllocatorPool m_commandAllocatorPool;
+	};
+
+	class RHICopyCommandContext : public RHICommandContext
+	{
+	public:
+		RHICopyCommandContext() = default;
+		RHICopyCommandContext(std::wstring_view name, RHICommandQueue* copyQueue);
+
+		void BeginCopy();
+		void EndCopy(UINT64 fenceValue);
+
+		void CopyResource(RHIResource* dest, RHIResource* src);
+		void UploadSubresources(RHIResource* dest, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset);
+		void UploadSubresources(RHIResource* dest, std::span<D3D12_SUBRESOURCE_DATA> subresourceData, UINT subresourceOffset, RHIResource* uploadBuffer);
+		void UploadToBuffer(RHIBuffer* dest, void* src, size_t numBytes);
+
+	private:
+		RHIResourceTrackingContext<RHIBuffer> m_uploadBufferTrackingContext;
 	};
 
 }

@@ -43,15 +43,15 @@ namespace Warp
 		WARP_ATTR_NODISCARD inline constexpr UINT GetFrameID() const { return m_frameID; }
 	
 		WARP_ATTR_NODISCARD RHICommandQueue* GetCommandQueue(D3D12_COMMAND_LIST_TYPE type);
-		WARP_ATTR_NODISCARD inline RHICommandQueue* GetGraphicsQueue() { return m_graphicsQueue.get(); }
-		WARP_ATTR_NODISCARD inline RHICommandQueue* GetComputeQueue() { return m_computeQueue.get(); }
-		WARP_ATTR_NODISCARD inline RHICommandQueue* GetCopyQueue() { return m_copyQueue.get(); }
+		WARP_ATTR_NODISCARD RHICommandQueue* GetGraphicsQueue() { return m_graphicsQueue.get(); }
+		WARP_ATTR_NODISCARD RHICommandQueue* GetComputeQueue() { return m_computeQueue.get(); }
+		WARP_ATTR_NODISCARD RHICommandQueue* GetCopyQueue() { return m_copyQueue.get(); }
 
-		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetDescriptorHeap(uint32_t type) { return m_descriptorHeaps[type].Heap.get(); }
-		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetSamplerHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER); }
-		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetViewHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); }
-		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetRtvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV); }
-		WARP_ATTR_NODISCARD inline RHIDescriptorHeap* GetDsvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV); }
+		WARP_ATTR_NODISCARD RHIDescriptorHeap* GetDescriptorHeap(uint32_t type) { return m_descriptorHeaps[type].Heap.get(); }
+		WARP_ATTR_NODISCARD RHIDescriptorHeap* GetSamplerHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER); }
+		WARP_ATTR_NODISCARD RHIDescriptorHeap* GetViewHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV); }
+		WARP_ATTR_NODISCARD RHIDescriptorHeap* GetRtvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV); }
+		WARP_ATTR_NODISCARD RHIDescriptorHeap* GetDsvsHeap() { return GetDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_DSV); }
 
 		inline D3D12MA::Allocator* GetResourceAllocator() const { return m_resourceAllocator.Get(); }
 		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice; }

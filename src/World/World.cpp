@@ -20,18 +20,6 @@ namespace Warp
 			.UpDir = Math::Vector3(0.0f, 1.0f, 0.0f),
 		});
 		cameraComponent.SetView();
-
-		// TODO: Remove this! It is just for testing
-		CreateEntity("Dirlight1").AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 0.5f,
-				.Direction = Math::Vector3(-1.0f, -2.0f, -1.0f),
-				.Radiance = Math::Vector3(1.0f, 0.0f, 0.0f)
-			});
-		CreateEntity("Dirlight2").AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 0.5f,
-				.Direction = Math::Vector3(1.0f, -2.0f, 0.0f),
-				.Radiance = Math::Vector3(0.0f, 1.0f, 0.0f)
-			});
 	}
 
 	void World::Update(float timestep)

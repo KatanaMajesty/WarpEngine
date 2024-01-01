@@ -79,6 +79,7 @@
     <ClInclude Include="src\Renderer\RHI\PhysicalDevice.h" />
     <ClInclude Include="src\Renderer\RHI\PipelineState.h" />
     <ClInclude Include="src\Renderer\RHI\PIXRuntime.h" />
+    <ClInclude Include="src\Renderer\RHI\ResourceTrackingContext.h" />
     <ClInclude Include="src\Renderer\RHI\Swapchain.h" />
     <ClInclude Include="src\Renderer\RHI\Resource.h" />
     <ClInclude Include="src\Renderer\RHI\CommandAllocatorPool.h" />

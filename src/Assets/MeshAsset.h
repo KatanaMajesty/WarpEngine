@@ -40,15 +40,14 @@ namespace Warp
 		bool HasAttributes(size_t index) const { return !Attributes[index].empty(); }
 
 		std::string Name;
-
-		uint32_t NumVertices;
+		uint32_t NumVertices = 0;
 
 		template<typename T>
 		using AttributeArray = std::array<T, EVertexAttributes_NumAttributes>;
 
 		// SoA representation of mesh vertices
 		AttributeArray<std::vector<std::byte>> Attributes;
-		AttributeArray<uint32_t>  AttributeStrides;
+		AttributeArray<uint32_t>  AttributeStrides{};
 		AttributeArray<RHIBuffer> Resources;
 
 		std::vector<DirectX::Meshlet> Meshlets;
