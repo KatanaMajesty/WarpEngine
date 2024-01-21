@@ -12,23 +12,6 @@
 namespace Warp
 {
 
-	// TODO: Maybe Remove?
-	struct RHIBufferAddress
-	{
-		RHIBufferAddress() = default;
-		RHIBufferAddress(UINT sizeInBytes, UINT offsetInBytes)
-			: SizeInBytes(sizeInBytes)
-			, OffsetInBytes(offsetInBytes)
-		{
-		}
-
-		D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress(D3D12_GPU_VIRTUAL_ADDRESS bufferLocation) const { return bufferLocation + OffsetInBytes; }
-		void* GetCpuAddress(void* mapping) const { return static_cast<uint8_t*>(mapping) + OffsetInBytes; }
-
-		UINT SizeInBytes = 0;
-		UINT OffsetInBytes = 0;
-	};
-
 	struct RHIVertexBufferView
 	{
 		RHIVertexBufferView() = default;
@@ -169,6 +152,25 @@ namespace Warp
 	class RHIBuffer final : public RHIResource
 	{
 	public:
+		// Utility struct for buffer address representation -> TODO: Maybe remove?
+		struct Address
+		{
+			Address() = default;
+			Address(RHIBuffer* buffer, UINT sizeInBytes, UINT offsetInBytes)
+				: Buffer(buffer)
+				, SizeInBytes(sizeInBytes)
+				, OffsetInBytes(offsetInBytes)
+			{
+			}
+
+			D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress() const { return Buffer->GetGpuVirtualAddress() + OffsetInBytes; }
+			uint8_t* GetCpuAddress() const { return Buffer->GetCpuVirtualAddress<uint8_t>() + OffsetInBytes; }
+
+			RHIBuffer* Buffer = nullptr;
+			UINT SizeInBytes = 0;
+			UINT OffsetInBytes = 0;
+		};
+
 		RHIBuffer() = default;
 		RHIBuffer(RHIDevice* device,
 			D3D12_HEAP_TYPE heapType,
@@ -189,10 +191,10 @@ namespace Warp
 		inline constexpr bool IsSrvAllowed() const { return !(m_desc.Flags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE); }
 
 		RHIVertexBufferView GetVertexBufferView(UINT strideInBytes) const;
-		RHIIndexBufferView	GetIndexBufferView(DXGI_FORMAT format = DXGI_FORMAT_R32_UINT) const;
+		RHIIndexBufferView GetIndexBufferView(DXGI_FORMAT format = DXGI_FORMAT_R32_UINT) const;
 
 		// It may be nullptr, if the type of the HEAP where the buffer resides is not UPLOAD_HEAP
-		template<typename T = void>
+		template<typename T>
 		WARP_ATTR_NODISCARD T* GetCpuVirtualAddress() const
 		{
 			WARP_ASSERT(m_cpuMapping && "CPU mapping is not supported for the resource");

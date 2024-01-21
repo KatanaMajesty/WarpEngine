@@ -33,13 +33,13 @@ namespace Warp
 	class RHIRootSignatureDesc
 	{
 	public:
-		RHIRootSignatureDesc(UINT numStaticSamplers = 0, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
+		RHIRootSignatureDesc(UINT numRootParameters, UINT numStaticSamplers = 0, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
-		RHIRootSignatureDesc& AddConstantBufferView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
-		RHIRootSignatureDesc& AddShaderResourceView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
-		RHIRootSignatureDesc& AddUnorderedAccessView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
-		RHIRootSignatureDesc& AddDescriptorTable(const RHIDescriptorTable& descriptorTable, D3D12_SHADER_VISIBILITY visibility);
-		RHIRootSignatureDesc& Add32BitConstants(UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
+		RHIRootSignatureDesc& SetConstantBufferView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
+		RHIRootSignatureDesc& SetShaderResourceView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
+		RHIRootSignatureDesc& SetUnorderedAccessView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
+		RHIRootSignatureDesc& SetDescriptorTable(UINT rootIndex, const RHIDescriptorTable& descriptorTable, D3D12_SHADER_VISIBILITY visibility);
+		RHIRootSignatureDesc& Set32BitConstants(UINT rootIndex, UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
 		RHIRootSignatureDesc& AddStaticSampler(
 			UINT shaderRegister, 
 			UINT registerSpace, 
@@ -53,15 +53,16 @@ namespace Warp
 			D3D12_STATIC_BORDER_COLOR borderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE);
 
 		inline constexpr D3D12_ROOT_SIGNATURE_FLAGS GetFlags() const { return m_flags; }
-		inline constexpr UINT GetNumParameters() const { return static_cast<UINT>(m_params.size()); }
+		inline constexpr UINT GetNumRootParameters() const { return m_numRootParameters; }
 		inline constexpr UINT GetNumStaticSamplers() const { return m_numStaticSamplers; }
-		const D3D12_ROOT_PARAMETER1* GetAllParameters() const;
-		const D3D12_STATIC_SAMPLER_DESC* GetAllStaticSamplers() const;
+		const D3D12_ROOT_PARAMETER1* GetRootParameters() const;
+		const D3D12_STATIC_SAMPLER_DESC* GetStaticSamplers() const;
 
 	private:
-		RHIRootSignatureDesc& AddParameter(const D3D12_ROOT_PARAMETER1& param);
+		RHIRootSignatureDesc& SetParameter(UINT rootIndex, const D3D12_ROOT_PARAMETER1& param);
 
 		D3D12_ROOT_SIGNATURE_FLAGS m_flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
+		UINT m_numRootParameters = 0;
 		UINT m_numStaticSamplers = 0;
 		std::vector<D3D12_ROOT_PARAMETER1> m_params;
 		std::vector<D3D12_STATIC_SAMPLER_DESC> m_staticSamplers;

@@ -38,7 +38,6 @@ namespace Warp
 		void Render(World* world);
 
 		static constexpr uint32_t SimultaneousFrames = RHISwapchain::BackbufferCount;
-		static constexpr uint32_t NumDescriptorHeapTypes = D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES;
 		
 		// TODO: Remove these to private to start rewriting bad code
 		inline RHIPhysicalDevice* GetPhysicalDevice() const { return m_physicalDevice.get(); }
@@ -47,11 +46,6 @@ namespace Warp
 		inline RHICommandContext& GetGraphicsContext() { return m_graphicsContext; }
 		inline RHICommandContext& GetComputeContext() { return m_computeContext; }
 		inline RHICopyCommandContext& GetCopyContext() { return m_copyContext; }
-
-		// TODO: Should be removed. RHI functionality should not be present in renderer's API
-		// Utility function that manages copy context, creates intermediate resource and calls Context::UploadSubresources
-		// void UploadSubresources(RHIResource* dest, std::vector<D3D12_SUBRESOURCE_DATA>& subresources, uint32_t subresourceOffset);
-		// void UploadToBuffer(RHIBuffer* dest, void* src, size_t numBytes);
 
 	private:
 		// Waits for graphics queue to finish executing on the particular specified frame or on all frames
@@ -72,17 +66,20 @@ namespace Warp
 		void ResizeDepthStencil();
 		bool InitAssets(); // TODO: Temp, will be removed
 		
-		std::unique_ptr<RHITexture> m_depthStencil;
+		RHITexture m_depthStencil;
 		RHIDepthStencilView m_depthStencilView;
+		CShaderCompiler m_shaderCompiler;
+
 		RHIRootSignature m_basicRootSignature;
 		RHIMeshPipelineState m_basicPSO;
-		CShaderCompiler m_shaderCompiler;
 		CShader m_MSBasic;
 		CShader m_PSBasic;
-		
-		static constexpr size_t SizeOfGlobalCb = 64 * 256;
-		RHIBuffer m_constantBuffers[SimultaneousFrames];
 
-		RHIResourceTrackingContext<RHIBuffer> m_uploadBufferTrackingContext;
+		RHIRootSignature m_directionalShadowingSignature;
+		RHIMeshPipelineState m_directionalShadowingPSO;
+		CShader m_MSDirectionalShadowing;
+		
+		static constexpr size_t SizeOfGlobalCb = 64 * 512;
+		RHIBuffer m_constantBuffers[SimultaneousFrames];
 	};
 }

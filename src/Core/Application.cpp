@@ -71,7 +71,7 @@ namespace Warp
 		AddEntityFromMesh(GetAssetsPath(), "antique_camera/AntiqueCamera.gltf", 
 			GetMeshImporter(), 
 			GetWorld(),
-			TransformComponent(Math::Vector3(0.0f, -2.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f))
+			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f))
 		);
 
 		AddEntityFromMesh(GetAssetsPath(), "asteroid/Asteroid.gltf",
@@ -83,10 +83,11 @@ namespace Warp
 		AddEntityFromMesh(GetAssetsPath(), "wood/wood.gltf",
 			GetMeshImporter(),
 			GetWorld(),
-			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(4.0f, 0.05f, 4.0f))
+			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(8.0f, 0.05f, 8.0f))
 		);
 
-		GetWorld()->CreateEntity("Dirlight1").AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
+		Entity light = GetWorld()->CreateEntity("Dirlight1");
+		light.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
 				.Intensity = 0.5f,
 				.Direction = Math::Vector3(-1.0f, -2.0f, -1.0f),
 				.Radiance = Math::Vector3(0.76f, 0.89f, 0.98f)

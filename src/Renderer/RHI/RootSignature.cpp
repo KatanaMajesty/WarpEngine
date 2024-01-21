@@ -28,54 +28,55 @@ namespace Warp
 		return m_ranges.data();
 	}
 
-	RHIRootSignatureDesc::RHIRootSignatureDesc(UINT numStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	RHIRootSignatureDesc::RHIRootSignatureDesc(UINT numRootParameters, UINT numStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
 		: m_flags(flags)
+		, m_numRootParameters(numRootParameters)
 		, m_numStaticSamplers(numStaticSamplers)
 	{
+		m_params.resize(numRootParameters);
 		m_staticSamplers.reserve(numStaticSamplers);
 	}
 
-	RHIRootSignatureDesc& RHIRootSignatureDesc::AddConstantBufferView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
+	RHIRootSignatureDesc& RHIRootSignatureDesc::SetConstantBufferView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
 	{
 		CD3DX12_ROOT_PARAMETER1 param{};
 		param.InitAsConstantBufferView(shaderRegister, registerSpace, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility);
-		return AddParameter(param);
+		return SetParameter(rootIndex, param);
 	}
 
-	RHIRootSignatureDesc& RHIRootSignatureDesc::AddShaderResourceView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
+	RHIRootSignatureDesc& RHIRootSignatureDesc::SetShaderResourceView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
 	{
 		CD3DX12_ROOT_PARAMETER1 param{};
 		param.InitAsShaderResourceView(shaderRegister, registerSpace, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility);
-		return AddParameter(param);
+		return SetParameter(rootIndex, param);
 	}
 
-	RHIRootSignatureDesc& RHIRootSignatureDesc::AddUnorderedAccessView(UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
+	RHIRootSignatureDesc& RHIRootSignatureDesc::SetUnorderedAccessView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
 	{
 		CD3DX12_ROOT_PARAMETER1 param{};
 		param.InitAsUnorderedAccessView(shaderRegister, registerSpace, D3D12_ROOT_DESCRIPTOR_FLAG_NONE, visibility);
-		return AddParameter(param);
+		return SetParameter(rootIndex, param);
 	}
 
-	RHIRootSignatureDesc& RHIRootSignatureDesc::AddDescriptorTable(const RHIDescriptorTable& descriptorTable, D3D12_SHADER_VISIBILITY visibility)
+	RHIRootSignatureDesc& RHIRootSignatureDesc::SetDescriptorTable(UINT rootIndex, const RHIDescriptorTable& descriptorTable, D3D12_SHADER_VISIBILITY visibility)
 	{
 		UINT numDescriptorRanges = descriptorTable.GetNumDescriptorRanges();
 		if (numDescriptorRanges == 0)
 		{
-			WARP_ASSERT(false);
-			// TODO: Yield warn?
+			WARP_LOG_WARN("RHIRootSignatureDesc -> Tried setting empty descriptor table. Skipping");
 			return *this;
 		}
 
 		CD3DX12_ROOT_PARAMETER1 param;
 		param.InitAsDescriptorTable(numDescriptorRanges, descriptorTable.GetAllRanges(), visibility);
-		return AddParameter(param);
+		return SetParameter(rootIndex, param);
 	}
 
-	RHIRootSignatureDesc& RHIRootSignatureDesc::Add32BitConstants(UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
+	RHIRootSignatureDesc& RHIRootSignatureDesc::Set32BitConstants(UINT rootIndex, UINT num32BitValues, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
 	{
 		CD3DX12_ROOT_PARAMETER1 param{};
 		param.InitAsConstants(num32BitValues, shaderRegister, registerSpace, visibility);
-		return AddParameter(param);
+		return SetParameter(rootIndex, param);
 	}
 
 	RHIRootSignatureDesc& RHIRootSignatureDesc::AddStaticSampler(
@@ -109,20 +110,22 @@ namespace Warp
 		return *this;
 	}
 
-	const D3D12_ROOT_PARAMETER1* RHIRootSignatureDesc::GetAllParameters() const
+	const D3D12_ROOT_PARAMETER1* RHIRootSignatureDesc::GetRootParameters() const
 	{
+		WARP_ASSERT(m_numRootParameters == m_params.size());
 		return m_params.data();
 	}
 
-	const D3D12_STATIC_SAMPLER_DESC* RHIRootSignatureDesc::GetAllStaticSamplers() const
+	const D3D12_STATIC_SAMPLER_DESC* RHIRootSignatureDesc::GetStaticSamplers() const
 	{
 		WARP_ASSERT(m_numStaticSamplers == m_staticSamplers.size());
 		return m_staticSamplers.data();
 	}
 
-	RHIRootSignatureDesc& RHIRootSignatureDesc::AddParameter(const D3D12_ROOT_PARAMETER1& param)
+	RHIRootSignatureDesc& RHIRootSignatureDesc::SetParameter(UINT rootIndex, const D3D12_ROOT_PARAMETER1& param)
 	{
-		m_params.push_back(param);
+		WARP_ASSERT(rootIndex < m_numRootParameters);
+		m_params[rootIndex] = param;
 		return *this;
 	}
 
@@ -131,10 +134,10 @@ namespace Warp
 	{
 		D3D12_ROOT_SIGNATURE_DESC1 rootDesc
 		{
-			.NumParameters = desc.GetNumParameters(),
-			.pParameters = desc.GetAllParameters(),
+			.NumParameters = desc.GetNumRootParameters(),
+			.pParameters = desc.GetRootParameters(),
 			.NumStaticSamplers = desc.GetNumStaticSamplers(),
-			.pStaticSamplers = desc.GetAllStaticSamplers(),
+			.pStaticSamplers = desc.GetStaticSamplers(),
 			.Flags = desc.GetFlags(),
 		};
 

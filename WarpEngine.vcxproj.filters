@@ -305,6 +305,9 @@
     <FxCompile Include="shaders\Basic.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\DirectionalShadowing.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="vendor\dxil.dll">

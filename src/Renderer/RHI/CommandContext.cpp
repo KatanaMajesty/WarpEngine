@@ -70,7 +70,7 @@ namespace Warp
 
 	UINT64 RHICommandContext::Execute(bool waitForCompletion)
 	{
-		WARP_ASSERT(m_commandAllocator);
+		WARP_ASSERT(m_commandAllocator, "No valid command allocator was found, the command context was not opened correctly");
 
 		RHICommandList* lists[] = { &m_commandList };
 		UINT64 fenceValue = m_queue->ExecuteCommandLists(lists, waitForCompletion);

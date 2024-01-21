@@ -23,6 +23,8 @@ struct DrawData
 
 struct DirectionalLight
 {
+    matrix LightView;
+    matrix LightProj;
     float Intensity;
     float3 Direction;
     float3 Radiance;
@@ -34,9 +36,9 @@ struct LightEnvironment
     DirectionalLight DirLights[3];
 };
 
-ConstantBuffer<LightEnvironment> CbLightEnv : register(b0);
-ConstantBuffer<ViewData> CbViewData : register(b1);
-ConstantBuffer<DrawData> CbDrawData : register(b2);
+ConstantBuffer<LightEnvironment> CbLightEnv : register(b1);
+ConstantBuffer<ViewData> CbViewData : register(b2);
+ConstantBuffer<DrawData> CbDrawData : register(b3);
 
 struct OutVertex
 {
@@ -64,11 +66,6 @@ StructuredBuffer<float3>    Bitangents  : register(t0, space4);
 StructuredBuffer<Meshlet>   Meshlets    : register(t1);
 ByteAddressBuffer           UniqueVertexIndices : register(t2);
 StructuredBuffer<uint>      PrimitiveIndices : register(t3);
-
-float4 TransformPosition(float3 xyz, in matrix mvp)
-{
-    return mul(float4(xyz, 1.0), mvp);
-}
 
 uint3 UnpackPrimitive(uint primitive)
 {
@@ -139,6 +136,10 @@ Texture2D NormalMap : register(t4, space1);
 Texture2D MetalnessRoughnessMap : register(t4, space2);
 SamplerState StaticSampler : register(s0);
 
+// Currently we only use 1 shadowmap here, although 3 dir shadow maps is maximum -> TODO: Use 3 shadowmaps instead of 1
+Texture2D<float> DirectionalShadowmap0 : register(t5, space0);
+SamplerComparisonState ShadowmapSampler : register(s1);
+
 float4 PSMain(OutVertex vertex) : SV_Target0
 {
     float3 Eye = CbViewData.ViewInv[3].xyz;
@@ -161,6 +162,19 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
     }
     
+    float3 shadow = 1.0;
+    if (CbLightEnv.NumDirLights > 0)
+    {
+        DirectionalLight light = CbLightEnv.DirLights[0];
+        
+        matrix lightMatrix = mul(light.LightView, light.LightProj);
+        float4 lightpos = mul(float4(vertex.PosWorld, 1.0), lightMatrix);
+        float3 projCoords = lightpos.xyz / lightpos.w;
+        
+        float2 uv = float2(projCoords.x * 0.5 + 0.5, projCoords.y * -0.5 + 0.5);
+        shadow = DirectionalShadowmap0.SampleCmpLevelZero(ShadowmapSampler, uv, projCoords.z);
+    }
+    
     float3 color = 0.0;
     for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
     {
@@ -176,7 +190,7 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         float specular = pow(specAngle, 32.0);
     
         const float3 ambientColor = float3(0.03, 0.03, 0.1);
-        color += ambientColor + diffuse + specular;
+        color += shadow * (ambientColor + diffuse + specular);
     }
     
     return float4(color, baseColor.a);
