@@ -86,11 +86,25 @@ namespace Warp
 			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(8.0f, 0.05f, 8.0f))
 		);
 
-		Entity light = GetWorld()->CreateEntity("Dirlight1");
-		light.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 0.5f,
+		Entity light1 = GetWorld()->CreateEntity("Dirlight1");
+		light1.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
+				.Intensity = 0.4f,
 				.Direction = Math::Vector3(-1.0f, -2.0f, -1.0f),
 				.Radiance = Math::Vector3(0.76f, 0.89f, 0.98f)
+			});
+
+		Entity light2 = GetWorld()->CreateEntity("Dirlight2");
+		light2.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
+				.Intensity = 0.4f,
+				.Direction = Math::Vector3(-1.0f, -1.0f, 1.0f),
+				.Radiance = Math::Vector3(0.98f, 0.89f, 0.78f)
+			});
+
+		Entity light3 = GetWorld()->CreateEntity("Dirlight3");
+		light3.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
+				.Intensity = 0.4f,
+				.Direction = Math::Vector3(0.75f, -0.66f, 1.0f),
+				.Radiance = Math::Vector3(0.22f, 0.45f, 0.45f)
 			});
 	}
 

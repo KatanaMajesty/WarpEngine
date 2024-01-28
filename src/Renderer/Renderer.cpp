@@ -81,7 +81,7 @@ namespace Warp
 		BasicRootParamIdx_BaseColor,
 		BasicRootParamIdx_NormalMap,
 		BasicRootParamIdx_MetalnessRoughnessMap,
-		BasicRootParamIdx_DirectionalShadowmap0,
+		BasicRootParamIdx_DirectionalShadowmaps,
 		BasicRootParamIdx_NumParams,
 	};
 
@@ -220,14 +220,20 @@ namespace Warp
 		HlslLightEnvironment environment = HlslLightEnvironment();
 		for (auto&& [entity, dirLightComponent] : world->GetEntityRegistry().view<DirectionalLightComponent>().each())
 		{
-			WARP_ASSERT(environment.NumDirectionalLights < HlslLightEnvironment::MaxDirectionalLights - 1, "Too many dir lights! Handle this");
+			WARP_ASSERT(environment.NumDirectionalLights < HlslLightEnvironment::MaxDirectionalLights, "Too many dir lights! Handle this");
 
 			// TODO: Currently we check if there is shadowmapping component. If no - add it
 			Entity e = Entity(world, entity);
 			if (dirLightComponent.CastsShadow && !e.HasComponents<DirectionalLightShadowmappingComponent>())
 			{
+				if (m_directionalShadowingSrvs.IsNull())
+				{
+					m_directionalShadowingSrvs = m_device->GetViewHeap()->Allocate(HlslLightEnvironment::MaxDirectionalLights);
+					WARP_ASSERT(m_directionalShadowingSrvs.IsValid());
+				}
+
 				// TODO: We should use camera's frustum for this
-				static constexpr Math::Vector3 DirLightPosition = Math::Vector3(10.0f, 10.0f, 0.0f);
+				Math::Vector3 DirLightPosition = dirLightComponent.Direction * -10.0f;
 
 				DirectionalLightShadowmappingComponent& shadowComponent = e.AddComponent<DirectionalLightShadowmappingComponent>();
 				shadowComponent.LightView = Math::Matrix::CreateLookAt(DirLightPosition, DirLightPosition + dirLightComponent.Direction, Math::Vector3(0.0f, 1.0f, 0.0f));
@@ -262,7 +268,7 @@ namespace Warp
 					.PlaneSlice = 0,
 					.ResourceMinLODClamp = 0.0f,
 				};
-				shadowComponent.DepthMapSrv = RHIShaderResourceView(Device, &shadowComponent.DepthMap, &srvDesc, Device->GetViewHeap()->Allocate(1));
+				shadowComponent.DepthMapSrv = RHIShaderResourceView(Device, &shadowComponent.DepthMap, &srvDesc, m_directionalShadowingSrvs, environment.NumDirectionalLights);
 			}
 
 			DirectionalLightShadowmappingComponent& shadowComponent = e.GetComponent<DirectionalLightShadowmappingComponent>();
@@ -287,7 +293,7 @@ namespace Warp
 		world->GetEntityRegistry().view<DirectionalLightShadowmappingComponent>().each(
 			[&shadowmappingTargets](DirectionalLightShadowmappingComponent& shadowComponent)
 			{
-				WARP_ASSERT(shadowmappingTargets.NumTargets < HlslLightEnvironment::MaxDirectionalLights - 1, "Too many dir lights! Handle this");
+				WARP_ASSERT(shadowmappingTargets.NumTargets < HlslLightEnvironment::MaxDirectionalLights, "Too many dir lights! Handle this");
 				shadowmappingTargets.Targets[shadowmappingTargets.NumTargets++] = &shadowComponent;
 			}
 		);
@@ -419,8 +425,8 @@ namespace Warp
 				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearColor, 0, nullptr);
 				m_graphicsContext.ClearDsv(m_depthStencilView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-				m_graphicsContext.SetGraphicsRootSignature(m_basicRootSignature);
-				m_graphicsContext.SetPipelineState(m_basicPSO);
+				m_graphicsContext.SetGraphicsRootSignature(m_baseRootSignature);
+				m_graphicsContext.SetPipelineState(m_basePSO);
 
 				RHIBuffer::Address cbLightEnv(&constantBuffer, sizeof(HlslLightEnvironment), currentCbOffset);
 				currentCbOffset += cbLightEnv.SizeInBytes;
@@ -445,7 +451,7 @@ namespace Warp
 					DirectionalLightShadowmappingComponent* target = shadowmappingTargets.Targets[0];
 					m_graphicsContext.AddTransitionBarrier(&target->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 					m_graphicsContext.GetQueue()->WaitForValue(dirShadowingPassFenceValue);
-					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_DirectionalShadowmap0, target->DepthMapSrv.GetGpuAddress());
+					m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
 				}
 				else
 				{
@@ -595,12 +601,12 @@ namespace Warp
 		{
 			std::string shaderPath;
 
-			shaderPath = (Application::Get().GetShaderPath() / "Basic.hlsl").string();
-			m_MSBasic = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
-			m_PSBasic = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel));
+			shaderPath = (Application::Get().GetShaderPath() / "Base.hlsl").string();
+			m_MSBase = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
+			m_PSBase = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel));
 			WARP_ASSERT(
-				m_MSBasic.HasBinary() && 
-				m_PSBasic.HasBinary(), "Failed to compile Basic.hlsl");
+				m_MSBase.HasBinary() && 
+				m_PSBase.HasBinary(), "Failed to compile Base.hlsl");
 
 			shaderPath = (Application::Get().GetShaderPath() / "DirectionalShadowing.hlsl").string();
 			m_MSDirectionalShadowing = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
@@ -608,7 +614,7 @@ namespace Warp
 		}
 
 		// TODO: Figure out why MESH visibility wont work
-		m_basicRootSignature = RHIRootSignature(Device, RHIRootSignatureDesc(BasicRootParamIdx_NumParams, 2)
+		m_baseRootSignature = RHIRootSignature(Device, RHIRootSignatureDesc(BasicRootParamIdx_NumParams, 2)
 			// Cbvs
 			.SetConstantBufferView(BasicRootParamIdx_CbLightEnv, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
 			.SetConstantBufferView(BasicRootParamIdx_CbViewData, 2, 0, D3D12_SHADER_VISIBILITY_ALL)
@@ -627,7 +633,8 @@ namespace Warp
 			.SetDescriptorTable(BasicRootParamIdx_BaseColor, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0), D3D12_SHADER_VISIBILITY_PIXEL)
 			.SetDescriptorTable(BasicRootParamIdx_NormalMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 1), D3D12_SHADER_VISIBILITY_PIXEL)
 			.SetDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 2), D3D12_SHADER_VISIBILITY_PIXEL)
-			.SetDescriptorTable(BasicRootParamIdx_DirectionalShadowmap0, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5, 0), D3D12_SHADER_VISIBILITY_PIXEL)
+			.SetDescriptorTable(BasicRootParamIdx_DirectionalShadowmaps, RHIDescriptorTable(1, D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE)
+				.AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 5, 0), D3D12_SHADER_VISIBILITY_PIXEL)
 			// Static samplers
 			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
 				D3D12_FILTER_ANISOTROPIC,
@@ -640,12 +647,12 @@ namespace Warp
 				D3D12_TEXTURE_ADDRESS_MODE_BORDER,
 				D3D12_TEXTURE_ADDRESS_MODE_BORDER)
 		);
-		m_basicRootSignature.SetName(L"RootSignature_Basic");
+		m_baseRootSignature.SetName(L"RootSignature_Base");
 
 		RHIMeshPipelineDesc psoDesc = {};
-		psoDesc.RootSignature = m_basicRootSignature;
-		psoDesc.MS = m_MSBasic.GetBinaryBytecode();
-		psoDesc.PS = m_PSBasic.GetBinaryBytecode();
+		psoDesc.RootSignature = m_baseRootSignature;
+		psoDesc.MS = m_MSBase.GetBinaryBytecode();
+		psoDesc.PS = m_PSBase.GetBinaryBytecode();
 		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
 		psoDesc.DepthStencil.DepthEnable = TRUE;
 		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
@@ -653,8 +660,8 @@ namespace Warp
 		psoDesc.NumRTVs = 1;
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		m_basicPSO = RHIMeshPipelineState(Device, psoDesc);
-		m_basicPSO.SetName(L"PSO_Basic");
+		m_basePSO = RHIMeshPipelineState(Device, psoDesc);
+		m_basePSO.SetName(L"PSO_Base");
 
 		// TODO: D3D12_SHADER_VISIBILITY_MESH somehow crashes gpu. Idk why though
 		m_directionalShadowingSignature = RHIRootSignature(Device, RHIRootSignatureDesc(DirShadowingRootParamIdx_NumParams)
@@ -671,13 +678,11 @@ namespace Warp
 
 		psoDesc = {};
 		psoDesc.RootSignature = m_directionalShadowingSignature;
-		psoDesc.AS = CD3DX12_SHADER_BYTECODE(); // None -> TODO: Maybe make a wrapper here? So that we could provide nullptr
 		psoDesc.MS = m_MSDirectionalShadowing.GetBinaryBytecode();
-		psoDesc.PS = CD3DX12_SHADER_BYTECODE(); // None -> TODO: Maybe make a wrapper here? So that we could provide nullptr
 		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
-		psoDesc.Rasterizer.DepthBias = 128;
+		psoDesc.Rasterizer.DepthBias = 0;
 		psoDesc.Rasterizer.DepthBiasClamp = 0.0f;
-		psoDesc.Rasterizer.SlopeScaledDepthBias = 4.0f;
+		psoDesc.Rasterizer.SlopeScaledDepthBias = 2.0f;
 		psoDesc.DepthStencil.DepthEnable = TRUE;
 		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		psoDesc.DepthStencil.StencilEnable = FALSE;

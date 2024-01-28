@@ -70,14 +70,20 @@ namespace Warp
 		RHIDepthStencilView m_depthStencilView;
 		CShaderCompiler m_shaderCompiler;
 
-		RHIRootSignature m_basicRootSignature;
-		RHIMeshPipelineState m_basicPSO;
-		CShader m_MSBasic;
-		CShader m_PSBasic;
+		RHIRootSignature m_baseRootSignature;
+		RHIMeshPipelineState m_basePSO;
+		CShader m_MSBase;
+		CShader m_PSBase;
 
+		RHIDescriptorAllocation m_directionalShadowingSrvs;
 		RHIRootSignature m_directionalShadowingSignature;
 		RHIMeshPipelineState m_directionalShadowingPSO;
 		CShader m_MSDirectionalShadowing;
+
+		RHIRootSignature m_deferredLightingSignature;
+		RHIMeshPipelineState m_deferredLightingPSO;
+		CShader m_MSDeferredLighting;
+		CShader m_PSDeferredLighting;
 		
 		static constexpr size_t SizeOfGlobalCb = 64 * 512;
 		RHIBuffer m_constantBuffers[SimultaneousFrames];

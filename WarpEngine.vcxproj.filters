@@ -302,7 +302,7 @@
     </Natvis>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\Basic.hlsl">
+    <FxCompile Include="shaders\Base.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\DirectionalShadowing.hlsl">

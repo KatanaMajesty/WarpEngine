@@ -137,7 +137,7 @@ Texture2D MetalnessRoughnessMap : register(t4, space2);
 SamplerState StaticSampler : register(s0);
 
 // Currently we only use 1 shadowmap here, although 3 dir shadow maps is maximum -> TODO: Use 3 shadowmaps instead of 1
-Texture2D<float> DirectionalShadowmap0 : register(t5, space0);
+Texture2D<float> DirectionalShadowmaps[3] : register(t5, space0);
 SamplerComparisonState ShadowmapSampler : register(s1);
 
 float4 PSMain(OutVertex vertex) : SV_Target0
@@ -162,23 +162,20 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
     }
     
-    float3 shadow = 1.0;
-    if (CbLightEnv.NumDirLights > 0)
+    float3 color = 0.0;
+    for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
     {
-        DirectionalLight light = CbLightEnv.DirLights[0];
+        DirectionalLight light = CbLightEnv.DirLights[i];
         
+        // Shadows
         matrix lightMatrix = mul(light.LightView, light.LightProj);
         float4 lightpos = mul(float4(vertex.PosWorld, 1.0), lightMatrix);
         float3 projCoords = lightpos.xyz / lightpos.w;
         
         float2 uv = float2(projCoords.x * 0.5 + 0.5, projCoords.y * -0.5 + 0.5);
-        shadow = DirectionalShadowmap0.SampleCmpLevelZero(ShadowmapSampler, uv, projCoords.z);
-    }
-    
-    float3 color = 0.0;
-    for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
-    {
-        DirectionalLight light = CbLightEnv.DirLights[i];
+        float3 shadow = DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, projCoords.z);
+        
+        // Lighting
         float3 L = normalize(-light.Direction);
         float3 V = normalize(Eye - vertex.PosWorld);
         float3 H = normalize(L + V);
