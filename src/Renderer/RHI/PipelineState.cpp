@@ -29,7 +29,6 @@ namespace Warp
 	};
 
 	using RHIPipelineElement_RootSignature = RHIPipelineElementDesc<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, ID3D12RootSignature*>;
-	using RHIPipelineElement_InputLayout = RHIPipelineElementDesc<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT, D3D12_INPUT_LAYOUT_DESC>;
 	using RHIPipelineElement_VS = RHIPipelineElementDesc<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, D3D12_SHADER_BYTECODE>;
 	using RHIPipelineElement_PS = RHIPipelineElementDesc<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS, D3D12_SHADER_BYTECODE>;
 	using RHIPipelineElement_MS = RHIPipelineElementDesc<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_MS, D3D12_SHADER_BYTECODE>;
@@ -46,7 +45,6 @@ namespace Warp
 	struct GpuGraphicsPipelineStream
 	{
 		RHIPipelineElement_RootSignature RootSignature;
-		RHIPipelineElement_InputLayout InputLayout; // TODO: Remove InputLayout when we switch to mesh shaders
 		RHIPipelineElement_VS VS;
 		RHIPipelineElement_PS PS;
 		RHIPipelineElement_BlendState BlendState;
@@ -92,7 +90,6 @@ namespace Warp
 		{
 			GpuGraphicsPipelineStream stream;
 			stream.RootSignature = desc.RootSignature.GetD3D12RootSignature();
-			stream.InputLayout = D3D12_INPUT_LAYOUT_DESC{ .pInputElementDescs = desc.InputElements.data(), .NumElements = (UINT)desc.InputElements.size() };
 			stream.VS = desc.VS;
 			stream.PS = desc.PS;
 			stream.BlendState = desc.BlendState;

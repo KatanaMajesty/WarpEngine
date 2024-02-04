@@ -67,11 +67,11 @@ namespace Warp
 		}
 		else // Otherwise, we do know the resource's state
 		{
-			UINT numSubresources = trackedState.GetNumSubresources();
 			// If we track a resource state on per-subresource level, then we won't be able to get a state of D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
 			// thus, we need to manually iterate through all the resource states
 			if (subresourceIndex == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && trackedState.IsPerSubresource())
 			{
+				UINT numSubresources = trackedState.GetNumSubresources();
 				for (UINT i = 0; i < numSubresources; ++i)
 				{
 					D3D12_RESOURCE_STATES stateBefore = trackedState.GetSubresourceState(i);
@@ -186,28 +186,67 @@ namespace Warp
 		for (const auto& [resource, subresourceIndex, state] : pendingBarriers)
 		{
 			WARP_ASSERT(resource && state != D3D12_RESOURCE_STATE_INVALID, "Invalid PendingResourceBarrier entry");
+			WARP_ASSERT(state != D3D12_RESOURCE_STATE_UNKNOWN, "Unknown PendinfResourceBarrier entry target state");
 
 			CResourceState& resourceGlobalState = resource->GetState();
-			D3D12_RESOURCE_STATES stateBefore = resourceGlobalState.GetSubresourceState(subresourceIndex);
-			D3D12_RESOURCE_STATES stateAfter = (state == D3D12_RESOURCE_STATE_UNKNOWN) ? stateBefore : state;
-
-			// If state before is equal to state after, then no need to transition
-			if (stateBefore != stateAfter && !resource->IsStateImplicitlyPromotableTo(stateAfter, subresourceIndex))
+			// TODO: Note -> I have encountered this issue when working with transition barriers for scene depth. The issue was with that
+			// The depthstencil format has mulitple planes (usually plane0 for depth and plane1 for stencil) thus it could not resolve barriers
+			// due to perSubresource == true and subresourceIndex being D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES. For the time being I decided to keep
+			// the code in RHI untouched but rather change subresource index of depth-stencil transition barrier to 0
+			// We will probably need to revisit this once again sometime in future
+			// 
+			// If we track a resource state on per-subresource level, then we won't be able to get a state of D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES
+			// thus, we need to manually iterate through all the resource states
+			if (subresourceIndex == D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES && resourceGlobalState.IsPerSubresource())
 			{
-				resolvedBarriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(resource->GetD3D12Resource(),
-					stateBefore,
-					stateAfter,
-					subresourceIndex));
+				UINT numSubresources = resourceGlobalState.GetNumSubresources();
+				for (UINT i = 0; i < numSubresources; ++i)
+				{
+					D3D12_RESOURCE_STATES stateBefore = resourceGlobalState.GetSubresourceState(i);
+					D3D12_RESOURCE_STATES stateAfter = state;
+
+					// If state before is equal to state after, then no need to transition
+					if (stateBefore != stateAfter && !resource->IsStateImplicitlyPromotableTo(stateAfter, i))
+					{
+						resolvedBarriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(resource->GetD3D12Resource(),
+							stateBefore,
+							stateAfter,
+							i));
+					}
+
+					D3D12_RESOURCE_STATES cachedState = m_stateTracker.GetCachedState(resource).GetSubresourceState(i);
+					D3D12_RESOURCE_STATES previousState = (cachedState == D3D12_RESOURCE_STATE_UNKNOWN) ? stateAfter : cachedState;
+					WARP_ASSERT(previousState != D3D12_RESOURCE_STATE_INVALID);
+
+					if (previousState != stateBefore)
+					{
+						resourceGlobalState.SetSubresourceState(i, previousState);
+					}
+				}
 			}
-
-			// Get a cached state from previous command list execution
-			D3D12_RESOURCE_STATES cachedState = m_stateTracker.GetCachedState(resource).GetSubresourceState(subresourceIndex);
-			D3D12_RESOURCE_STATES previousState = (cachedState == D3D12_RESOURCE_STATE_UNKNOWN) ? stateBefore : cachedState;
-			WARP_ASSERT(previousState != D3D12_RESOURCE_STATE_INVALID);
-
-			if (previousState != stateBefore)
+			else
 			{
-				resourceGlobalState.SetSubresourceState(subresourceIndex, previousState);
+				D3D12_RESOURCE_STATES stateBefore = resourceGlobalState.GetSubresourceState(subresourceIndex);
+				D3D12_RESOURCE_STATES stateAfter = (state == D3D12_RESOURCE_STATE_UNKNOWN) ? stateBefore : state;
+
+				// If state before is equal to state after, then no need to transition
+				if (stateBefore != stateAfter && !resource->IsStateImplicitlyPromotableTo(stateAfter, subresourceIndex))
+				{
+					resolvedBarriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(resource->GetD3D12Resource(),
+						stateBefore,
+						stateAfter,
+						subresourceIndex));
+				}
+
+				// Get a cached state from previous command list execution
+				D3D12_RESOURCE_STATES cachedState = m_stateTracker.GetCachedState(resource).GetSubresourceState(subresourceIndex);
+				D3D12_RESOURCE_STATES previousState = (cachedState == D3D12_RESOURCE_STATE_UNKNOWN) ? stateBefore : cachedState;
+				WARP_ASSERT(previousState != D3D12_RESOURCE_STATE_INVALID);
+
+				if (previousState != stateBefore)
+				{
+					resourceGlobalState.SetSubresourceState(subresourceIndex, previousState);
+				}
 			}
 		}
 		

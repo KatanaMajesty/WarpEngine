@@ -33,7 +33,7 @@ namespace Warp
 	class RHIRootSignatureDesc
 	{
 	public:
-		RHIRootSignatureDesc(UINT numRootParameters, UINT numStaticSamplers = 0, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
+		RHIRootSignatureDesc(UINT numRootParameters, D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_NONE);
 
 		RHIRootSignatureDesc& SetConstantBufferView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
 		RHIRootSignatureDesc& SetShaderResourceView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility);
@@ -54,7 +54,7 @@ namespace Warp
 
 		inline constexpr D3D12_ROOT_SIGNATURE_FLAGS GetFlags() const { return m_flags; }
 		inline constexpr UINT GetNumRootParameters() const { return m_numRootParameters; }
-		inline constexpr UINT GetNumStaticSamplers() const { return m_numStaticSamplers; }
+		inline constexpr UINT GetNumStaticSamplers() const { return static_cast<UINT>(m_staticSamplers.size()); }
 		const D3D12_ROOT_PARAMETER1* GetRootParameters() const;
 		const D3D12_STATIC_SAMPLER_DESC* GetStaticSamplers() const;
 
@@ -63,7 +63,7 @@ namespace Warp
 
 		D3D12_ROOT_SIGNATURE_FLAGS m_flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
 		UINT m_numRootParameters = 0;
-		UINT m_numStaticSamplers = 0;
+		UINT m_numInitRootParameters = 0;
 		std::vector<D3D12_ROOT_PARAMETER1> m_params;
 		std::vector<D3D12_STATIC_SAMPLER_DESC> m_staticSamplers;
 	};

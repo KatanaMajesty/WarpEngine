@@ -45,10 +45,10 @@ namespace Warp
 	{
 		if (IsPerSubresource())
 		{
-			WARP_ASSERT(subresourceIndex < GetNumSubresources());
+			WARP_ASSERT(subresourceIndex < GetNumSubresources(), "Out of bounds subresource index (apparently ALL_SUBRESOURCES?)");
 			return m_subresourceStates[subresourceIndex];
 		}
-		else return m_resourceState;
+		return m_resourceState;
 	}
 
 	//inline constexpr bool RHIResourceState::IsValid() const

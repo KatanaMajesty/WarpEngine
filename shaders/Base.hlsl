@@ -21,24 +21,8 @@ struct DrawData
     uint DrawFlags;
 };
 
-struct DirectionalLight
-{
-    matrix LightView;
-    matrix LightProj;
-    float Intensity;
-    float3 Direction;
-    float3 Radiance;
-};
-
-struct LightEnvironment
-{
-    uint NumDirLights;
-    DirectionalLight DirLights[3];
-};
-
-ConstantBuffer<LightEnvironment> CbLightEnv : register(b1);
-ConstantBuffer<ViewData> CbViewData : register(b2);
-ConstantBuffer<DrawData> CbDrawData : register(b3);
+ConstantBuffer<ViewData> CbViewData : register(b0);
+ConstantBuffer<DrawData> CbDrawData : register(b1);
 
 struct OutVertex
 {
@@ -136,13 +120,20 @@ Texture2D NormalMap : register(t4, space1);
 Texture2D MetalnessRoughnessMap : register(t4, space2);
 SamplerState StaticSampler : register(s0);
 
-// Currently we only use 1 shadowmap here, although 3 dir shadow maps is maximum -> TODO: Use 3 shadowmaps instead of 1
-Texture2D<float> DirectionalShadowmaps[3] : register(t5, space0);
-SamplerComparisonState ShadowmapSampler : register(s1);
-
-float4 PSMain(OutVertex vertex) : SV_Target0
+struct OutFragment
 {
-    float3 Eye = CbViewData.ViewInv[3].xyz;
+    float4 Albedo : SV_Target0;
+    float4 Normal : SV_Target1;
+    float2 MetalnessRoughness : SV_Target2;
+};
+
+OutFragment PSMain(OutVertex vertex)
+{
+    float3 albedo = 0.0;
+    if ((CbDrawData.DrawFlags & DRAWFLAG_NO_BASECOLORMAP) == 0)
+    {
+        albedo = BaseColor.Sample(StaticSampler, vertex.TexUv).rgb;
+    }
 
     float3 N = normalize(vertex.Normal);
     if ((CbDrawData.DrawFlags & DRAWFLAG_NO_NORMALMAP) == 0 && 
@@ -156,39 +147,16 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         N = normalize(mul(NSample, TBN));
     }
     
-    float4 baseColor = float4(1.0, 0.0, 0.0, 1.0);
-    if ((CbDrawData.DrawFlags & DRAWFLAG_NO_BASECOLORMAP) == 0)
+    float2 metalnessRoughness = float2(0.0, 1.0);
+    if ((CbDrawData.DrawFlags & DRAWFLAG_NO_ROUGHNESSMETALNESSMAP) == 0)
     {
-        baseColor = BaseColor.Sample(StaticSampler, vertex.TexUv);
+        // TODO: Afaik currently we have xy - metalness, zw - roughness. Would be nice to change this to float2 from beginning (Gltf issues)
+        metalnessRoughness = MetalnessRoughnessMap.Sample(StaticSampler, vertex.TexUv).xz;
     }
     
-    float3 color = 0.0;
-    for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
-    {
-        DirectionalLight light = CbLightEnv.DirLights[i];
-        
-        // Shadows
-        matrix lightMatrix = mul(light.LightView, light.LightProj);
-        float4 lightpos = mul(float4(vertex.PosWorld, 1.0), lightMatrix);
-        float3 projCoords = lightpos.xyz / lightpos.w;
-        
-        float2 uv = float2(projCoords.x * 0.5 + 0.5, projCoords.y * -0.5 + 0.5);
-        float3 shadow = DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, projCoords.z);
-        
-        // Lighting
-        float3 L = normalize(-light.Direction);
-        float3 V = normalize(Eye - vertex.PosWorld);
-        float3 H = normalize(L + V);
-    
-        float lambertian = saturate(dot(N, L));
-        float3 diffuse = light.Intensity * light.Radiance * lambertian * baseColor.rgb;
-    
-        float specAngle = saturate(dot(H, N));
-        float specular = pow(specAngle, 32.0);
-    
-        const float3 ambientColor = float3(0.03, 0.03, 0.1);
-        color += shadow * (ambientColor + diffuse + specular);
-    }
-    
-    return float4(color, baseColor.a);
+    OutFragment output;
+    output.Albedo = float4(albedo, 0.0);
+    output.Normal = float4(N, 0.0);
+    output.MetalnessRoughness = metalnessRoughness;
+    return output;
 }

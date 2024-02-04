@@ -61,28 +61,51 @@ namespace Warp
 		RHICommandContext m_computeContext;
 		RHICopyCommandContext m_copyContext;
 
-		// TODO: Remove/move
-		void InitDepthStencil();
-		void ResizeDepthStencil();
 		bool InitAssets(); // TODO: Temp, will be removed
 		
-		RHITexture m_depthStencil;
-		RHIDepthStencilView m_depthStencilView;
 		CShaderCompiler m_shaderCompiler;
+
+		// TODO: Remove/move
+		void InitSceneDepth();
+		void ResizeSceneDepth();
+		RHITexture m_sceneDepth;
+		RHIDepthStencilView m_sceneDepthDsv;
+		RHIShaderResourceView m_sceneDepthSrv;
 
 		RHIRootSignature m_baseRootSignature;
 		RHIMeshPipelineState m_basePSO;
 		CShader m_MSBase;
 		CShader m_PSBase;
 
+		// TODO: Remove entirely when rendergraph
+		void InitGbuffers();
+		void ResizeGbuffers();
+		enum EGbufferType
+		{
+			eGbufferType_Albedo,
+			eGbufferType_Normal,
+			eGbufferType_RoughnessMetalness,
+			eGbufferType_NumTypes,
+		};
+		struct Gbuffer
+		{
+			RHITexture Buffer;
+			RHIRenderTargetView Rtv;
+			RHIShaderResourceView Srv;
+		};
+		std::array<Gbuffer, eGbufferType_NumTypes> m_gbuffers;
+		RHIDescriptorAllocation m_gbufferRtvs;
+		RHIDescriptorAllocation m_gbufferSrvs;
+
 		RHIDescriptorAllocation m_directionalShadowingSrvs;
 		RHIRootSignature m_directionalShadowingSignature;
 		RHIMeshPipelineState m_directionalShadowingPSO;
 		CShader m_MSDirectionalShadowing;
 
+		void InitDeferredLighting();
 		RHIRootSignature m_deferredLightingSignature;
-		RHIMeshPipelineState m_deferredLightingPSO;
-		CShader m_MSDeferredLighting;
+		RHIGraphicsPipelineState m_deferredLightingPSO;
+		CShader m_VSDeferredLighting;
 		CShader m_PSDeferredLighting;
 		
 		static constexpr size_t SizeOfGlobalCb = 64 * 512;

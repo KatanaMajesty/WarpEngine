@@ -28,13 +28,11 @@ namespace Warp
 		return m_ranges.data();
 	}
 
-	RHIRootSignatureDesc::RHIRootSignatureDesc(UINT numRootParameters, UINT numStaticSamplers, D3D12_ROOT_SIGNATURE_FLAGS flags)
+	RHIRootSignatureDesc::RHIRootSignatureDesc(UINT numRootParameters, D3D12_ROOT_SIGNATURE_FLAGS flags)
 		: m_flags(flags)
 		, m_numRootParameters(numRootParameters)
-		, m_numStaticSamplers(numStaticSamplers)
 	{
 		m_params.resize(numRootParameters);
-		m_staticSamplers.reserve(numStaticSamplers);
 	}
 
 	RHIRootSignatureDesc& RHIRootSignatureDesc::SetConstantBufferView(UINT rootIndex, UINT shaderRegister, UINT registerSpace, D3D12_SHADER_VISIBILITY visibility)
@@ -91,7 +89,6 @@ namespace Warp
 		D3D12_COMPARISON_FUNC comparisonFunc,
 		D3D12_STATIC_BORDER_COLOR borderColor)
 	{
-		WARP_ASSERT(m_staticSamplers.size() < m_numStaticSamplers);
 		CD3DX12_STATIC_SAMPLER_DESC desc;
 		desc.Init(shaderRegister, 
 			filter, 
@@ -112,13 +109,12 @@ namespace Warp
 
 	const D3D12_ROOT_PARAMETER1* RHIRootSignatureDesc::GetRootParameters() const
 	{
-		WARP_ASSERT(m_numRootParameters == m_params.size());
+		WARP_ASSERT(m_numRootParameters == m_numInitRootParameters);
 		return m_params.data();
 	}
 
 	const D3D12_STATIC_SAMPLER_DESC* RHIRootSignatureDesc::GetStaticSamplers() const
 	{
-		WARP_ASSERT(m_numStaticSamplers == m_staticSamplers.size());
 		return m_staticSamplers.data();
 	}
 
@@ -126,6 +122,7 @@ namespace Warp
 	{
 		WARP_ASSERT(rootIndex < m_numRootParameters);
 		m_params[rootIndex] = param;
+		++m_numInitRootParameters; // Increase amount of init root params
 		return *this;
 	}
 

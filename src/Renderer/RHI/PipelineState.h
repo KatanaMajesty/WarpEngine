@@ -13,7 +13,6 @@ namespace Warp
 	struct RHIGraphicsPipelineDesc
 	{
 		RHIRootSignature RootSignature;
-		std::vector<D3D12_INPUT_ELEMENT_DESC> InputElements; // TODO: Remove InputElements when we switch to mesh shaders
 		D3D12_SHADER_BYTECODE VS = CD3DX12_SHADER_BYTECODE();
 		D3D12_SHADER_BYTECODE PS = CD3DX12_SHADER_BYTECODE();
 		D3D12_BLEND_DESC BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
