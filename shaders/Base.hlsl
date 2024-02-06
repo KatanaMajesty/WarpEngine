@@ -78,6 +78,7 @@ OutVertex GetVertex(uint meshletIndex, uint vertexIndex)
     v.Pos = pos;
     v.PosWorld = posWorld.xyz;
     v.Normal = normalize(mul(Normals[vertexIndex], (float3x3)CbDrawData.NormalMatrix));
+    
     if (CbDrawData.DrawFlags & DRAWFLAG_HAS_TEXCOORDS)
         v.TexUv = TexCoords[vertexIndex];
     

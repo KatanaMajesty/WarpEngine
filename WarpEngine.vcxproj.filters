@@ -295,6 +295,7 @@
       <Filter>Vendor</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="shaders\BRDF.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="vendor\D3D12MA\D3D12MemAlloc.natvis">

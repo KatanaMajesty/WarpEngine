@@ -88,14 +88,15 @@ namespace Warp
 
 		Entity light1 = GetWorld()->CreateEntity("Dirlight1");
 		light1.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 0.4f,
+				.Intensity = 2.4f,
 				.Direction = Math::Vector3(-1.0f, -2.0f, -1.0f),
 				.Radiance = Math::Vector3(0.76f, 0.89f, 0.98f)
 			});
 
+		// TODO: Try removing these 2 light sources. Whats the result? Are there uninitialized descriptor warnings?
 		Entity light2 = GetWorld()->CreateEntity("Dirlight2");
 		light2.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 0.4f,
+				.Intensity = 1.4f,
 				.Direction = Math::Vector3(-1.0f, -1.0f, 1.0f),
 				.Radiance = Math::Vector3(0.98f, 0.89f, 0.78f)
 			});

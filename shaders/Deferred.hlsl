@@ -54,6 +54,8 @@ SamplerState StaticSampler : register(s0);
 Texture2D<float> DirectionalShadowmaps[3] : register(t2, space0);
 SamplerComparisonState ShadowmapSampler : register(s1);
 
+#include "BRDF.hlsli"
+
 float3 WorldPosFromDepth(float2 uv, float depth)
 {
     float4 ndc = float4(uv * 2.0 - 1.0, depth, 1.0);
@@ -73,15 +75,32 @@ float4 PSMain(OutVertex vertex) : SV_Target0
     float3 eye = CbViewData.ViewInv[3].xyz;
     
     float3 albedo = GbufferAlbedo.Sample(StaticSampler, vertex.Uv).rgb;
-    float3 N = GbufferNormal.Sample(StaticSampler, vertex.Uv).xyz;
+    float2 roughnessMetalness = GbufferRoughnessMetalness.Sample(StaticSampler, vertex.Uv);
+    float3 N = normalize(GbufferNormal.Sample(StaticSampler, vertex.Uv).xyz);
     float3 V = normalize(eye - worldPos);
-    // TODO: Add roughness/metalness when switching to Pbr
+    float VdotN = saturate(dot(V, N));
     
-    float3 color = 0.0;
+    const float3 ambient = 0.04;
+    float3 Lo = 0.0;
     for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
     {
         DirectionalLight light = CbLightEnv.DirLights[i];
   
+        // Lighting
+        float3 L = normalize(-light.Direction);
+        float3 H = normalize(L + V);
+        float LdotN = saturate(dot(L, N));
+        float VdotH = saturate(dot(V, H));
+        float NdotH = saturate(dot(N, H));
+        float NdotL = saturate(dot(N, L));
+        
+        // To handle both metals and non metals, we consider a purely non metallic surface to have base reflectivity of (0.04, 0.04, 0.04) 
+        // and lerp between this value of base reflectivity (F0) based on the metallic factor of the surface.
+        float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, roughnessMetalness.y);
+        float3 F = Brdf_FresnelSchlick(F0, VdotH);
+        float3 Kd = 1.0 - F; // We assume F to represent Ks -> Kd = 1.0 - Ks
+        float3 O = Kd * Brdf_Diffuse_Lambertian(albedo) + Brdf_Specular_CookTorrance(F, roughnessMetalness.x, VdotN, LdotN, VdotH, NdotH);
+        
         // Shadows
         matrix lightMatrix = mul(light.LightView, light.LightProj);
         float4 lightpos = mul(float4(worldPos, 1.0), lightMatrix);
@@ -90,19 +109,8 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         float2 uv = float2(projCoords.x * 0.5 + 0.5, projCoords.y * -0.5 + 0.5);
         float3 shadow = DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, projCoords.z);
   
-        // Lighting
-        float3 L = normalize(-light.Direction);
-        float3 H = normalize(L + V);
-
-        float lambertian = saturate(dot(N, L));
-        float3 diffuse = light.Intensity * light.Radiance * lambertian * albedo;
-
-        float specAngle = saturate(dot(H, N));
-        float specular = pow(specAngle, 32.0);
-
-        const float3 ambientColor = float3(0.03, 0.03, 0.03);
-        color += shadow * (ambientColor + diffuse + specular);
+        Lo += shadow * O * NdotL * light.Radiance * light.Intensity;
     }
     
-    return float4(color, 1.0); // TODO: Add support of alpha from albedo gbuffer (??)
+    return float4(ambient + Lo, 1.0); // TODO: Add support of alpha from albedo gbuffer (??)
 }

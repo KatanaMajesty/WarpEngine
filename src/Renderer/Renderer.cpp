@@ -690,9 +690,9 @@ namespace Warp
 			.SetDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 2), D3D12_SHADER_VISIBILITY_PIXEL)
 			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
 				D3D12_FILTER_ANISOTROPIC,
-				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
-				D3D12_TEXTURE_ADDRESS_MODE_CLAMP)
+				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+				D3D12_TEXTURE_ADDRESS_MODE_MIRROR)
 		);
 		m_baseRootSignature.SetName(L"RootSignature_Base");
 
@@ -902,7 +902,7 @@ namespace Warp
 			.SetDescriptorTable(DeferredLightingRootParamIdx_GbufferRoughnessMetalness, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 2), D3D12_SHADER_VISIBILITY_PIXEL)
 			.SetDescriptorTable(DeferredLightingRootParamIdx_SceneDepth, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1, 0), D3D12_SHADER_VISIBILITY_PIXEL)
 			.SetDescriptorTable(DeferredLightingRootParamIdx_DirectionalShadowmaps, 
-				RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, HlslLightEnvironment::MaxDirectionalLights, 2, 0), D3D12_SHADER_VISIBILITY_PIXEL)
+				RHIDescriptorTable(1, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, HlslLightEnvironment::MaxDirectionalLights, 2, 0), D3D12_SHADER_VISIBILITY_PIXEL)
 			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
 				D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT,
 				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
