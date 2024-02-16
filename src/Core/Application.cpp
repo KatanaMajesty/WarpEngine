@@ -160,7 +160,23 @@ namespace Warp
 
 	void Application::Render()
 	{
-		m_renderer->Render(m_world.get());
+		InputManager& inputManager = m_inputManager;
+
+		RenderOpts opts = RenderOpts();
+		if (inputManager.IsKeyPressed(eKeycode_Z))
+		{
+			opts.ViewGbuffer = eGbufferType_Albedo;
+		}
+		else if (inputManager.IsKeyPressed(eKeycode_X))
+		{
+			opts.ViewGbuffer = eGbufferType_Normal;
+		}
+		else if (inputManager.IsKeyPressed(eKeycode_C))
+		{
+			opts.ViewGbuffer = eGbufferType_RoughnessMetalness;
+		}
+
+		m_renderer->Render(m_world.get(), opts);
 	}
 
 }

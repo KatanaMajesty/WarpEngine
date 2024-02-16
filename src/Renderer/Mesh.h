@@ -10,7 +10,9 @@ namespace Warp
 	{
 		AssetProxy Mesh;
 		std::vector<AssetProxy> MaterialOverrides;
+
 		Math::Matrix InstanceToWorld;
+		Math::Matrix NormalMatrix;
 	};
 
 }

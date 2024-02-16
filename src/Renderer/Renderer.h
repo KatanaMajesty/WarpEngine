@@ -23,6 +23,21 @@ namespace Warp
 
 	class World;
 
+	// TODO: Temporarily moved out of Renderer to allow to use with RenderOpts
+	enum EGbufferType
+	{
+		eGbufferType_Albedo,
+		eGbufferType_Normal,
+		eGbufferType_RoughnessMetalness,
+		eGbufferType_NumTypes,
+	};
+
+	// TODO: Temporary, remove. Just to player around with old plain renderer
+	struct RenderOpts
+	{
+		EGbufferType ViewGbuffer = EGbufferType::eGbufferType_NumTypes;
+	};
+
 	class Renderer
 	{
 	public:
@@ -35,7 +50,7 @@ namespace Warp
 		~Renderer();
 
 		void Resize(uint32_t width, uint32_t height);
-		void Render(World* world);
+		void Render(World* world, const RenderOpts& opts);
 
 		static constexpr uint32_t SimultaneousFrames = RHISwapchain::BackbufferCount;
 		
@@ -80,13 +95,7 @@ namespace Warp
 		// TODO: Remove entirely when rendergraph
 		void InitGbuffers();
 		void ResizeGbuffers();
-		enum EGbufferType
-		{
-			eGbufferType_Albedo,
-			eGbufferType_Normal,
-			eGbufferType_RoughnessMetalness,
-			eGbufferType_NumTypes,
-		};
+		
 		struct Gbuffer
 		{
 			RHITexture Buffer;
@@ -107,6 +116,12 @@ namespace Warp
 		RHIGraphicsPipelineState m_deferredLightingPSO;
 		CShader m_VSDeferredLighting;
 		CShader m_PSDeferredLighting;
+
+		void InitGbufferView();
+		RHIRootSignature m_gbufferViewSignature;
+		RHIGraphicsPipelineState m_gbufferViewPSO;
+		CShader m_VSGbufferView;
+		CShader m_PSGbufferView;
 		
 		static constexpr size_t SizeOfGlobalCb = 64 * 512;
 		RHIBuffer m_constantBuffers[SimultaneousFrames];

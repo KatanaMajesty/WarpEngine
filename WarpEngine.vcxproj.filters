@@ -259,12 +259,6 @@
     <ClInclude Include="src\Assets\TextureAsset.h">
       <Filter>Assets</Filter>
     </ClInclude>
-    <ClInclude Include="src\Renderer\Material.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Renderer\MaterialRegistry.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
     <ClInclude Include="src\World\EntityRegistry.h">
       <Filter>World</Filter>
     </ClInclude>
@@ -329,6 +323,7 @@
     <FxCompile Include="shaders\Deferred.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\GbufferView.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="vendor\dxil.dll">

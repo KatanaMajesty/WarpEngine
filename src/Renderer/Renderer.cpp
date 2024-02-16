@@ -125,6 +125,12 @@ namespace Warp
 		DeferredLightingRootParamIdx_NumParams,
 	};
 
+	enum EGbufferViewRootParamIdx
+	{
+		eGbufferViewRootParamIdx_ViewedGbuffer,
+		eGbufferViewRootParamIdx_NumParams,
+	};
+
 	Renderer::Renderer(HWND hwnd)
 		: m_physicalDevice(
 			[hwnd]() -> std::unique_ptr<RHIPhysicalDevice>
@@ -158,6 +164,7 @@ namespace Warp
 		InitSceneDepth();
 		InitGbuffers();
 		InitDeferredLighting();
+		InitGbufferView();
 
 		WARP_LOG_INFO("Renderer was initialized successfully");
 	}
@@ -180,7 +187,7 @@ namespace Warp
 		ResizeGbuffers();
 	}
 
-	void Renderer::Render(World* world)
+	void Renderer::Render(World* world, const RenderOpts& opts)
 	{
 		// TODO: "Kind of" mesh instance impl
 		struct MeshInstance
@@ -657,6 +664,51 @@ namespace Warp
 		graphicsContext.Close();
 		m_frameFenceValues[frameIndex] = graphicsContext.Execute(false);
 
+		// Deferred pass
+		if (opts.ViewGbuffer != eGbufferType_NumTypes)
+		{
+			Gbuffer& gbuffer = m_gbuffers[opts.ViewGbuffer];
+
+			graphicsContext.Open();
+			{
+				WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_GbufferView_Frame{}", frameIndex + 1));
+				graphicsContext.SetViewport(0, 0, Width / 3, Height / 3);
+				graphicsContext.SetScissorRect(0, 0, Width / 3, Height / 3);
+
+				{
+					WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+
+					std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
+						Device->GetSamplerHeap()->GetD3D12Heap(),
+						Device->GetViewHeap()->GetD3D12Heap()
+					};
+
+					graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+				}
+
+				// Actual drawing
+				{
+					graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+					D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_swapchain->GetCurrentRtv().GetCpuAddress();
+					graphicsContext->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+					graphicsContext.SetGraphicsRootSignature(m_gbufferViewSignature);
+					graphicsContext.SetPipelineState(m_gbufferViewPSO);
+					graphicsContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // TODO: Why the fuck is this even a thing?
+
+					graphicsContext.AddTransitionBarrier(&gbuffer.Buffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					graphicsContext->SetGraphicsRootDescriptorTable(eGbufferViewRootParamIdx_ViewedGbuffer, gbuffer.Srv.GetGpuAddress());
+
+					// Fullscreen triangle
+					graphicsContext.DrawInstanced(3, 1, 0, 0);
+					graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
+				}
+			}
+			graphicsContext.Close();
+			m_frameFenceValues[frameIndex] = graphicsContext.Execute(false);
+		}
+		
 		m_swapchain->Present(false);
 
 		Device->EndFrame();
@@ -962,10 +1014,40 @@ namespace Warp
 		psoDesc.DepthStencil.StencilEnable = FALSE;
 		psoDesc.NumRTVs = 1;
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 		m_deferredLightingPSO = RHIGraphicsPipelineState(GetDevice(), psoDesc);
 		m_deferredLightingPSO.SetName(L"PSO_DeferredLighting");
+	}
+
+	void Renderer::InitGbufferView()
+	{
+		RHIDevice* Device = GetDevice();
+		m_gbufferViewSignature = RHIRootSignature(Device, RHIRootSignatureDesc(eGbufferViewRootParamIdx_NumParams)
+			.SetDescriptorTable(eGbufferViewRootParamIdx_ViewedGbuffer, 
+				RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0), D3D12_SHADER_VISIBILITY_PIXEL)
+			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
+				D3D12_FILTER_MIN_MAG_MIP_POINT,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+				D3D12_TEXTURE_ADDRESS_MODE_CLAMP));
+		m_gbufferViewSignature.SetName(L"GbufferViewSignature");
+
+		std::string shaderPath = (Application::Get().GetShaderPath() / "GBufferView.hlsl").string();
+		m_VSGbufferView = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("VSMain", EShaderModel::sm_6_5, EShaderType::Vertex));
+		m_PSGbufferView = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel));
+		WARP_ASSERT(
+			m_VSGbufferView.HasBinary() &&
+			m_PSGbufferView.HasBinary(), "Failed to compile GBufferView.hlsl");
+
+		RHIGraphicsPipelineDesc psoDesc = {};
+		psoDesc.RootSignature = m_gbufferViewSignature;
+		psoDesc.VS = m_VSGbufferView.GetBinaryBytecode();
+		psoDesc.PS = m_PSGbufferView.GetBinaryBytecode();
+		psoDesc.DepthStencil.DepthEnable = FALSE;
+		psoDesc.DepthStencil.StencilEnable = FALSE;
+		psoDesc.NumRTVs = 1;
+		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		m_gbufferViewPSO = RHIGraphicsPipelineState(Device, psoDesc);
+		m_gbufferViewPSO.SetName(L"PSO_GbufferView");
 	}
 
 }

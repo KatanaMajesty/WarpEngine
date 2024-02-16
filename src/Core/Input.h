@@ -11,6 +11,12 @@ namespace Warp
 		eKeycode_A,
 		eKeycode_S,
 		eKeycode_D,
+
+		// TODO: Added 16.02.2024 for gbuffer views -> temp, remove them and implement normally
+		eKeycode_Z,
+		eKeycode_X,
+		eKeycode_C,
+
 		eKeycode_NumKeycodes,
 	};
 

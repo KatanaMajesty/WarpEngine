@@ -193,6 +193,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             { 'A', Warp::eKeycode_A },
             { 'S', Warp::eKeycode_S },
             { 'D', Warp::eKeycode_D },
+            { 'Z', Warp::eKeycode_Z },
+            { 'X', Warp::eKeycode_X },
+            { 'C', Warp::eKeycode_C },
         };
 
         Warp::InputManager& inputManager = application.GetInputManager();
