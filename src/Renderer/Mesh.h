@@ -6,19 +6,11 @@
 namespace Warp
 {
 
-	struct MeshMaterial
+	struct MeshInstance
 	{
-		AssetProxy BaseColorProxy;
-		AssetProxy NormalMapProxy;
-		AssetProxy RoughnessMapProxy;
-		AssetProxy MetalnessMapProxy;
-		AssetManager* Manager;
-	};
-
-	struct Mesh
-	{
-		AssetProxy MeshProxy;
-		AssetManager* Manager;
+		AssetProxy Mesh;
+		std::vector<AssetProxy> MaterialOverrides;
+		Math::Matrix InstanceToWorld;
 	};
 
 }

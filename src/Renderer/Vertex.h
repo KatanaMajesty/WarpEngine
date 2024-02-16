@@ -3,14 +3,14 @@
 namespace Warp
 {
 
-	enum EVertexAttributes
+	enum EVertexAttribute
 	{
-		EVertexAttributes_Positions = 0,
-		EVertexAttributes_Normals,
-		EVertexAttributes_TextureCoords,
-		EVertexAttributes_Tangents,
-		EVertexAttributes_Bitangents,
-		EVertexAttributes_NumAttributes,
+		eVertexAttribute_Positions = 0,
+		eVertexAttribute_Normals,
+		eVertexAttribute_TextureCoords,
+		eVertexAttribute_Tangents,
+		eVertexAttribute_Bitangents,
+		eVertexAttribute_NumAttributes,
 	};
 
 }

@@ -5,10 +5,11 @@
 #include <string_view>
 #include <unordered_map>
 
-#include "WinAPI.h"
 #include "Core/Application.h"
 #include "Core/Input.h"
 #include "Core/Logger.h"
+
+#include "WinAPI.h"
 
 WCHAR g_ClassName[] = L"WarpEngineClass";
 

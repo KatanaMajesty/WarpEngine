@@ -4,9 +4,6 @@
 #include "Defines.h"
 #include "Assert.h"
 
-#include "../Assets/MeshImporter.h"
-#include "../Assets/TextureImporter.h"
-
 // TODO: Remove
 #include "../World/Components.h"
 
@@ -17,6 +14,10 @@ namespace Warp
 		// TODO: This is a temporary workaround in order to make our SolutionDir a working directory
 		: m_workingDirectory(desc.WorkingDirectory)
 		, m_flags(desc.Flags)
+		// TODO: (14.02.2024) -> Asset manager and importers are on stack. Can cause any problems? Recheck it when youre sane
+		, m_assetManager()
+		, m_meshImporter(&m_assetManager)
+		, m_textureImporter(&m_assetManager)
 	{
 	}
 
@@ -43,19 +44,18 @@ namespace Warp
 	static void AddEntityFromMesh(
 		const std::filesystem::path& assetsPath, 
 		const std::string& filename, 
-		MeshImporter* meshImporter, 
+		AssetManager& manager,
+		MeshImporter& meshImporter, 
 		World* world, 
 		const TransformComponent& transform)
 	{
 		std::filesystem::path filepath = assetsPath / filename;
-		std::vector<AssetProxy> meshes = meshImporter->ImportFromFile(filepath.string());
+		AssetProxy proxy = meshImporter.ImportStaticMeshFromFile(filepath.string());
+		MeshAsset* mesh = manager.GetAs<MeshAsset>(proxy);
 
-		for (size_t i = 0; i < meshes.size(); ++i)
-		{
-			Entity antiqueEntity = world->CreateEntity(fmt::format("{} Mesh {}", filename, i));
-			antiqueEntity.AddComponent<TransformComponent>(transform);
-			antiqueEntity.AddComponent<MeshComponent>(meshImporter->GetAssetManager(), meshes[i]);
-		}
+		Entity entity = world->CreateEntity(mesh->Name);
+		entity.AddComponent<TransformComponent>(transform);
+		entity.AddComponent<MeshComponent>(&manager, proxy);
 	}
 
 	void Application::Init(HWND hwnd)
@@ -64,23 +64,23 @@ namespace Warp
 
 		m_renderer = std::make_unique<Renderer>(hwnd);
 		m_world = std::make_unique<World>();
-		m_assetManager = std::make_unique<AssetManager>();
-		m_meshImporter = std::make_unique<MeshImporter>(m_renderer.get(), m_assetManager.get());
-		m_textureImporter = std::make_unique<TextureImporter>(m_renderer.get(), m_assetManager.get());
 
 		AddEntityFromMesh(GetAssetsPath(), "antique_camera/AntiqueCamera.gltf", 
+			m_assetManager,
 			GetMeshImporter(), 
 			GetWorld(),
 			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f))
 		);
 
-		AddEntityFromMesh(GetAssetsPath(), "asteroid/Asteroid.gltf",
+		AddEntityFromMesh(GetAssetsPath(), "wetmud/Wetmud.gltf",
+			m_assetManager,
 			GetMeshImporter(),
 			GetWorld(),
 			TransformComponent(Math::Vector3(3.0f, -2.0f, -8.0f), Math::Vector3(), Math::Vector3(1.0f))
 		);
 
 		AddEntityFromMesh(GetAssetsPath(), "wood/wood.gltf",
+			m_assetManager,
 			GetMeshImporter(),
 			GetWorld(),
 			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(8.0f, 0.05f, 8.0f))

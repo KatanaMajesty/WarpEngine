@@ -21,10 +21,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Assets\AssetManager.cpp" />
-    <ClCompile Include="src\Assets\MeshImporter.cpp" />
-    <ClCompile Include="src\Assets\TextureImporter.cpp" />
-    <ClCompile Include="src\Assets\Util\ImageLoader.cpp" />
-    <ClCompile Include="src\Assets\Util\MeshLoader.cpp" />
+    <ClCompile Include="src\Assets\Importers\AssetImporter.cpp" />
+    <ClCompile Include="src\Assets\Importers\MeshImporter.cpp" />
+    <ClCompile Include="src\Assets\Importers\TextureImporter.cpp" />
+    <ClCompile Include="src\Util\Guid.cpp" />
+    <ClCompile Include="src\Util\ImageLoader.cpp" />
+    <ClCompile Include="src\Util\GltfMeshLoader.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
     <ClCompile Include="src\Core\Input.cpp" />
     <ClCompile Include="src\Core\Logger.cpp" />
@@ -53,13 +55,15 @@
   <ItemGroup>
     <ClInclude Include="src\Assets\Asset.h" />
     <ClInclude Include="src\Assets\AssetManager.h" />
-    <ClInclude Include="src\Assets\AssetImporter.h" />
+    <ClInclude Include="src\Assets\Importers\AssetImporter.h" />
+    <ClInclude Include="src\Assets\MaterialAsset.h" />
     <ClInclude Include="src\Assets\MeshAsset.h" />
-    <ClInclude Include="src\Assets\MeshImporter.h" />
+    <ClInclude Include="src\Assets\Importers\MeshImporter.h" />
     <ClInclude Include="src\Assets\TextureAsset.h" />
-    <ClInclude Include="src\Assets\TextureImporter.h" />
-    <ClInclude Include="src\Assets\Util\ImageLoader.h" />
-    <ClInclude Include="src\Assets\Util\MeshLoader.h" />
+    <ClInclude Include="src\Assets\Importers\TextureImporter.h" />
+    <ClInclude Include="src\Util\Guid.h" />
+    <ClInclude Include="src\Util\ImageLoader.h" />
+    <ClInclude Include="src\Util\MeshLoader.h" />
     <ClInclude Include="src\Core\Application.h" />
     <ClInclude Include="src\Core\Assert.h" />
     <ClInclude Include="src\Core\Defines.h" />
@@ -109,6 +113,10 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="shaders\BRDF.hlsli">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="shaders\OctahedronEncoding.hlsli">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </None>

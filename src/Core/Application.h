@@ -6,12 +6,14 @@
 
 #include "Input.h"
 #include "../Util/Timer.h"
-#include "../Assets/Asset.h"
 #include "../World/World.h"
-#include "../Renderer/Renderer.h"
+
+#include "../Assets/Asset.h"
 #include "../Assets/AssetManager.h"
-#include "../Assets/MeshImporter.h"
-#include "../Assets/TextureImporter.h"
+#include "../Assets/Importers/MeshImporter.h"
+#include "../Assets/Importers/TextureImporter.h"
+
+#include "../Renderer/Renderer.h"
 #include "../WinAPI.h"
 
 namespace Warp
@@ -75,8 +77,8 @@ namespace Warp
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
 
 		inline World* GetWorld() const { return m_world.get(); }
-		inline MeshImporter* GetMeshImporter() const { return m_meshImporter.get(); }
-		inline TextureImporter* GetTextureImporter() const { return m_textureImporter.get(); }
+		inline MeshImporter& GetMeshImporter() { return m_meshImporter; }
+		inline TextureImporter& GetTextureImporter() { return m_textureImporter; }
 
 	private:
 		// Moved to private after Application::RequestResize() was introduced
@@ -104,9 +106,9 @@ namespace Warp
 
 		// TODO: currently we store world in Application. This should be changed though
 		std::unique_ptr<World> m_world;
-		std::unique_ptr<AssetManager> m_assetManager;
-		std::unique_ptr<MeshImporter> m_meshImporter;
-		std::unique_ptr<TextureImporter> m_textureImporter;
+		AssetManager m_assetManager;
+		MeshImporter m_meshImporter;
+		TextureImporter m_textureImporter;
 	};
 
 }

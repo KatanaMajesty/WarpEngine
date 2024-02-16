@@ -55,14 +55,13 @@ Texture2D<float> DirectionalShadowmaps[3] : register(t2, space0);
 SamplerComparisonState ShadowmapSampler : register(s1);
 
 #include "BRDF.hlsli"
+#include "OctahedronEncoding.hlsli"
 
-float3 WorldPosFromDepth(float2 uv, float depth)
+float3 WorldPosFromDepth(in matrix viewProjInv, in float2 uv, in float depth)
 {
     float4 ndc = float4(uv * 2.0 - 1.0, depth, 1.0);
     ndc.y = -ndc.y; // Inverse .y as we are in HLSL
     
-    // TODO: Maybe we want to precalculate viewProj matrix? Not to good to do this here
-    matrix viewProjInv = mul(CbViewData.ProjInv, CbViewData.ViewInv);
     float4 world = mul(ndc, viewProjInv);
     float3 worldPos = world.xyz / world.w;
     return worldPos;
@@ -70,17 +69,23 @@ float3 WorldPosFromDepth(float2 uv, float depth)
 
 float4 PSMain(OutVertex vertex) : SV_Target0
 {
+    // Frustum calculation for texel size
+    matrix viewProjInv = mul(CbViewData.ProjInv, CbViewData.ViewInv);
+    
     float sceneDepth = SceneDepth.SampleLevel(StaticSampler, vertex.Uv, 0.0);
-    float3 worldPos = WorldPosFromDepth(vertex.Uv, sceneDepth);
+    float3 worldPos = WorldPosFromDepth(viewProjInv, vertex.Uv, sceneDepth);
     float3 eye = CbViewData.ViewInv[3].xyz;
     
     float3 albedo = GbufferAlbedo.Sample(StaticSampler, vertex.Uv).rgb;
     float2 roughnessMetalness = GbufferRoughnessMetalness.Sample(StaticSampler, vertex.Uv);
-    float3 N = normalize(GbufferNormal.Sample(StaticSampler, vertex.Uv).xyz);
-    float3 V = normalize(eye - worldPos);
-    float VdotN = saturate(dot(V, N));
     
-    const float3 ambient = 0.04;
+    // As of 16.02.2024 -> .xy - geometry normal packed, .zw - surface normal packed
+    float4 normals = GbufferNormal.Sample(StaticSampler, vertex.Uv);
+    float3 GN = Oct16_FastUnpack(normals.xy);
+    float3 SN = Oct16_FastUnpack(normals.zw);
+    float3 V = normalize(eye - worldPos);
+    float VdotN = clamp(dot(V, SN), 0.00001, 1.0);
+    
     float3 Lo = 0.0;
     for (uint i = 0; i < CbLightEnv.NumDirLights; ++i)
     {
@@ -89,28 +94,42 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         // Lighting
         float3 L = normalize(-light.Direction);
         float3 H = normalize(L + V);
-        float LdotN = saturate(dot(L, N));
-        float VdotH = saturate(dot(V, H));
-        float NdotH = saturate(dot(N, H));
-        float NdotL = saturate(dot(N, L));
+        float LdotN = clamp(dot(L, SN), 0.00001, 1.0);
+        float VdotH = clamp(dot(V, H), 0.00001, 1.0);
+        float NdotH = clamp(dot(SN, H), 0.00001, 1.0);
         
         // To handle both metals and non metals, we consider a purely non metallic surface to have base reflectivity of (0.04, 0.04, 0.04) 
         // and lerp between this value of base reflectivity (F0) based on the metallic factor of the surface.
-        float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, roughnessMetalness.y);
+        float3 F0 = lerp(float3(0.04, 0.04, 0.04), albedo, roughnessMetalness.g);
         float3 F = Brdf_FresnelSchlick(F0, VdotH);
         float3 Kd = 1.0 - F; // We assume F to represent Ks -> Kd = 1.0 - Ks
-        float3 O = Kd * Brdf_Diffuse_Lambertian(albedo) + Brdf_Specular_CookTorrance(F, roughnessMetalness.x, VdotN, LdotN, VdotH, NdotH);
+        float3 O = Kd * Brdf_Diffuse_Lambertian(albedo) + Brdf_Specular_CookTorrance(F, roughnessMetalness.r, VdotN, LdotN, VdotH, NdotH);
         
         // Shadows
+        float2 shadowMapResolution;
+        DirectionalShadowmaps[i].GetDimensions(shadowMapResolution.x, shadowMapResolution.y);
+        
+        float2 frustumScaling = float2(light.LightProj[0][0], light.LightProj[1][1]);
+        float2 shadowMapTexelSize = 2.0 / (frustumScaling * shadowMapResolution);
+        
+        // https://user-images.githubusercontent.com/7088062/36948961-df37690e-1fea-11e8-8999-af8af60403fb.png
+        // Normal offsetting to help us breathe
+        float LdotGN = clamp(dot(L, GN), 0.0001, 1.0);
+        float3 NOffsetScale = max(shadowMapTexelSize.x, shadowMapTexelSize.y) * sqrt(2.0) / 2.0 * (GN + 0.9 * L * LdotGN);
+        float3 NOffset = GN * NOffsetScale;
+        
+        // Offset in uv space only
         matrix lightMatrix = mul(light.LightView, light.LightProj);
-        float4 lightpos = mul(float4(worldPos, 1.0), lightMatrix);
+        float4 lightpos = mul(float4(worldPos + NOffset, 1.0), lightMatrix);
+        
         float3 projCoords = lightpos.xyz / lightpos.w;
-  
         float2 uv = float2(projCoords.x * 0.5 + 0.5, projCoords.y * -0.5 + 0.5);
-        float3 shadow = DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, projCoords.z);
-  
-        Lo += shadow * O * NdotL * light.Radiance * light.Intensity;
+        
+        float depth = projCoords.z;
+        float shadow = DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, depth);
+        Lo += shadow * O * LdotN * light.Radiance * light.Intensity;
     }
     
+    const float3 ambient = 0.07;
     return float4(ambient + Lo, 1.0); // TODO: Add support of alpha from albedo gbuffer (??)
 }

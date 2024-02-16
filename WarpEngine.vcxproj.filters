@@ -37,8 +37,8 @@
     <Filter Include="Assets">
       <UniqueIdentifier>{0e4c5c3c-4bd9-46f5-804d-3824d5960a95}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Assets\AssetUtils">
-      <UniqueIdentifier>{7faeacb7-8b0d-45b3-9869-78671e522db9}</UniqueIdentifier>
+    <Filter Include="Assets\Importers">
+      <UniqueIdentifier>{bd3a6728-49c5-4e4a-b3c5-a279c95fcd46}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -112,20 +112,26 @@
     <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Assets\MeshImporter.cpp">
-      <Filter>Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\TextureImporter.cpp">
-      <Filter>Assets</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\Util\ImageLoader.cpp">
-      <Filter>Assets\AssetUtils</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Assets\Util\MeshLoader.cpp">
-      <Filter>Assets\AssetUtils</Filter>
-    </ClCompile>
     <ClCompile Include="src\Core\Input.cpp">
       <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Util\Guid.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Util\GltfMeshLoader.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Util\ImageLoader.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Importers\TextureImporter.cpp">
+      <Filter>Assets\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Importers\MeshImporter.cpp">
+      <Filter>Assets\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Importers\AssetImporter.cpp">
+      <Filter>Assets\Importers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -238,9 +244,6 @@
     <ClInclude Include="src\Assets\MeshAsset.h">
       <Filter>Assets</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\AssetImporter.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
     <ClInclude Include="src\Util\ArrayView.h">
       <Filter>Util</Filter>
     </ClInclude>
@@ -253,12 +256,6 @@
     <ClInclude Include="src\Renderer\Mesh.h">
       <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="src\Assets\MeshImporter.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\TextureImporter.h">
-      <Filter>Assets</Filter>
-    </ClInclude>
     <ClInclude Include="src\Assets\TextureAsset.h">
       <Filter>Assets</Filter>
     </ClInclude>
@@ -267,15 +264,6 @@
     </ClInclude>
     <ClInclude Include="src\Renderer\MaterialRegistry.h">
       <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Renderer\Vertex.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\Util\ImageLoader.h">
-      <Filter>Assets\AssetUtils</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Assets\Util\MeshLoader.h">
-      <Filter>Assets\AssetUtils</Filter>
     </ClInclude>
     <ClInclude Include="src\World\EntityRegistry.h">
       <Filter>World</Filter>
@@ -289,13 +277,42 @@
     <ClInclude Include="src\Renderer\RHI\ResourceTrackingContext.h">
       <Filter>Renderer\RHI</Filter>
     </ClInclude>
+    <ClInclude Include="src\Renderer\Vertex.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Util\Guid.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Util\MeshLoader.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Util\ImageLoader.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\MaterialAsset.h">
+      <Filter>Assets</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Importers\TextureImporter.h">
+      <Filter>Assets\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Importers\MeshImporter.h">
+      <Filter>Assets\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Importers\AssetImporter.h">
+      <Filter>Assets\Importers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
       <Filter>Vendor</Filter>
     </None>
     <None Include="packages.config" />
-    <None Include="shaders\BRDF.hlsli" />
+    <None Include="shaders\BRDF.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\OctahedronEncoding.hlsli">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="vendor\D3D12MA\D3D12MemAlloc.natvis">

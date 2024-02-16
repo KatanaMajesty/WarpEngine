@@ -61,7 +61,7 @@ float3 Brdf_Specular_CookTorrance(in float3 F, in float roughness, in float Vdot
     
     // Normal distribution function
     float alpha = roughness * roughness;
-    float Ndf = Ndf_GGXTrowbridgeReitz(roughness, NdotH);
+    float Ndf = Ndf_GGXTrowbridgeReitz(alpha, NdotH);
     
     // Geometry shadowing function
     float Gsf = Gsf_GGXSchlick(alpha, VdotN, LdotN);

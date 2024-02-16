@@ -1,6 +1,9 @@
 #include "Renderer.h"
 
-#include <cmath>
+#include "../World/World.h"
+#include "../World/Components.h"
+#include "../World/Entity.h"
+
 #include "../Util/String.h"
 #include "../Core/Logger.h"
 #include "../Core/Assert.h"
@@ -8,9 +11,7 @@
 
 // TODO: Temp, remove
 #include "../Math/Math.h"
-#include "../World/World.h"
-#include "../World/Components.h"
-#include "../World/Entity.h"
+
 #include "RHI/PIXRuntime.h"
 
 
@@ -184,10 +185,17 @@ namespace Warp
 		// TODO: "Kind of" mesh instance impl
 		struct MeshInstance
 		{
+			AssetManager* Manager;
+			AssetProxy MeshProxy;
+
 			Math::Matrix InstanceToWorld;
 			Math::Matrix NormalMatrix;
-			EHlslDrawPropertyFlags DrawFlags;
-			MeshAsset* Mesh;
+
+			struct Submesh
+			{
+				EHlslDrawPropertyFlags DrawFlags;
+			};
+			std::vector<Submesh> Submeshes;
 		};
 
 		std::vector<MeshInstance> meshInstances;
@@ -202,32 +210,42 @@ namespace Warp
 
 				MeshAsset* mesh = meshComponent.GetMesh();
 
+				instance.Manager = meshComponent.Manager;
+				instance.MeshProxy = meshComponent.Proxy;
+
 				instance.InstanceToWorld = scale * rotation * translation;
 				instance.InstanceToWorld.Invert(instance.NormalMatrix);
 				instance.NormalMatrix.Transpose(instance.NormalMatrix);
-				instance.Mesh = mesh;
-				instance.DrawFlags = eHlslDrawPropertyFlag_None;
+				
+				instance.Submeshes.resize(mesh->GetNumSubmeshes());
+				for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
+				{
+					Submesh& submesh = mesh->Submeshes[submeshIndex];
 
-				if (mesh->HasAttributes(EVertexAttributes_TextureCoords))
-					instance.DrawFlags |= eHlslDrawPropertyFlag_HasTexCoords;
+					MaterialAsset* material = meshComponent.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
+					EHlslDrawPropertyFlags& flags = instance.Submeshes[submeshIndex].DrawFlags;
 
-				if (mesh->HasAttributes(EVertexAttributes_Tangents))
-					instance.DrawFlags |= eHlslDrawPropertyFlag_HasTangents;
+					if (submesh.HasAttributes(eVertexAttribute_TextureCoords))
+						flags |= eHlslDrawPropertyFlag_HasTexCoords;
 
-				if (mesh->HasAttributes(EVertexAttributes_Bitangents))
-					instance.DrawFlags |= eHlslDrawPropertyFlag_HasBitangents;
+					if (submesh.HasAttributes(eVertexAttribute_Tangents))
+						flags |= eHlslDrawPropertyFlag_HasTangents;
 
-				if (!mesh->Material.HasNormalMap() || 
-					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.NormalMapProxy))
-					instance.DrawFlags |= eHlslDrawPropertyFlag_NoNormalMap;
+					if (submesh.HasAttributes(eVertexAttribute_Bitangents))
+						flags |= eHlslDrawPropertyFlag_HasBitangents;
 
-				if (!mesh->Material.HasMetalnessRoughnessMap() || 
-					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.MetalnessRoughnessMapProxy))
-					instance.DrawFlags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
+					if (!material->HasNormalMap() ||
+						!meshComponent.Manager->IsValid<TextureAsset>(material->NormalMap))
+						flags |= eHlslDrawPropertyFlag_NoNormalMap;
 
-				if (!mesh->Material.HasBaseColor() ||
-					!mesh->Material.Manager->IsValid<TextureAsset>(mesh->Material.BaseColorProxy))
-					instance.DrawFlags |= eHlslDrawPropertyFlag_NoBaseColorMap;
+					if (!material->HasRoughnessMetalnessMap() ||
+						!meshComponent.Manager->IsValid<TextureAsset>(material->RoughnessMetalnessMap))
+						flags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
+
+					if (!material->HasAlbedoMap() ||
+						!meshComponent.Manager->IsValid<TextureAsset>(material->AlbedoMap))
+						flags |= eHlslDrawPropertyFlag_NoBaseColorMap;
+				}
 			}
 		);
 
@@ -259,12 +277,12 @@ namespace Warp
 				shadowComponent.LightView = Math::Matrix::CreateLookAt(DirLightPosition, DirLightPosition + dirLightComponent.Direction, Math::Vector3(0.0f, 1.0f, 0.0f));
 				shadowComponent.LightView.Invert(shadowComponent.LightInvView);
 
-				shadowComponent.LightProj = Math::Matrix::CreateOrthographicOffCenter(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 200.0f);
+				shadowComponent.LightProj = Math::Matrix::CreateOrthographicOffCenter(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 30.0f);
 				shadowComponent.LightProj.Invert(shadowComponent.LightInvProj);
 				
 				RHIDevice* Device = GetDevice();
 				D3D12_RESOURCE_DESC shadowmapDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D24_UNORM_S8_UINT,
-					2048, 2048,
+					4096, 4096,
 					1, 1,
 					1, 0,
 					D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
@@ -333,36 +351,37 @@ namespace Warp
 		RHIBuffer& constantBuffer = m_constantBuffers[frameIndex];
 		UINT currentCbOffset = 0;
 
-		m_graphicsContext.Open();
+		RHICommandContext& graphicsContext = GetGraphicsContext();
+		graphicsContext.Open();
 		{
-			WARP_SCOPED_EVENT(&m_graphicsContext, fmt::format("Renderer_RenderWorld_ShadowPasses_Frame{}", frameIndex + 1));
+			WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_ShadowPasses_Frame{}", frameIndex + 1));
 
 			{
-				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+				WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
 				std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
 					Device->GetSamplerHeap()->GetD3D12Heap(),
 					Device->GetViewHeap()->GetD3D12Heap()
 				};
 
-				m_graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+				graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
 			}
 
 			for (uint32_t i = 0; i < shadowmappingTargets.NumTargets; ++i)
 			{
 				DirectionalLightShadowmappingComponent* shadowComponent = shadowmappingTargets.Targets[i];
 				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = shadowComponent->DepthMapView.GetCpuAddress();
-				m_graphicsContext.AddTransitionBarrier(&shadowComponent->DepthMap, D3D12_RESOURCE_STATE_DEPTH_WRITE/*, 0*/ /*TODO: We assume that plane 0 (subresource 0) is for depth*/);
-				m_graphicsContext->OMSetRenderTargets(0, nullptr, false, &dsvHandle);
-				m_graphicsContext.ClearDsv(shadowComponent->DepthMapView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				graphicsContext.AddTransitionBarrier(&shadowComponent->DepthMap, D3D12_RESOURCE_STATE_DEPTH_WRITE/*, 0*/ /*TODO: We assume that plane 0 (subresource 0) is for depth*/);
+				graphicsContext->OMSetRenderTargets(0, nullptr, false, &dsvHandle);
+				graphicsContext.ClearDsv(shadowComponent->DepthMapView, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 				UINT shadowmapWidth = shadowComponent->DepthMap.GetWidth();
 				UINT shadowmapHeight = shadowComponent->DepthMap.GetHeight();
-				m_graphicsContext.SetViewport(0, 0, shadowmapWidth, shadowmapHeight);
-				m_graphicsContext.SetScissorRect(0, 0, shadowmapWidth, shadowmapHeight);
+				graphicsContext.SetViewport(0, 0, shadowmapWidth, shadowmapHeight);
+				graphicsContext.SetScissorRect(0, 0, shadowmapWidth, shadowmapHeight);
 
-				m_graphicsContext.SetGraphicsRootSignature(m_directionalShadowingSignature);
-				m_graphicsContext.SetPipelineState(m_directionalShadowingPSO);
+				graphicsContext.SetGraphicsRootSignature(m_directionalShadowingSignature);
+				graphicsContext.SetPipelineState(m_directionalShadowingPSO);
 
 				HlslDirShadowingViewData viewData = HlslDirShadowingViewData{
 					.LightView = shadowComponent->LightView,
@@ -372,7 +391,7 @@ namespace Warp
 				currentCbOffset += cbViewData.SizeInBytes;
 				memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslDirShadowingViewData));
 
-				m_graphicsContext->SetGraphicsRootConstantBufferView(DirShadowingRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
+				graphicsContext->SetGraphicsRootConstantBufferView(DirShadowingRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
 
 				for (MeshInstance& meshInstance : meshInstances)
 				{
@@ -386,70 +405,75 @@ namespace Warp
 					currentCbOffset += cbDrawData.SizeInBytes;
 					memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslShadowingDrawData));
 
-					m_graphicsContext->SetGraphicsRootConstantBufferView(DirShadowingRootParamIdx_CbDrawData, cbDrawData.GetGpuAddress());
+					graphicsContext->SetGraphicsRootConstantBufferView(DirShadowingRootParamIdx_CbDrawData, cbDrawData.GetGpuAddress());
+					
+					MeshAsset* mesh = meshInstance.Manager->GetAs<MeshAsset>(meshInstance.MeshProxy);
+					for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
+					{
+						Submesh& submesh = mesh->Submeshes[submeshIndex];
 
-					MeshAsset* mesh = meshInstance.Mesh;
-					m_graphicsContext.AddTransitionBarrier(&mesh->Resources[EVertexAttributes_Positions], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_Positions, mesh->Resources[EVertexAttributes_Positions].GetGpuVirtualAddress());
+						graphicsContext.AddTransitionBarrier(&submesh.Resources[eVertexAttribute_Positions], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_Positions, submesh.Resources[eVertexAttribute_Positions].GetGpuVirtualAddress());
 
-					m_graphicsContext.AddTransitionBarrier(&mesh->MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_Meshlets, mesh->MeshletBuffer.GetGpuVirtualAddress());
+						graphicsContext.AddTransitionBarrier(&submesh.MeshletBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_Meshlets, submesh.MeshletBuffer.GetGpuVirtualAddress());
 
-					m_graphicsContext.AddTransitionBarrier(&mesh->PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_PrimitiveIndices, mesh->PrimitiveIndicesBuffer.GetGpuVirtualAddress());
+						graphicsContext.AddTransitionBarrier(&submesh.PrimitiveIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_PrimitiveIndices, submesh.PrimitiveIndicesBuffer.GetGpuVirtualAddress());
 
-					m_graphicsContext.AddTransitionBarrier(&mesh->UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-					m_graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_UniqueVertexIndices, mesh->UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
+						graphicsContext.AddTransitionBarrier(&submesh.UniqueVertexIndicesBuffer, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+						graphicsContext->SetGraphicsRootShaderResourceView(DirShadowingRootParamIdx_UniqueVertexIndices, submesh.UniqueVertexIndicesBuffer.GetGpuVirtualAddress());
 
-					m_graphicsContext.DispatchMesh(mesh->GetNumMeshlets(), 1, 1); // should be good enough for now
+						graphicsContext.DispatchMesh(submesh.GetNumMeshlets(), 1, 1); // should be good enough for now
+					}
 				}
 			}
 		};
-		m_graphicsContext.Close();
-		UINT64 dirShadowingPassFenceValue = m_graphicsContext.Execute(false);
+		graphicsContext.Close();
+		UINT64 dirShadowingPassFenceValue = graphicsContext.Execute(false);
 		m_frameFenceValues[frameIndex] = dirShadowingPassFenceValue;
 
-		m_graphicsContext.Open();
+		graphicsContext.Open();
 		{
-			WARP_SCOPED_EVENT(&m_graphicsContext, fmt::format("Renderer_RenderWorld_BasePass_Frame{}", frameIndex + 1));
-			m_graphicsContext.SetViewport(0, 0, Width, Height);
-			m_graphicsContext.SetScissorRect(0, 0, Width, Height);
+			WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_BasePass_Frame{}", frameIndex + 1));
+			graphicsContext.SetViewport(0, 0, Width, Height);
+			graphicsContext.SetScissorRect(0, 0, Width, Height);
 
 			{
-				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+				WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
 				std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
 					Device->GetSamplerHeap()->GetD3D12Heap(),
 					Device->GetViewHeap()->GetD3D12Heap()
 				};
 
-				m_graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+				graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
 			}
 
 			// Wait for the copy context to finish here
 			// TODO: Maybe write a cleaner way of waiting?
-			RHICommandQueue* copyQueue = m_copyContext.GetQueue();
-			m_graphicsContext.GetQueue()->WaitForValue(copyQueue->Signal(), copyQueue);
+			RHICommandQueue* copyQueue = GetCopyContext().GetQueue();
+			graphicsContext.GetQueue()->WaitForValue(copyQueue->Signal(), copyQueue);
 
 			{
 				for (uint32_t i = 0; i < eGbufferType_NumTypes; ++i)
-					m_graphicsContext.AddTransitionBarrier(&m_gbuffers[i].Buffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+					graphicsContext.AddTransitionBarrier(&m_gbuffers[i].Buffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 				// Add scene depth state transition
-				m_graphicsContext.AddTransitionBarrier(&m_sceneDepth, D3D12_RESOURCE_STATE_DEPTH_WRITE/*, 0*/ /*TODO: We assume that plane 0 (subresource 0) is for depth*/);
+				graphicsContext.AddTransitionBarrier(&m_sceneDepth, D3D12_RESOURCE_STATE_DEPTH_WRITE/*, 0*/ /*TODO: We assume that plane 0 (subresource 0) is for depth*/);
 
 				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_gbufferRtvs.GetCpuAddress();
 				D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = m_sceneDepthDsv.GetCpuAddress();
-				m_graphicsContext->OMSetRenderTargets(eGbufferType_NumTypes, &rtvHandle, true, &dsvHandle);
+				graphicsContext->OMSetRenderTargets(eGbufferType_NumTypes, &rtvHandle, true, &dsvHandle);
 
 				const float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-				m_graphicsContext.ClearRtv(m_gbuffers[eGbufferType_Albedo].Rtv, clearColor, 0, nullptr);
-				m_graphicsContext.ClearRtv(m_gbuffers[eGbufferType_Normal].Rtv, clearColor, 0, nullptr);
-				m_graphicsContext.ClearRtv(m_gbuffers[eGbufferType_RoughnessMetalness].Rtv, clearColor, 0, nullptr);
-				m_graphicsContext.ClearDsv(m_sceneDepthDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+				graphicsContext.ClearRtv(m_gbuffers[eGbufferType_Albedo].Rtv, clearColor, 0, nullptr);
+				graphicsContext.ClearRtv(m_gbuffers[eGbufferType_Normal].Rtv, clearColor, 0, nullptr);
+				graphicsContext.ClearRtv(m_gbuffers[eGbufferType_RoughnessMetalness].Rtv, clearColor, 0, nullptr);
+				graphicsContext.ClearDsv(m_sceneDepthDsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-				m_graphicsContext.SetGraphicsRootSignature(m_baseRootSignature);
-				m_graphicsContext.SetPipelineState(m_basePSO);
+				graphicsContext.SetGraphicsRootSignature(m_baseRootSignature);
+				graphicsContext.SetPipelineState(m_basePSO);
 
 				HlslViewData viewData = HlslViewData{
 					.ViewMatrix = cameraComponent.ViewMatrix,
@@ -460,7 +484,7 @@ namespace Warp
 				currentCbOffset += cbViewData.SizeInBytes;
 				memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslViewData));
 
-				m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
+				graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
 
 				// TODO: This will be moved to deferred pass
 				// Bind shadow maps
@@ -468,9 +492,9 @@ namespace Warp
 				//{
 				//	// TODO: Should we wait here?
 				//	DirectionalLightShadowmappingComponent* target = shadowmappingTargets.Targets[0];
-				//	m_graphicsContext.AddTransitionBarrier(&target->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-				//	m_graphicsContext.GetQueue()->WaitForValue(dirShadowingPassFenceValue);
-				//	m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
+				//	graphicsContext.AddTransitionBarrier(&target->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+				//	graphicsContext.GetQueue()->WaitForValue(dirShadowingPassFenceValue);
+				//	graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
 				//}
 				//else
 				//{
@@ -479,106 +503,114 @@ namespace Warp
 
 				for (MeshInstance& meshInstance : meshInstances)
 				{
-					HlslDrawData drawData = HlslDrawData{
-						.InstanceToWorld = meshInstance.InstanceToWorld,
-						.NormalMatrix = meshInstance.NormalMatrix,
-						.DrawFlags = meshInstance.DrawFlags
-					};
-
-					WARP_ASSERT(currentCbOffset < SizeOfGlobalCb, "Handle this! This is the time!");
-
-					RHIBuffer::Address cbDrawData(&constantBuffer, sizeof(HlslDrawData), currentCbOffset);
-					currentCbOffset += cbDrawData.SizeInBytes;
-					memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslDrawData));
-
-					m_graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParamIdx_CbDrawData, cbDrawData.GetGpuAddress());
-
-					MeshAsset* mesh = meshInstance.Mesh;
-					for (size_t attributeIndex = 0; attributeIndex < EVertexAttributes_NumAttributes; ++attributeIndex)
+					// Iterate over each submesh
+					MeshAsset* mesh = meshInstance.Manager->GetAs<MeshAsset>(meshInstance.MeshProxy);
+					for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
 					{
-						// TODO: Add flags indicating meshe's attributes
-						if (!mesh->HasAttributes(attributeIndex))
+						HlslDrawData drawData = HlslDrawData{
+							.InstanceToWorld = meshInstance.InstanceToWorld,
+							.NormalMatrix = meshInstance.NormalMatrix,
+							.DrawFlags = meshInstance.Submeshes[submeshIndex].DrawFlags
+						};
+
+						WARP_ASSERT(currentCbOffset < SizeOfGlobalCb, "Handle this! This is the time!");
+
+						RHIBuffer::Address cbDrawData(&constantBuffer, sizeof(HlslDrawData), currentCbOffset);
+						currentCbOffset += cbDrawData.SizeInBytes;
+						memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslDrawData));
+
+						graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParamIdx_CbDrawData, cbDrawData.GetGpuAddress());
+
+						Submesh& submesh = mesh->Submeshes[submeshIndex];
+						MaterialAsset* material = meshInstance.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
+						WARP_ASSERT(material, "Invalid material, handle this!");
+
+						for (size_t attributeIndex = 0; attributeIndex < eVertexAttribute_NumAttributes; ++attributeIndex)
 						{
-							continue;
+							// TODO: Add flags indicating meshe's attributes
+							if (!submesh.HasAttributes(attributeIndex))
+							{
+								continue;
+							}
+
+							graphicsContext.AddTransitionBarrier(&submesh.Resources[attributeIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+							graphicsContext->SetGraphicsRootShaderResourceView(
+								BasicRootParamIdx_Positions + attributeIndex,
+								submesh.Resources[attributeIndex].GetGpuVirtualAddress());
 						}
 
-						m_graphicsContext.AddTransitionBarrier(&mesh->Resources[attributeIndex], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-						m_graphicsContext->SetGraphicsRootShaderResourceView(
-							BasicRootParamIdx_Positions + attributeIndex,
-							mesh->Resources[attributeIndex].GetGpuVirtualAddress());
+						std::array meshletResources = {
+							&submesh.MeshletBuffer,
+							&submesh.UniqueVertexIndicesBuffer,
+							&submesh.PrimitiveIndicesBuffer
+						};
+
+						for (size_t i = 0; i < meshletResources.size(); ++i)
+						{
+							graphicsContext.AddTransitionBarrier(meshletResources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+							graphicsContext->SetGraphicsRootShaderResourceView(BasicRootParamIdx_Meshlets + i, meshletResources[i]->GetGpuVirtualAddress());
+						}
+
+						// We need a default texture for meshes with no albedoMap. This is a better solution rather than doing float4 albedo factor (as it is now in material)
+						TextureAsset* albedoMap = meshInstance.Manager->GetAs<TextureAsset>(material->AlbedoMap);
+						if (albedoMap)
+						{
+							graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_BaseColor, albedoMap->Srv.GetGpuAddress());
+						}
+
+						TextureAsset* normalMap = meshInstance.Manager->GetAs<TextureAsset>(material->NormalMap);
+						if (normalMap)
+						{
+							graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_NormalMap, normalMap->Srv.GetGpuAddress());
+						}
+
+						TextureAsset* roughnessMetalnessMap = meshInstance.Manager->GetAs<TextureAsset>(material->RoughnessMetalnessMap);
+						if (roughnessMetalnessMap)
+						{
+							graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, roughnessMetalnessMap->Srv.GetGpuAddress());
+						}
+
+						graphicsContext.DispatchMesh(submesh.GetNumMeshlets(), 1, 1); // should be good enough for now
 					}
-
-					std::array meshletResources = {
-						&mesh->MeshletBuffer,
-						&mesh->UniqueVertexIndicesBuffer,
-						&mesh->PrimitiveIndicesBuffer
-					};
-
-					for (size_t i = 0; i < meshletResources.size(); ++i)
-					{
-						m_graphicsContext.AddTransitionBarrier(meshletResources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-						m_graphicsContext->SetGraphicsRootShaderResourceView(BasicRootParamIdx_Meshlets + i, meshletResources[i]->GetGpuVirtualAddress());
-					}
-
-					// We need a default texture for meshes with no basecolor. This is a better solution rather than doing float4 basecolor (as it is now in material)
-					auto baseColor = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.BaseColorProxy);
-					if (baseColor)
-					{
-						m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_BaseColor, baseColor->Srv.GetGpuAddress());
-					}
-
-					auto normalMap = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.NormalMapProxy);
-					if (normalMap)
-					{
-						m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_NormalMap, normalMap->Srv.GetGpuAddress());
-					}
-
-					auto metalnessRoughnessMap = mesh->Material.Manager->GetAs<TextureAsset>(mesh->Material.MetalnessRoughnessMapProxy);
-					if (metalnessRoughnessMap)
-					{
-						m_graphicsContext->SetGraphicsRootDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, metalnessRoughnessMap->Srv.GetGpuAddress());
-					}
-
-					m_graphicsContext.DispatchMesh(mesh->GetNumMeshlets(), 1, 1); // should be good enough for now
 				}
 			}
 		}
-		m_graphicsContext.Close();
-		m_frameFenceValues[frameIndex] = m_graphicsContext.Execute(false);
+		graphicsContext.Close();
+		m_frameFenceValues[frameIndex] = graphicsContext.Execute(false);
 
 		RHITexture* backbuffer = m_swapchain->GetBackbuffer(frameIndex);
 		
 		// Deferred pass
-		m_graphicsContext.Open();
+		graphicsContext.Open();
 		{
-			WARP_SCOPED_EVENT(&m_graphicsContext, fmt::format("Renderer_RenderWorld_DeferredPass_Frame{}", frameIndex + 1));
-			m_graphicsContext.SetViewport(0, 0, Width, Height);
-			m_graphicsContext.SetScissorRect(0, 0, Width, Height);
+			WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_DeferredPass_Frame{}", frameIndex + 1));
+			graphicsContext.SetViewport(0, 0, Width, Height);
+			graphicsContext.SetScissorRect(0, 0, Width, Height);
 
 			{
-				WARP_SCOPED_EVENT(&m_graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+				WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
 				std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
 					Device->GetSamplerHeap()->GetD3D12Heap(),
 					Device->GetViewHeap()->GetD3D12Heap()
 				};
 
-				m_graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
+				graphicsContext->SetDescriptorHeaps(static_cast<UINT>(descriptorHeaps.size()), descriptorHeaps.data());
 			}
 
 			// Actual drawing
 			{
-				m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
+				graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 				D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = m_swapchain->GetCurrentRtv().GetCpuAddress();
-				m_graphicsContext->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+				graphicsContext->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
 
 				constexpr float clearcolor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-				m_graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearcolor, 0, nullptr);
+				graphicsContext.ClearRtv(m_swapchain->GetCurrentRtv(), clearcolor, 0, nullptr);
 				
-				m_graphicsContext.SetGraphicsRootSignature(m_deferredLightingSignature);
-				m_graphicsContext.SetPipelineState(m_deferredLightingPSO);
-				m_graphicsContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // TODO: Why the fuck is this even a thing?
+				graphicsContext.SetGraphicsRootSignature(m_deferredLightingSignature);
+				graphicsContext.SetPipelineState(m_deferredLightingPSO);
+				graphicsContext->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // TODO: Why the fuck is this even a thing?
 
 				HlslDeferredLightingViewData viewData = HlslDeferredLightingViewData{
 					.ViewInv = cameraComponent.ViewInvMatrix,
@@ -590,40 +622,40 @@ namespace Warp
 				currentCbOffset += cbViewData.SizeInBytes;
 				memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslDeferredLightingViewData));
 
-				m_graphicsContext->SetGraphicsRootConstantBufferView(DeferredLightingRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
+				graphicsContext->SetGraphicsRootConstantBufferView(DeferredLightingRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
 
 				RHIBuffer::Address cbLightEnv(&constantBuffer, sizeof(HlslLightEnvironment), currentCbOffset);
 				currentCbOffset += cbLightEnv.SizeInBytes;
 				memcpy(cbLightEnv.GetCpuAddress(), &environment, sizeof(HlslLightEnvironment));
-				m_graphicsContext->SetGraphicsRootConstantBufferView(DeferredLightingRootParamIdx_CbLightEnv, cbLightEnv.GetGpuAddress());
+				graphicsContext->SetGraphicsRootConstantBufferView(DeferredLightingRootParamIdx_CbLightEnv, cbLightEnv.GetGpuAddress());
 
 				// Transition and set gbuffers
 				for (uint32_t i = 0; i < eGbufferType_NumTypes; ++i)
 				{
-					m_graphicsContext.AddTransitionBarrier(&m_gbuffers[i].Buffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					graphicsContext.AddTransitionBarrier(&m_gbuffers[i].Buffer, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				}
-				m_graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_GbufferAlbedo, m_gbuffers[eGbufferType_Albedo].Srv.GetGpuAddress());
-				m_graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_GbufferNormal, m_gbuffers[eGbufferType_Normal].Srv.GetGpuAddress());
-				m_graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_GbufferRoughnessMetalness, m_gbuffers[eGbufferType_RoughnessMetalness].Srv.GetGpuAddress());
+				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_GbufferAlbedo, m_gbuffers[eGbufferType_Albedo].Srv.GetGpuAddress());
+				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_GbufferNormal, m_gbuffers[eGbufferType_Normal].Srv.GetGpuAddress());
+				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_GbufferRoughnessMetalness, m_gbuffers[eGbufferType_RoughnessMetalness].Srv.GetGpuAddress());
 
 				// Bind scene depth as Srv
-				m_graphicsContext.AddTransitionBarrier(&m_sceneDepth, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE/*, 0*/ /*TODO: We assume that plane 0 (subresource 0) is for depth*/);
-				m_graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_SceneDepth, m_sceneDepthSrv.GetGpuAddress());
+				graphicsContext.AddTransitionBarrier(&m_sceneDepth, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE/*, 0*/ /*TODO: We assume that plane 0 (subresource 0) is for depth*/);
+				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_SceneDepth, m_sceneDepthSrv.GetGpuAddress());
 
 				// Transition and set directional shadowmaps
 				for (uint32_t i = 0; i < shadowmappingTargets.NumTargets; ++i)
 				{
-					m_graphicsContext.AddTransitionBarrier(&shadowmappingTargets.Targets[i]->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					graphicsContext.AddTransitionBarrier(&shadowmappingTargets.Targets[i]->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 				}
-				m_graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
+				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
 
 				// Fullscreen triangle
-				m_graphicsContext.DrawInstanced(3, 1, 0, 0);
-				m_graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
+				graphicsContext.DrawInstanced(3, 1, 0, 0);
+				graphicsContext.AddTransitionBarrier(backbuffer, D3D12_RESOURCE_STATE_PRESENT);
 			}
 		}
-		m_graphicsContext.Close();
-		m_frameFenceValues[frameIndex] = m_graphicsContext.Execute(false);
+		graphicsContext.Close();
+		m_frameFenceValues[frameIndex] = graphicsContext.Execute(false);
 
 		m_swapchain->Present(false);
 
@@ -632,12 +664,12 @@ namespace Warp
 
 	void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
 	{
-		m_graphicsContext.GetQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
+		GetGraphicsContext().GetQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
 	}
 
 	void Renderer::WaitForGfxToFinish()
 	{
-		m_graphicsContext.GetQueue()->HostWaitIdle();
+		GetGraphicsContext().GetQueue()->HostWaitIdle();
 	}
 
 	bool Renderer::InitAssets()
@@ -729,7 +761,7 @@ namespace Warp
 		psoDesc.RootSignature = m_directionalShadowingSignature;
 		psoDesc.MS = m_MSDirectionalShadowing.GetBinaryBytecode();
 		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
-		psoDesc.Rasterizer.DepthBias = 0;
+		psoDesc.Rasterizer.DepthBias = 4;
 		psoDesc.Rasterizer.DepthBiasClamp = 0.0f;
 		psoDesc.Rasterizer.SlopeScaledDepthBias = 2.0f;
 		psoDesc.DepthStencil.DepthEnable = TRUE;

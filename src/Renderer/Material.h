@@ -6,10 +6,10 @@
 namespace Warp
 {
 
-	class CMaterial
+	class Material
 	{
 	public:
-		CMaterial() = default;
+		Material() = default;
 	
 	private:
 		RHIRootSignature m_rootSignature;

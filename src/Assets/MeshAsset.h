@@ -6,44 +6,20 @@
 #include "Asset.h"
 #include "../Renderer/RHI/Resource.h"
 #include "../Renderer/Vertex.h"
-#include "../Math/Math.h"
 
 namespace Warp
 {
 
-	// TODO: Rewrite this entirely. This is a bad structure as we need to somehow know which asset manager 
-	class AssetManager;
-
-	struct MeshAssetMaterial
+	struct Submesh
 	{
-		bool HasBaseColor() const { return BaseColorProxy.IsValid(); }
-		bool HasNormalMap() const { return NormalMapProxy.IsValid(); }
-		bool HasMetalnessRoughnessMap() const { return MetalnessRoughnessMapProxy.IsValid(); }
-
-		AssetManager* Manager = nullptr;
-		AssetProxy BaseColorProxy;
-		AssetProxy NormalMapProxy;
-		AssetProxy MetalnessRoughnessMapProxy;
-
-		Math::Vector4 BaseColor;
-		Math::Vector2 MetalnessRoughness;
-	};
-
-	struct MeshAsset : public Asset
-	{
-		static constexpr EAssetType StaticType = EAssetType::Mesh;
-
-		MeshAsset() : Asset(StaticType) {}
-
 		uint32_t GetNumMeshlets() const { return static_cast<uint32_t>(Meshlets.size()); }
 		uint32_t GetNumVertices() const { return NumVertices; }
 		bool HasAttributes(size_t index) const { return !Attributes[index].empty(); }
 
-		std::string Name;
 		uint32_t NumVertices = 0;
 
 		template<typename T>
-		using AttributeArray = std::array<T, EVertexAttributes_NumAttributes>;
+		using AttributeArray = std::array<T, eVertexAttribute_NumAttributes>;
 
 		// SoA representation of mesh vertices
 		AttributeArray<std::vector<std::byte>> Attributes;
@@ -57,8 +33,20 @@ namespace Warp
 		RHIBuffer MeshletBuffer;
 		RHIBuffer UniqueVertexIndicesBuffer;
 		RHIBuffer PrimitiveIndicesBuffer;
+	};
+	
+	struct MeshAsset : Asset
+	{
+		static constexpr EAssetType StaticType = EAssetType::Mesh;
 
-		MeshAssetMaterial Material;
+		MeshAsset(const Guid& ID) : Asset(ID, StaticType) {}
+
+		uint32_t GetNumSubmeshes() const { return static_cast<uint32_t>(Submeshes.size()); }
+
+		// It is safe to assume that Submeshes.size() == SubmeshMaterials.size();
+		std::string Name;
+		std::vector<Submesh> Submeshes;
+		std::vector<AssetProxy> SubmeshMaterials;
 	};
 
 }

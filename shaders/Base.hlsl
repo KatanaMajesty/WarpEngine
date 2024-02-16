@@ -116,16 +116,18 @@ void MSMain(
     }
 }
 
+#include "OctahedronEncoding.hlsli"
+
 Texture2D BaseColor : register(t4, space0);
 Texture2D NormalMap : register(t4, space1);
-Texture2D MetalnessRoughnessMap : register(t4, space2);
+Texture2D RoughnessMetalnessMap : register(t4, space2);
 SamplerState StaticSampler : register(s0);
 
 struct OutFragment
 {
     float4 Albedo : SV_Target0;
     float4 Normal : SV_Target1;
-    float2 MetalnessRoughness : SV_Target2;
+    float2 RoughnessMetalness : SV_Target2;
 };
 
 OutFragment PSMain(OutVertex vertex)
@@ -136,28 +138,30 @@ OutFragment PSMain(OutVertex vertex)
         albedo = BaseColor.Sample(StaticSampler, vertex.TexUv).rgb;
     }
 
-    float3 N = normalize(vertex.Normal);
+    float3 GN = normalize(vertex.Normal);
+    float3 SN = GN;
     if ((CbDrawData.DrawFlags & DRAWFLAG_NO_NORMALMAP) == 0 && 
         (CbDrawData.DrawFlags & DRAWFLAG_HAS_TANGENTS) && 
         (CbDrawData.DrawFlags & DRAWFLAG_HAS_BITANGENTS))
     {
         float3 tangent = normalize(vertex.Tangent);
         float3 bitangent = normalize(vertex.Bitangent);
-        float3x3 TBN = float3x3(tangent, bitangent, N);
+        float3x3 TBN = float3x3(tangent, bitangent, SN);
         float3 NSample = NormalMap.Sample(StaticSampler, vertex.TexUv).xyz * 2.0 - 1.0;
-        N = normalize(mul(NSample, TBN));
+        SN = normalize(mul(NSample, TBN));
     }
     
-    float2 metalnessRoughness = float2(0.0, 1.0);
+    // TODO: Make it roughness factor + metalness factor from Cbuffer
+    float2 roughnessMetalness = float2(1.0, 0.0);
     if ((CbDrawData.DrawFlags & DRAWFLAG_NO_ROUGHNESSMETALNESSMAP) == 0)
     {
-        // TODO: Afaik currently we have xy - metalness, zw - roughness. Would be nice to change this to float2 from beginning (Gltf issues)
-        metalnessRoughness = MetalnessRoughnessMap.Sample(StaticSampler, vertex.TexUv).xz;
+        // Gltf stores roughness in green channel and metalness in blue channel
+        roughnessMetalness = RoughnessMetalnessMap.Sample(StaticSampler, vertex.TexUv).gb;
     }
     
     OutFragment output;
     output.Albedo = float4(albedo, 0.0);
-    output.Normal = float4(N, 0.0);
-    output.MetalnessRoughness = metalnessRoughness;
+    output.Normal = float4(Oct16_FastPack(GN), Oct16_FastPack(SN));
+    output.RoughnessMetalness = roughnessMetalness;
     return output;
 }
