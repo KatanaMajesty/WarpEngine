@@ -76,8 +76,6 @@ namespace Warp
 		RHICommandContext m_computeContext;
 		RHICopyCommandContext m_copyContext;
 
-		bool InitAssets(); // TODO: Temp, will be removed
-		
 		CShaderCompiler m_shaderCompiler;
 
 		// TODO: Remove/move
@@ -87,6 +85,7 @@ namespace Warp
 		RHIDepthStencilView m_sceneDepthDsv;
 		RHIShaderResourceView m_sceneDepthSrv;
 
+		void InitBase();
 		RHIRootSignature m_baseRootSignature;
 		RHIMeshPipelineState m_basePSO;
 		CShader m_MSBase;
@@ -95,7 +94,6 @@ namespace Warp
 		// TODO: Remove entirely when rendergraph
 		void InitGbuffers();
 		void ResizeGbuffers();
-		
 		struct Gbuffer
 		{
 			RHITexture Buffer;
@@ -106,6 +104,7 @@ namespace Warp
 		RHIDescriptorAllocation m_gbufferRtvs;
 		RHIDescriptorAllocation m_gbufferSrvs;
 
+		void InitDirectionalShadowmapping();
 		RHIDescriptorAllocation m_directionalShadowingSrvs;
 		RHIRootSignature m_directionalShadowingSignature;
 		RHIMeshPipelineState m_directionalShadowingPSO;
@@ -123,6 +122,7 @@ namespace Warp
 		CShader m_VSGbufferView;
 		CShader m_PSGbufferView;
 		
+		void AllocateGlobalCbuffers();
 		static constexpr size_t SizeOfGlobalCb = 64 * 512;
 		RHIBuffer m_constantBuffers[SimultaneousFrames];
 	};

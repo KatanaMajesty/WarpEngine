@@ -66,16 +66,16 @@ namespace Warp
 		switch (metadata.dimension)
 		{
 		case DirectX::TEX_DIMENSION_TEXTURE1D: desc = CD3DX12_RESOURCE_DESC::Tex1D(metadata.format, metadata.width,
-			metadata.arraySize,
-			metadata.mipLevels,
+			static_cast<UINT16>(metadata.arraySize),
+			static_cast<UINT16>(metadata.mipLevels),
 			(D3D12_RESOURCE_FLAGS)metadata.miscFlags); break;
-		case DirectX::TEX_DIMENSION_TEXTURE2D: desc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, metadata.width, metadata.height,
-			metadata.arraySize,
-			metadata.mipLevels, 1U, 0U,
+		case DirectX::TEX_DIMENSION_TEXTURE2D: desc = CD3DX12_RESOURCE_DESC::Tex2D(metadata.format, metadata.width, static_cast<UINT>(metadata.height),
+			static_cast<UINT16>(metadata.arraySize),
+			static_cast<UINT16>(metadata.mipLevels), 1U, 0U,
 			(D3D12_RESOURCE_FLAGS)metadata.miscFlags); break;
-		case DirectX::TEX_DIMENSION_TEXTURE3D: desc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, metadata.width, metadata.height,
-			metadata.depth,
-			metadata.mipLevels,
+		case DirectX::TEX_DIMENSION_TEXTURE3D: desc = CD3DX12_RESOURCE_DESC::Tex3D(metadata.format, metadata.width, static_cast<UINT>(metadata.height),
+			static_cast<UINT16>(metadata.depth),
+			static_cast<UINT16>(metadata.mipLevels),
 			(D3D12_RESOURCE_FLAGS)metadata.miscFlags); break;
 		default: WARP_ASSERT(false); break;
 		}

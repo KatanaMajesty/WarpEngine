@@ -104,10 +104,6 @@ namespace Warp
 		RHIResource(RHIResource&&) = default;
 		RHIResource& operator=(RHIResource&&) = default;
 
-		void RecreateInPlace(D3D12_RESOURCE_STATES initialState,
-			const D3D12_RESOURCE_DESC& desc,
-			const D3D12_CLEAR_VALUE* optimizedClearValue);
-
 		inline ID3D12Resource* GetD3D12Resource() const { return m_D3D12Resource.Get(); }
 		inline bool IsValid() const { return GetD3D12Resource() != nullptr; }
 

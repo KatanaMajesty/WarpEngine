@@ -154,15 +154,12 @@ namespace Warp
 	{
 		WARP_ASSERT(m_device->CheckMeshShaderSupport(), "we only use mesh shaders");
 
-		// TODO: Temp, remove
-		if (!InitAssets())
-		{
-			WARP_LOG_ERROR("Failed to init assets");
-			return;
-		}
+		AllocateGlobalCbuffers();
 
 		InitSceneDepth();
+		InitBase();
 		InitGbuffers();
+		InitDirectionalShadowmapping();
 		InitDeferredLighting();
 		InitGbufferView();
 
@@ -532,7 +529,7 @@ namespace Warp
 						MaterialAsset* material = meshInstance.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
 						WARP_ASSERT(material, "Invalid material, handle this!");
 
-						for (size_t attributeIndex = 0; attributeIndex < eVertexAttribute_NumAttributes; ++attributeIndex)
+						for (uint32_t attributeIndex = 0; attributeIndex < eVertexAttribute_NumAttributes; ++attributeIndex)
 						{
 							// TODO: Add flags indicating meshe's attributes
 							if (!submesh.HasAttributes(attributeIndex))
@@ -552,7 +549,7 @@ namespace Warp
 							&submesh.PrimitiveIndicesBuffer
 						};
 
-						for (size_t i = 0; i < meshletResources.size(); ++i)
+						for (uint32_t i = 0; i < static_cast<uint32_t>(meshletResources.size()); ++i)
 						{
 							graphicsContext.AddTransitionBarrier(meshletResources[i], D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 							graphicsContext->SetGraphicsRootShaderResourceView(BasicRootParamIdx_Meshlets + i, meshletResources[i]->GetGpuVirtualAddress());
@@ -724,109 +721,6 @@ namespace Warp
 		GetGraphicsContext().GetQueue()->HostWaitIdle();
 	}
 
-	bool Renderer::InitAssets()
-	{
-		RHIDevice* Device = m_device.get();
-
-		// Allocate global CBuffers
-		for (size_t i = 0; i < SimultaneousFrames; ++i)
-		{
-			m_constantBuffers[i] = RHIBuffer(Device,
-				D3D12_HEAP_TYPE_UPLOAD,
-				D3D12_RESOURCE_STATE_GENERIC_READ,
-				D3D12_RESOURCE_FLAG_NONE, SizeOfGlobalCb);
-			m_constantBuffers[i].SetName(L"GlobalCb");
-		}
-
-		{
-			std::string shaderPath;
-
-			shaderPath = (Application::Get().GetShaderPath() / "Base.hlsl").string();
-			m_MSBase = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
-			m_PSBase = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel));
-			WARP_ASSERT(
-				m_MSBase.HasBinary() && 
-				m_PSBase.HasBinary(), "Failed to compile Base.hlsl");
-
-			shaderPath = (Application::Get().GetShaderPath() / "DirectionalShadowing.hlsl").string();
-			m_MSDirectionalShadowing = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
-			WARP_ASSERT(m_MSDirectionalShadowing.HasBinary() && "Failed to compile DirectionalShadowing.hlsl");
-		}
-
-		// TODO: Figure out why MESH visibility wont work
-		m_baseRootSignature = RHIRootSignature(Device, RHIRootSignatureDesc(BasicRootParamIdx_NumParams)
-			// Cbvs
-			.SetConstantBufferView(BasicRootParamIdx_CbViewData, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetConstantBufferView(BasicRootParamIdx_CbDrawData, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
-			// VertexAttributes
-			.SetShaderResourceView(BasicRootParamIdx_Positions, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(BasicRootParamIdx_Normals, 0, 1, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(BasicRootParamIdx_TexCoords, 0, 2, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(BasicRootParamIdx_Tangents, 0, 3, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(BasicRootParamIdx_Bitangents, 0, 4, D3D12_SHADER_VISIBILITY_ALL)
-			// Meshlets
-			.SetShaderResourceView(BasicRootParamIdx_Meshlets, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(BasicRootParamIdx_UniqueVertexIndices, 2, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(BasicRootParamIdx_PrimitiveIndices, 3, 0, D3D12_SHADER_VISIBILITY_ALL)
-			// SRVs
-			.SetDescriptorTable(BasicRootParamIdx_BaseColor, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0), D3D12_SHADER_VISIBILITY_PIXEL)
-			.SetDescriptorTable(BasicRootParamIdx_NormalMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 1), D3D12_SHADER_VISIBILITY_PIXEL)
-			.SetDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 2), D3D12_SHADER_VISIBILITY_PIXEL)
-			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
-				D3D12_FILTER_ANISOTROPIC,
-				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-				D3D12_TEXTURE_ADDRESS_MODE_MIRROR)
-		);
-		m_baseRootSignature.SetName(L"RootSignature_Base");
-
-		RHIMeshPipelineDesc psoDesc = {};
-		psoDesc.RootSignature = m_baseRootSignature;
-		psoDesc.MS = m_MSBase.GetBinaryBytecode();
-		psoDesc.PS = m_PSBase.GetBinaryBytecode();
-		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
-		psoDesc.DepthStencil.DepthEnable = TRUE;
-		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-		psoDesc.DepthStencil.StencilEnable = FALSE;
-		psoDesc.NumRTVs = eGbufferType_NumTypes;
-		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-		psoDesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_SNORM;
-		psoDesc.RTVFormats[2] = DXGI_FORMAT_R8G8_UNORM;
-		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		m_basePSO = RHIMeshPipelineState(Device, psoDesc);
-		m_basePSO.SetName(L"PSO_Base");
-
-		// TODO: D3D12_SHADER_VISIBILITY_MESH somehow crashes gpu. Idk why though
-		m_directionalShadowingSignature = RHIRootSignature(Device, RHIRootSignatureDesc(DirShadowingRootParamIdx_NumParams)
-			// Cbvs
-			.SetConstantBufferView(DirShadowingRootParamIdx_CbViewData, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetConstantBufferView(DirShadowingRootParamIdx_CbDrawData, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
-			// Srvs
-			.SetShaderResourceView(DirShadowingRootParamIdx_Positions, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(DirShadowingRootParamIdx_Meshlets, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(DirShadowingRootParamIdx_UniqueVertexIndices, 2, 0, D3D12_SHADER_VISIBILITY_ALL)
-			.SetShaderResourceView(DirShadowingRootParamIdx_PrimitiveIndices, 3, 0, D3D12_SHADER_VISIBILITY_ALL)
-		);
-		m_directionalShadowingSignature.SetName(L"RootSignature_DirectionalShadowing");
-
-		psoDesc = {};
-		psoDesc.RootSignature = m_directionalShadowingSignature;
-		psoDesc.MS = m_MSDirectionalShadowing.GetBinaryBytecode();
-		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
-		psoDesc.Rasterizer.DepthBias = 4;
-		psoDesc.Rasterizer.DepthBiasClamp = 0.0f;
-		psoDesc.Rasterizer.SlopeScaledDepthBias = 2.0f;
-		psoDesc.DepthStencil.DepthEnable = TRUE;
-		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-		psoDesc.DepthStencil.StencilEnable = FALSE;
-		psoDesc.NumRTVs = 0;
-		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		m_directionalShadowingPSO = RHIMeshPipelineState(Device, psoDesc);
-		m_directionalShadowingPSO.SetName(L"PSO_DirectionalShadowing");
-
-		return true;
-	}
-
 	void Renderer::InitSceneDepth()
 	{
 		D3D12_RESOURCE_DESC desc = {};
@@ -874,11 +768,74 @@ namespace Warp
 		desc.Width = m_swapchain->GetWidth();
 		desc.Height = m_swapchain->GetHeight();
 
+		// Create depth-stencil texture2d
 		CD3DX12_CLEAR_VALUE optimizedClearValue(DXGI_FORMAT_D24_UNORM_S8_UINT, 1.0f, 0);
-		m_sceneDepth.RecreateInPlace(D3D12_RESOURCE_STATE_DEPTH_WRITE, desc, &optimizedClearValue);
-		m_sceneDepth.SetName(L"SceneDepth"); // TODO: Do we need to do this on resize?
+		m_sceneDepth = RHITexture(GetDevice(),
+			D3D12_HEAP_TYPE_DEFAULT,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			desc,
+			&optimizedClearValue);
+		m_sceneDepth.SetName(L"SceneDepth");
+
+		//m_sceneDepth.RecreateInPlace(D3D12_RESOURCE_STATE_DEPTH_WRITE, desc, &optimizedClearValue);
+		// m_sceneDepth.SetName(L"SceneDepth"); // TODO: Do we need to do this on resize?
 		m_sceneDepthDsv.RecreateDescriptor(&m_sceneDepth);
 		m_sceneDepthSrv.RecreateDescriptor(&m_sceneDepth);
+	}
+
+	void Renderer::InitBase()
+	{
+		std::string shaderPath = (Application::Get().GetShaderPath() / "Base.hlsl").string();
+		m_MSBase = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
+		m_PSBase = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("PSMain", EShaderModel::sm_6_5, EShaderType::Pixel));
+		WARP_ASSERT(
+			m_MSBase.HasBinary() &&
+			m_PSBase.HasBinary(), "Failed to compile Base.hlsl");
+
+		RHIDevice* Device = GetDevice();
+
+		// TODO: Figure out why MESH visibility wont work
+		m_baseRootSignature = RHIRootSignature(Device, RHIRootSignatureDesc(BasicRootParamIdx_NumParams)
+			// Cbvs
+			.SetConstantBufferView(BasicRootParamIdx_CbViewData, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetConstantBufferView(BasicRootParamIdx_CbDrawData, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
+			// VertexAttributes
+			.SetShaderResourceView(BasicRootParamIdx_Positions, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(BasicRootParamIdx_Normals, 0, 1, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(BasicRootParamIdx_TexCoords, 0, 2, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(BasicRootParamIdx_Tangents, 0, 3, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(BasicRootParamIdx_Bitangents, 0, 4, D3D12_SHADER_VISIBILITY_ALL)
+			// Meshlets
+			.SetShaderResourceView(BasicRootParamIdx_Meshlets, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(BasicRootParamIdx_UniqueVertexIndices, 2, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(BasicRootParamIdx_PrimitiveIndices, 3, 0, D3D12_SHADER_VISIBILITY_ALL)
+			// SRVs
+			.SetDescriptorTable(BasicRootParamIdx_BaseColor, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 0), D3D12_SHADER_VISIBILITY_PIXEL)
+			.SetDescriptorTable(BasicRootParamIdx_NormalMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 1), D3D12_SHADER_VISIBILITY_PIXEL)
+			.SetDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 2), D3D12_SHADER_VISIBILITY_PIXEL)
+			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
+				D3D12_FILTER_ANISOTROPIC,
+				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
+				D3D12_TEXTURE_ADDRESS_MODE_MIRROR)
+		);
+		m_baseRootSignature.SetName(L"RootSignature_Base");
+
+		RHIMeshPipelineDesc psoDesc = {};
+		psoDesc.RootSignature = m_baseRootSignature;
+		psoDesc.MS = m_MSBase.GetBinaryBytecode();
+		psoDesc.PS = m_PSBase.GetBinaryBytecode();
+		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
+		psoDesc.DepthStencil.DepthEnable = TRUE;
+		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+		psoDesc.DepthStencil.StencilEnable = FALSE;
+		psoDesc.NumRTVs = eGbufferType_NumTypes;
+		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+		psoDesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_SNORM;
+		psoDesc.RTVFormats[2] = DXGI_FORMAT_R8G8_UNORM;
+		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		m_basePSO = RHIMeshPipelineState(Device, psoDesc);
+		m_basePSO.SetName(L"PSO_Base");
 	}
 
 	void Renderer::InitGbuffers()
@@ -945,7 +902,7 @@ namespace Warp
 			D3D12_RESOURCE_DESC albedoDesc = CD3DX12_RESOURCE_DESC::Tex2D(gbufferFormat, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 			FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(gbufferFormat, clearColor);
-			m_gbuffers[eGbufferType_Albedo].Buffer.RecreateInPlace(D3D12_RESOURCE_STATE_COMMON, albedoDesc, &clearValue);
+			m_gbuffers[eGbufferType_Albedo].Buffer = RHITexture(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, albedoDesc, &clearValue);
 		}
 
 		// Normal GBuffer
@@ -954,7 +911,7 @@ namespace Warp
 			D3D12_RESOURCE_DESC normalDesc = CD3DX12_RESOURCE_DESC::Tex2D(gbufferFormat, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 			FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(gbufferFormat, clearColor);
-			m_gbuffers[eGbufferType_Normal].Buffer.RecreateInPlace(D3D12_RESOURCE_STATE_COMMON, normalDesc, &clearValue);
+			m_gbuffers[eGbufferType_Normal].Buffer = RHITexture(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, normalDesc, &clearValue);
 		}
 
 		// RoughnessMetalness Gbuffer
@@ -963,7 +920,7 @@ namespace Warp
 			D3D12_RESOURCE_DESC roughnessMetalnessDesc = CD3DX12_RESOURCE_DESC::Tex2D(gbufferFormat, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 			FLOAT clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 			D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(gbufferFormat, clearColor);
-			m_gbuffers[eGbufferType_RoughnessMetalness].Buffer.RecreateInPlace(D3D12_RESOURCE_STATE_COMMON, roughnessMetalnessDesc, &clearValue);
+			m_gbuffers[eGbufferType_RoughnessMetalness].Buffer = RHITexture(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, roughnessMetalnessDesc, &clearValue);
 		}
 
 		WARP_ASSERT(m_gbufferRtvs.IsValid() && m_gbufferSrvs.IsValid(), "They should have been allocated in InitGBuffers()");
@@ -973,6 +930,43 @@ namespace Warp
 			m_gbuffers[i].Rtv = RHIRenderTargetView(Device, &m_gbuffers[i].Buffer, nullptr, m_gbufferRtvs, i);
 			m_gbuffers[i].Srv = RHIShaderResourceView(Device, &m_gbuffers[i].Buffer, nullptr, m_gbufferSrvs, i);
 		}
+	}
+
+	void Renderer::InitDirectionalShadowmapping()
+	{
+		std::string shaderPath = (Application::Get().GetShaderPath() / "DirectionalShadowing.hlsl").string();
+		m_MSDirectionalShadowing = m_shaderCompiler.CompileShader(shaderPath, ShaderCompilationDesc("MSMain", EShaderModel::sm_6_5, EShaderType::Mesh));
+		WARP_ASSERT(m_MSDirectionalShadowing.HasBinary() && "Failed to compile DirectionalShadowing.hlsl");
+
+		RHIDevice* Device = GetDevice();
+
+		// TODO: D3D12_SHADER_VISIBILITY_MESH somehow crashes gpu. Idk why though
+		m_directionalShadowingSignature = RHIRootSignature(Device, RHIRootSignatureDesc(DirShadowingRootParamIdx_NumParams)
+			// Cbvs
+			.SetConstantBufferView(DirShadowingRootParamIdx_CbViewData, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetConstantBufferView(DirShadowingRootParamIdx_CbDrawData, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
+			// Srvs
+			.SetShaderResourceView(DirShadowingRootParamIdx_Positions, 0, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(DirShadowingRootParamIdx_Meshlets, 1, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(DirShadowingRootParamIdx_UniqueVertexIndices, 2, 0, D3D12_SHADER_VISIBILITY_ALL)
+			.SetShaderResourceView(DirShadowingRootParamIdx_PrimitiveIndices, 3, 0, D3D12_SHADER_VISIBILITY_ALL)
+		);
+		m_directionalShadowingSignature.SetName(L"RootSignature_DirectionalShadowing");
+
+		RHIMeshPipelineDesc psoDesc = {};
+		psoDesc.RootSignature = m_directionalShadowingSignature;
+		psoDesc.MS = m_MSDirectionalShadowing.GetBinaryBytecode();
+		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
+		psoDesc.Rasterizer.DepthBias = 4;
+		psoDesc.Rasterizer.DepthBiasClamp = 0.0f;
+		psoDesc.Rasterizer.SlopeScaledDepthBias = 2.0f;
+		psoDesc.DepthStencil.DepthEnable = TRUE;
+		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+		psoDesc.DepthStencil.StencilEnable = FALSE;
+		psoDesc.NumRTVs = 0;
+		psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		m_directionalShadowingPSO = RHIMeshPipelineState(Device, psoDesc);
+		m_directionalShadowingPSO.SetName(L"PSO_DirectionalShadowing");
 	}
 
 	void Renderer::InitDeferredLighting()
@@ -1048,6 +1042,21 @@ namespace Warp
 		psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 		m_gbufferViewPSO = RHIGraphicsPipelineState(Device, psoDesc);
 		m_gbufferViewPSO.SetName(L"PSO_GbufferView");
+	}
+
+	void Renderer::AllocateGlobalCbuffers()
+	{
+		RHIDevice* Device = m_device.get();
+
+		// Allocate global CBuffers
+		for (size_t i = 0; i < SimultaneousFrames; ++i)
+		{
+			m_constantBuffers[i] = RHIBuffer(Device,
+				D3D12_HEAP_TYPE_UPLOAD,
+				D3D12_RESOURCE_STATE_GENERIC_READ,
+				D3D12_RESOURCE_FLAG_NONE, SizeOfGlobalCb);
+			m_constantBuffers[i].SetName(L"GlobalCb");
+		}
 	}
 
 }

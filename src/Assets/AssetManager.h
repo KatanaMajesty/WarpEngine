@@ -194,7 +194,7 @@ namespace Warp
 		}
 		else
 		{
-			proxy.Index = AssetContainer.size();
+			proxy.Index = static_cast<uint32_t>(AssetContainer.size()); // Cast is safe for now (and probs forever)
 			AssetContainer.emplace_back(); // emplace empty allocation that we will fill later
 		}
 
