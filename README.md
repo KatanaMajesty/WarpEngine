@@ -5,12 +5,11 @@ tl;dr
 - [x] DirectX 12 RHI interface with physical/logical devices and triple-buffered swapchain
 - [x] Renderer that supports three inflight frames being rendered simultaneously
 - [x] DXC shader compiler interface for easy shader retrieval
-- [x] Barebone PIX integration (WIP)
-- [x] Meshlet rendering using Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline
-- [x] Asset system with Asset importer for textures (using DirectXTex) and glTF format meshes (using cgltf)
-- [x] World with cameras and meshes. Rendered and manipulated with ECS using entt.
-- [x] Blinn-Phong shading model with normal mapping support
-- [ ] ECS-based lighting system (WIP) 
+- [x] PIX Profiler Integration (Still some issues with it though)
+- [x] Mesh rendering using Mesh/Amplification pipeline instead of IA/Vertex/Geometry/Tesselation pipeline
+- [x] Asset system for WIC textures (using DirectXTex), glTF meshes (using cgltf) and materials
+- [x] World with cameras, meshes, materials and lights. Rendered and manipulated with ECS using entt.
+- [x] Physically-Based shading using BRDF for directional lights (Will be expanded in future)
 
 ## Mesh Rendering
-![HelloCubeImage](images/WE_Img_BlinnPhong.jpg)
+![HelloPbrImage](images/WE_Img_Pbr.jpg)
