@@ -163,8 +163,6 @@ void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLi
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    wchar_t msg[32];
-
     Warp::Application& application = Warp::Application::Get();
     switch (uMsg)
     {
@@ -183,53 +181,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_SETFOCUS:
         application.SetWindowFocused(true);
         break;
-    //case WM_KEYDOWN:
-    //case WM_KEYUP:
-    //case WM_SYSKEYDOWN:
-    //case WM_SYSKEYUP:
-    //{
-    //    static std::unordered_map<WORD, Warp::EKeycode> Win32KeysMapping = {
-    //        { 'W', Warp::eKeycode_W },
-    //        { 'A', Warp::eKeycode_A },
-    //        { 'S', Warp::eKeycode_S },
-    //        { 'D', Warp::eKeycode_D },
-    //        { 'Z', Warp::eKeycode_Z },
-    //        { 'X', Warp::eKeycode_X },
-    //        { 'C', Warp::eKeycode_C },
-    //    };
-
-    //    Warp::InputManager& inputManager = application.GetInputManager();
-    //    WORD vkCode = LOWORD(wParam);
-    //    WORD keyFlags = HIWORD(lParam);
-
-    //    auto it = Win32KeysMapping.find(vkCode);
-    //    if (it != Win32KeysMapping.end())
-    //    {
-    //        Warp::EKeycode keycode = Win32KeysMapping[vkCode];
-
-    //        // BOOL wasKeyDown = (keyFlags & KF_REPEAT) == KF_REPEAT; // previous key-state flag, 1 on autorepeat
-    //        // WORD repeatCount = LOWORD(lParam);
-    //        BOOL isKeyReleased = (keyFlags & KF_UP) == KF_UP;
-
-    //        inputManager.SetKeyIsPressed(keycode, !isKeyReleased);
-    //    }
-    //}; break;
-    case WM_LBUTTONDOWN:
-    case WM_LBUTTONUP:
-    case WM_RBUTTONDOWN:
-    case WM_RBUTTONUP:
-    {
-        // TODO: Rewrite this pls pls
-        /*Warp::InputManager& inputManager = application.GetInputManager();
-        if (uMsg == WM_LBUTTONDOWN) inputManager.SetButtonIsPressed(Warp::eMouseButton_Left, true);
-        if (uMsg == WM_LBUTTONUP)   inputManager.SetButtonIsPressed(Warp::eMouseButton_Left, false);
-        if (uMsg == WM_RBUTTONDOWN) inputManager.SetButtonIsPressed(Warp::eMouseButton_Right, true);
-        if (uMsg == WM_RBUTTONUP)   inputManager.SetButtonIsPressed(Warp::eMouseButton_Right, false);*/
-    }; break;
     }
 
     ProcessWinInput(hwnd, uMsg, wParam, lParam);
-
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
