@@ -4,8 +4,8 @@
 #include <string>
 #include <filesystem>
 
-#include "Input.h"
 #include "../Util/Timer.h"
+#include "../Input/KeyboardDevice.h"
 #include "../World/World.h"
 
 #include "../Assets/Asset.h"
@@ -63,7 +63,6 @@ namespace Warp
 		void Update(float timestep);
 		void Render();
 
-		inline InputManager& GetInputManager() { return m_inputManager; }
 		inline Renderer* GetRenderer() const { return m_renderer.get(); }
 
 		// Returns the working directory
@@ -91,8 +90,6 @@ namespace Warp
 		Timer m_appTimer;
 		double m_lastFrameTime = 0.0;
 
-		InputManager m_inputManager;
-
 		std::unique_ptr<Renderer> m_renderer;
 		std::filesystem::path m_workingDirectory;
 		std::filesystem::path m_shaderPath;
@@ -109,6 +106,10 @@ namespace Warp
 		AssetManager m_assetManager;
 		MeshImporter m_meshImporter;
 		TextureImporter m_textureImporter;
+		
+		// TODO: Temp, remove when played with gbuffers enough
+		static void OnKeyPressed(const KeyboardDevice::EvKeyInteraction& keyInteraction);
+		RenderOpts m_renderOpts;
 	};
 
 }

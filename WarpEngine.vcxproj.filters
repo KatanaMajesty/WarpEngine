@@ -40,6 +40,9 @@
     <Filter Include="Assets\Importers">
       <UniqueIdentifier>{bd3a6728-49c5-4e4a-b3c5-a279c95fcd46}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{2b491d91-552b-41dc-accd-9cead9d77cf2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -48,7 +51,7 @@
     <ClCompile Include="src\Util\String.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\WinMain.cpp" />
     <ClCompile Include="src\Core\Logger.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -112,9 +115,6 @@
     <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
       <Filter>Renderer\RHI</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\Input.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="src\Util\Guid.cpp">
       <Filter>Util</Filter>
     </ClCompile>
@@ -132,6 +132,15 @@
     </ClCompile>
     <ClCompile Include="src\Assets\Importers\AssetImporter.cpp">
       <Filter>Assets\Importers</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\DeviceManager.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\KeyboardDevice.cpp">
+      <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\MouseDevice.cpp">
+      <Filter>Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -259,12 +268,6 @@
     <ClInclude Include="src\Assets\TextureAsset.h">
       <Filter>Assets</Filter>
     </ClInclude>
-    <ClInclude Include="src\World\EntityRegistry.h">
-      <Filter>World</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\Input.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\World\Components\LightComponent.h">
       <Filter>World\Components</Filter>
     </ClInclude>
@@ -294,6 +297,16 @@
     </ClInclude>
     <ClInclude Include="src\Assets\Importers\AssetImporter.h">
       <Filter>Assets\Importers</Filter>
+    </ClInclude>
+    <ClInclude Include="src\WinInput.h" />
+    <ClInclude Include="src\Input\DeviceManager.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Input\KeyboardDevice.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Input\MouseDevice.h">
+      <Filter>Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

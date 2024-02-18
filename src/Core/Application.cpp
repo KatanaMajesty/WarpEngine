@@ -3,6 +3,7 @@
 #include "Logger.h"
 #include "Defines.h"
 #include "Assert.h"
+#include "../Input/DeviceManager.h"
 
 // TODO: Remove
 #include "../World/Components.h"
@@ -19,6 +20,9 @@ namespace Warp
 		, m_meshImporter(&m_assetManager)
 		, m_textureImporter(&m_assetManager)
 	{
+		std::filesystem::path relativePath = desc.WorkingDirectory.parent_path().parent_path();
+		SetShaderPath(relativePath / "shaders");
+		SetAssetsPath(relativePath / "assets");
 	}
 
 	bool Application::Create(const ApplicationDesc& desc)
@@ -58,12 +62,36 @@ namespace Warp
 		entity.AddComponent<MeshComponent>(&manager, proxy);
 	}
 
+	// TODO: Temp to play with gbuffers
+	void Application::OnKeyPressed(const KeyboardDevice::EvKeyInteraction& keyInteraction)
+	{
+		if (keyInteraction.NextState != eKeycodeState_Pressed)
+		{
+			return;
+		}
+
+		Application& application = Application::Get();
+		RenderOpts& opts = application.m_renderOpts;
+		EGbufferType prevType = opts.ViewGbuffer;
+		if (keyInteraction.Keycode == eKeycode_Z)
+			opts.ViewGbuffer = prevType == eGbufferType_Albedo ? eGbufferType_NumTypes : eGbufferType_Albedo;
+
+		else if (keyInteraction.Keycode == eKeycode_X)
+			opts.ViewGbuffer = prevType == eGbufferType_Normal? eGbufferType_NumTypes : eGbufferType_Normal;
+
+		else if (keyInteraction.Keycode == eKeycode_C)
+			opts.ViewGbuffer = prevType == eGbufferType_RoughnessMetalness? eGbufferType_NumTypes : eGbufferType_RoughnessMetalness;
+	}
+
 	void Application::Init(HWND hwnd)
 	{
 		m_hwnd = hwnd;
 
 		m_renderer = std::make_unique<Renderer>(hwnd);
 		m_world = std::make_unique<World>();
+
+		InputDeviceManager& inputManager = InputDeviceManager::Get();
+		inputManager.GetKeyboard().AddKeyInteractionDelegate(OnKeyPressed);
 
 		AddEntityFromMesh(GetAssetsPath(), "antique_camera/AntiqueCamera.gltf", 
 			m_assetManager,
@@ -145,38 +173,12 @@ namespace Warp
 
 	void Application::Update(float timestep)
 	{
-		// TODO: Maybe remove this to Main.cpp? I thought it might be nice to move all the WinAPI stuff there
-		// and just to some callbacks to Application
-		POINT point;
-		if (GetCursorPos(&point) && ScreenToClient(m_hwnd, &point))
-		{
-			int64_t x = point.x;
-			int64_t y = int64_t(m_height) - point.y;
-			m_inputManager.SetCursorPos(x, y);
-		}
-
 		m_world->Update(timestep);
 	}
 
 	void Application::Render()
 	{
-		InputManager& inputManager = m_inputManager;
-
-		RenderOpts opts = RenderOpts();
-		if (inputManager.IsKeyPressed(eKeycode_Z))
-		{
-			opts.ViewGbuffer = eGbufferType_Albedo;
-		}
-		else if (inputManager.IsKeyPressed(eKeycode_X))
-		{
-			opts.ViewGbuffer = eGbufferType_Normal;
-		}
-		else if (inputManager.IsKeyPressed(eKeycode_C))
-		{
-			opts.ViewGbuffer = eGbufferType_RoughnessMetalness;
-		}
-
-		m_renderer->Render(m_world.get(), opts);
+		m_renderer->Render(m_world.get(), m_renderOpts);
 	}
 
 }

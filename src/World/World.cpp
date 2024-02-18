@@ -4,7 +4,7 @@
 
 #include "Entity.h"
 #include "Components.h"
-#include "../Core/Application.h"
+#include "../Input/DeviceManager.h"
 
 namespace Warp
 {
@@ -37,10 +37,11 @@ namespace Warp
 		EulersCameraComponent& cameraComponent = m_worldCamera.GetComponent<EulersCameraComponent>();
 		bool dirtyView = false;
 
-		InputManager& inputManager = Application::Get().GetInputManager();
-		int64_t cx = inputManager.GetCursorX();
-		int64_t cy = inputManager.GetCursorY();
-		if (inputManager.IsButtonPressed(eMouseButton_Left))
+		InputDeviceManager& inputManager = InputDeviceManager::Get();
+		MouseDevice::CursorHotspot hotspot = inputManager.GetCursorHotspot();
+		auto [cx, cy] = hotspot;
+
+		if (inputManager.IsMouseButtonClicked(eMouseButton_Left))
 		{
 			if (!m_firstLMBClick)
 			{
@@ -54,7 +55,7 @@ namespace Warp
 				constexpr float Sensitivity = 0.4f;
 
 				float xoffset = (cx - m_lastCursorX) * Sensitivity;
-				float yoffset = (cy - m_lastCursorY) * Sensitivity;
+				float yoffset = (m_lastCursorY - cy) * Sensitivity; // Windows' window system uses inverse Y from top left corner
 				m_lastCursorX = cx;
 				m_lastCursorY = cy;
 
@@ -136,20 +137,5 @@ namespace Warp
 		WARP_ASSERT(HasEntity(entity));
 		Container.erase(entity.GetID());
 	}
-
-	//void World::ClearEntities()
-	//{
-	//	for (auto& [ID, entity] : Container)
-	//	{
-	//		WARP_ASSERT(entity.HasComponents<NametagComponent>());
-	//		WARP_LOG_INFO("Destroying entity \"{}\"", entity.GetComponent<NametagComponent>().Nametag);
-
-	//		DestroyEntity(entity);
-	//	}
-	//	m_entityContainer.clear();
-
-	//	// Maybe we don't want to do this as it may be intended for other world's as well in future
-	//	m_entityRegistry.clear();
-	//}
 
 }
