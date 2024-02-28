@@ -21,9 +21,9 @@ namespace Warp
 		return result;
 	}
 
-	WARP_ATTR_NODISCARD AssetProxy AssetManager::GetAssetProxy(const Guid& ID)
+	WARP_ATTR_NODISCARD AssetProxy AssetManager::GetAssetProxy(uint32_t ID)
 	{
-		if (!ID.IsValid())
+		if (ID == Asset::InvalidID)
 		{
 			return AssetProxy();
 		}
@@ -45,8 +45,7 @@ namespace Warp
 			return AssetProxy();
 		}
 
-		const Guid& guid = it->second;
-		AssetProxy proxy = GetAssetProxy(guid);
+		AssetProxy proxy = it->second;
 
 		// TODO: Maybe change this all story with filepaths and asset caching?
 		// Its not so easy to clear the filepath cache, thats why it sucks... the only way to delete invalid elements is by

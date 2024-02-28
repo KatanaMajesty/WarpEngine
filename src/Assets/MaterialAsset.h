@@ -12,7 +12,7 @@ namespace Warp
 	{
 		static constexpr EAssetType StaticType = EAssetType::Material;
 
-		MaterialAsset(const Guid& ID) : Asset(ID, EAssetType::Material) {}
+		MaterialAsset(uint32_t ID) : Asset(ID, EAssetType::Material) {}
 
 		bool HasAlbedoMap() const { return AlbedoMap.IsValid(); }
 		bool HasNormalMap() const { return NormalMap.IsValid(); }

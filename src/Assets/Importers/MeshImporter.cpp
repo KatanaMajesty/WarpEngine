@@ -50,7 +50,13 @@ namespace Warp
 			return AssetProxy();
 		}
 
-		proxy = manager->CreateAsset<MeshAsset>();
+		proxy = manager->CreateAsset<MeshAsset>(filepath);
+		if (!proxy.IsValid())
+		{
+			WARP_LOG_ERROR("MeshImporter::ImportStaticMeshFromFile -> Failed to create a MeshAsset for \'{}\'", filepath);
+			return proxy;
+		}
+
 		MeshAsset* mesh = manager->GetAs<MeshAsset>(proxy);
 
 		size_t numSubmeshes = loadedMesh.Submeshes.size();

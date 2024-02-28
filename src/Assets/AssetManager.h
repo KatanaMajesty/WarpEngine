@@ -16,8 +16,31 @@
 #include "../Core/Assert.h"
 #include "../Core/Logger.h"
 
+#define WARP_INTERNAL_ASSET_MANAGER_RETURN_REGISTRY(Type, Expected, Registry)\
+	if constexpr (std::is_same_v<Type, Expected>)\
+	{\
+		return Registry;\
+	}\
+
 namespace Warp
 {
+
+	class AssetIDGenerator
+	{
+	public:
+		WARP_ATTR_NODISCARD inline uint32_t NextID()
+		{
+			uint32_t ID = m_nextID++;
+			m_prevCachedID = ID;
+			return ID;
+		}
+
+		WARP_ATTR_NODISCARD inline uint32_t GetPrevCachedID() const { return m_prevCachedID; }
+
+	private:
+		uint32_t m_prevCachedID = Asset::InvalidID;
+		uint32_t m_nextID = 0;
+	};
 
 	template<typename T>
 	concept ValidAssetType = std::derived_from<T, Asset> && requires(T t) { t.StaticType; t.StaticType != EAssetType::Unknown; };
@@ -39,7 +62,7 @@ namespace Warp
 		{
 			Registry<T>* registry = this->GetRegistry<T>();
 
-			Guid ID = Guid::Create();
+			uint32_t ID = m_IDGenerator.NextID();
 			AssetProxy proxy = registry->AllocateAsset(ID);
 			if (registry->IsValid(proxy))
 			{
@@ -62,7 +85,7 @@ namespace Warp
 			{
 				if (proxy.Type != T::StaticType)
 				{
-					WARP_LOG_ERROR("Wrong type is requested for the filepath. Perhaps internal resource?");
+					WARP_LOG_ERROR("AssetManager::CreateAsset() -> Wrong type is requested for the filepath. Perhaps internal resource?");
 					WARP_ASSERT(false);
 					return AssetProxy();
 				}
@@ -74,7 +97,7 @@ namespace Warp
 			proxy = CreateAsset<T>();
 			WARP_ASSERT(proxy.IsValid());
 
-			m_filepathCache[filepath] = proxy.ID;
+			m_filepathCache[filepath] = proxy;
 			return proxy;
 		}
 
@@ -84,7 +107,7 @@ namespace Warp
 
 		// Tries to get a proxy for the associated asset's unique ID. This may be usefull to check if an asset is indeed associated with this manager
 		// Returns empty asset if there is no proxy, thus no asset, associated with the provided ID parameter
-		WARP_ATTR_NODISCARD AssetProxy GetAssetProxy(const Guid& ID);
+		WARP_ATTR_NODISCARD AssetProxy GetAssetProxy(uint32_t ID);
 
 		// Tries to find an asset proxy by filepath (or whatever unique name you want basically) using two levels of indirection
 		// Firstly, manager will search for a Guid associated with filepath provided
@@ -126,7 +149,7 @@ namespace Warp
 				AssetContainer.reserve(numAssets);
 			}
 
-			WARP_ATTR_NODISCARD AssetProxy AllocateAsset(const Guid& ID);
+			WARP_ATTR_NODISCARD AssetProxy AllocateAsset(uint32_t ID);
 			WARP_ATTR_NODISCARD AssetProxy DestroyAsset(AssetProxy proxy);
 			WARP_ATTR_NODISCARD bool IsValid(AssetProxy proxy) const;
 
@@ -149,19 +172,10 @@ namespace Warp
 		template<typename T>
 		Registry<T>* GetRegistry()
 		{
-			if constexpr (std::is_same_v<T, MaterialAsset>)
-			{
-				return &m_materialRegistry;
-			}
-			else if constexpr (std::is_same_v<T, MeshAsset>)
-			{
-				return &m_meshRegistry;
-			}
-			else if constexpr (std::is_same_v<T, TextureAsset>)
-			{
-				return &m_textureRegistry;
-			}
-			else return nullptr;
+			WARP_INTERNAL_ASSET_MANAGER_RETURN_REGISTRY(T, MaterialAsset, &m_materialRegistry);
+			WARP_INTERNAL_ASSET_MANAGER_RETURN_REGISTRY(T, MeshAsset,     &m_meshRegistry);
+			WARP_INTERNAL_ASSET_MANAGER_RETURN_REGISTRY(T, TextureAsset,  &m_textureRegistry);
+			return nullptr;
 		}
 
 		template<typename T>
@@ -174,12 +188,14 @@ namespace Warp
 		Registry<MaterialAsset> m_materialRegistry;
 		Registry<MeshAsset> m_meshRegistry;
 		Registry<TextureAsset> m_textureRegistry;
-		std::unordered_map<Guid, AssetProxy> m_proxyTable;
-		std::unordered_map<std::string, Guid> m_filepathCache;
+
+		AssetIDGenerator m_IDGenerator;
+		std::unordered_map<uint32_t, AssetProxy> m_proxyTable;
+		std::unordered_map<std::string, AssetProxy> m_filepathCache;
 	};
 
 	template<ValidAssetType T>
-	inline AssetProxy AssetManager::Registry<T>::AllocateAsset(const Guid& ID)
+	inline AssetProxy AssetManager::Registry<T>::AllocateAsset(uint32_t ID)
 	{
 		AssetProxy proxy = AssetProxy();
 		proxy.Type = T::StaticType;
@@ -203,7 +219,7 @@ namespace Warp
 			.Ptr = std::make_unique<T>(ID),
 		};
 
-		WARP_ASSERT(proxy.IsValid());
+		WARP_ASSERT(IsValid(proxy));
 		return proxy;
 	}
 

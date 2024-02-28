@@ -32,35 +32,40 @@ namespace Warp
 	class Asset
 	{
 	public:
-		static constexpr uint32_t InvalidIndex = uint32_t(-1);
+		static constexpr uint32_t InvalidID = uint32_t(-1);
 		static constexpr EAssetType StaticType = EAssetType::Unknown;
 
 		Asset() = default;
-		Asset(const Guid& ID, EAssetType type)
+		Asset(uint32_t ID, EAssetType type)
 			: m_ID(ID)
 			, m_type(type)
+			, m_Guid(Guid::Create())
 		{
 		}
 
-		inline constexpr const Guid& GetID() const { return m_ID; }
+		inline constexpr uint32_t GetID() const { return m_ID; }
+		inline constexpr const Guid& GetGuid() const { return m_Guid; }
 		inline constexpr EAssetType GetType() const { return m_type; }
 
-		inline constexpr bool IsValid() const { return GetID().IsValid() && m_type != EAssetType::Unknown; }
+		inline constexpr bool IsValid() const { return GetID() != Asset::InvalidID && m_type != EAssetType::Unknown; }
 
 	protected:
-		Guid m_ID;
+		uint32_t m_ID = Asset::InvalidID;
 		EAssetType m_type = EAssetType::Unknown;
+
+		Guid m_Guid;
 	};
 
 	struct AssetProxy
 	{
 		inline constexpr bool IsValid() const
 		{
-			return Type != EAssetType::Unknown && Index != Asset::InvalidIndex && ID.IsValid();
+			return ID != Asset::InvalidID && 
+				Index != Asset::InvalidID && Type != EAssetType::Unknown;
 		}
 
-		Guid ID; // Represents a "unique identifier" of the asset
-		uint32_t Index = Asset::InvalidIndex; // Index represents a value that can be used to access the actual asset inside of the registry
+		uint32_t ID = Asset::InvalidID; // Represents a unique identifier of an asset at runtime
+		uint32_t Index = Asset::InvalidID; // Index represents a value that can be used to access the actual asset inside of the registry
 		EAssetType Type = EAssetType::Unknown;
 	};
 

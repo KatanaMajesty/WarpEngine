@@ -14,7 +14,7 @@ namespace Warp
 	{
 		static constexpr EAssetType StaticType = EAssetType::Texture;
 
-		TextureAsset(const Guid& ID) : Asset(ID, StaticType) {}
+		TextureAsset(uint32_t ID) : Asset(ID, StaticType) {}
 
 		RHITexture Texture;
 		RHIDescriptorAllocation SrvAllocation;

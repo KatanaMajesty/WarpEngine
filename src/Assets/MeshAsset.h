@@ -39,7 +39,7 @@ namespace Warp
 	{
 		static constexpr EAssetType StaticType = EAssetType::Mesh;
 
-		MeshAsset(const Guid& ID) : Asset(ID, StaticType) {}
+		MeshAsset(uint32_t ID) : Asset(ID, StaticType) {}
 
 		uint32_t GetNumSubmeshes() const { return static_cast<uint32_t>(Submeshes.size()); }
 

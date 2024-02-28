@@ -959,7 +959,7 @@ namespace Warp
 		psoDesc.Rasterizer.FrontCounterClockwise = TRUE; // TODO: We need this, because cube's triangle winding order is smhw ccw
 		psoDesc.Rasterizer.DepthBias = 4;
 		psoDesc.Rasterizer.DepthBiasClamp = 0.0f;
-		psoDesc.Rasterizer.SlopeScaledDepthBias = 2.0f;
+		psoDesc.Rasterizer.SlopeScaledDepthBias = 4.0f;
 		psoDesc.DepthStencil.DepthEnable = TRUE;
 		psoDesc.DepthStencil.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		psoDesc.DepthStencil.StencilEnable = FALSE;
