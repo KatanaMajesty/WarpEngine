@@ -93,7 +93,14 @@ namespace Warp
 		InputDeviceManager& inputManager = InputDeviceManager::Get();
 		inputManager.GetKeyboard().AddKeyInteractionDelegate(OnKeyPressed);
 
-		AddEntityFromMesh(GetAssetsPath(), "antique_camera/AntiqueCamera.gltf", 
+		AddEntityFromMesh(GetAssetsPath(), "Sponza/Sponza.gltf",
+			m_assetManager,
+			GetMeshImporter(),
+			GetWorld(),
+			TransformComponent(Math::Vector3(0.0f), Math::Vector3(), Math::Vector3(1.0f))
+		);
+
+		/*AddEntityFromMesh(GetAssetsPath(), "antique_camera/AntiqueCamera.gltf", 
 			m_assetManager,
 			GetMeshImporter(), 
 			GetWorld(),
@@ -112,27 +119,27 @@ namespace Warp
 			GetMeshImporter(),
 			GetWorld(),
 			TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(8.0f, 0.05f, 8.0f))
-		);
+		);*/
 
 		Entity light1 = GetWorld()->CreateEntity("Dirlight1");
 		light1.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 2.4f,
-				.Direction = Math::Vector3(-1.0f, -2.0f, -1.0f),
-				.Radiance = Math::Vector3(0.76f, 0.89f, 0.98f)
+				.Intensity = 3.2f,
+				.Direction = Math::Vector3(2.0f, -4.0f, -0.5f),
+				.Radiance = Math::Vector3(0.72f, 0.8f, 0.72f)
 			});
 
 		// TODO: Try removing these 2 light sources. Whats the result? Are there uninitialized descriptor warnings?
 		Entity light2 = GetWorld()->CreateEntity("Dirlight2");
 		light2.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 1.4f,
-				.Direction = Math::Vector3(-1.0f, -1.0f, 1.0f),
-				.Radiance = Math::Vector3(0.98f, 0.89f, 0.78f)
+				.Intensity = 2.4f,
+				.Direction = Math::Vector3(-2.0f, -4.0f, 2.0f),
+				.Radiance = Math::Vector3(0.64f, 0.64f, 0.55f)
 			});
 
 		Entity light3 = GetWorld()->CreateEntity("Dirlight3");
 		light3.AddComponent<DirectionalLightComponent>(DirectionalLightComponent{
-				.Intensity = 0.4f,
-				.Direction = Math::Vector3(0.75f, -0.66f, 1.0f),
+				.Intensity = 0.8f,
+				.Direction = Math::Vector3(0.75f, -3.66f, 1.0f),
 				.Radiance = Math::Vector3(0.22f, 0.45f, 0.45f)
 			});
 	}

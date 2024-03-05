@@ -227,6 +227,12 @@ namespace Warp
 					Submesh& submesh = mesh->Submeshes[submeshIndex];
 
 					MaterialAsset* material = meshComponent.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
+					if (!material)
+					{
+						// TODO: Somehow handle it better? Maybe warn? Maybe draw with default material?
+						continue;
+					}
+
 					EHlslDrawPropertyFlags& flags = instance.Submeshes[submeshIndex].DrawFlags;
 
 					if (submesh.HasAttributes(eVertexAttribute_TextureCoords))
@@ -275,13 +281,13 @@ namespace Warp
 				}
 
 				// TODO: We should use camera's frustum for this
-				Math::Vector3 DirLightPosition = dirLightComponent.Direction * -10.0f;
+				Math::Vector3 DirLightPosition = dirLightComponent.Direction * -20.0f;
 
 				DirectionalLightShadowmappingComponent& shadowComponent = e.AddComponent<DirectionalLightShadowmappingComponent>();
 				shadowComponent.LightView = Math::Matrix::CreateLookAt(DirLightPosition, DirLightPosition + dirLightComponent.Direction, Math::Vector3(0.0f, 1.0f, 0.0f));
 				shadowComponent.LightView.Invert(shadowComponent.LightInvView);
 
-				shadowComponent.LightProj = Math::Matrix::CreateOrthographicOffCenter(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 30.0f);
+				shadowComponent.LightProj = Math::Matrix::CreateOrthographicOffCenter(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 200.0f);
 				shadowComponent.LightProj.Invert(shadowComponent.LightInvProj);
 				
 				RHIDevice* Device = GetDevice();
@@ -647,11 +653,14 @@ namespace Warp
 				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_SceneDepth, m_sceneDepthSrv.GetGpuAddress());
 
 				// Transition and set directional shadowmaps
-				for (uint32_t i = 0; i < shadowmappingTargets.NumTargets; ++i)
+				if (shadowmappingTargets.NumTargets > 0)
 				{
-					graphicsContext.AddTransitionBarrier(&shadowmappingTargets.Targets[i]->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					for (uint32_t i = 0; i < shadowmappingTargets.NumTargets; ++i)
+					{
+						graphicsContext.AddTransitionBarrier(&shadowmappingTargets.Targets[i]->DepthMap, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					}
+					graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
 				}
-				graphicsContext->SetGraphicsRootDescriptorTable(DeferredLightingRootParamIdx_DirectionalShadowmaps, m_directionalShadowingSrvs.GetGpuAddress());
 
 				// Fullscreen triangle
 				graphicsContext.DrawInstanced(3, 1, 0, 0);
@@ -815,9 +824,9 @@ namespace Warp
 			.SetDescriptorTable(BasicRootParamIdx_MetalnessRoughnessMap, RHIDescriptorTable(1).AddDescriptorRange(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4, 2), D3D12_SHADER_VISIBILITY_PIXEL)
 			.AddStaticSampler(0, 0, D3D12_SHADER_VISIBILITY_PIXEL,
 				D3D12_FILTER_ANISOTROPIC,
-				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-				D3D12_TEXTURE_ADDRESS_MODE_MIRROR,
-				D3D12_TEXTURE_ADDRESS_MODE_MIRROR)
+				D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+				D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+				D3D12_TEXTURE_ADDRESS_MODE_WRAP)
 		);
 		m_baseRootSignature.SetName(L"RootSignature_Base");
 

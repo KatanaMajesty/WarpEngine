@@ -43,6 +43,9 @@
     <Filter Include="Input">
       <UniqueIdentifier>{2b491d91-552b-41dc-accd-9cead9d77cf2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Assets\Importers\Formats">
+      <UniqueIdentifier>{bda90769-402f-47a5-9ca8-cd7d9ba12b68}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -118,12 +121,6 @@
     <ClCompile Include="src\Util\Guid.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="src\Util\GltfMeshLoader.cpp">
-      <Filter>Util</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Util\ImageLoader.cpp">
-      <Filter>Util</Filter>
-    </ClCompile>
     <ClCompile Include="src\Assets\Importers\TextureImporter.cpp">
       <Filter>Assets\Importers</Filter>
     </ClCompile>
@@ -141,6 +138,12 @@
     </ClCompile>
     <ClCompile Include="src\Input\MouseDevice.cpp">
       <Filter>Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Importers\Formats\GltfMeshImporter.cpp">
+      <Filter>Assets\Importers\Formats</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Assets\Importers\Formats\ImageLoader.cpp">
+      <Filter>Assets\Importers\Formats</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -280,12 +283,6 @@
     <ClInclude Include="src\Util\Guid.h">
       <Filter>Util</Filter>
     </ClInclude>
-    <ClInclude Include="src\Util\MeshLoader.h">
-      <Filter>Util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Util\ImageLoader.h">
-      <Filter>Util</Filter>
-    </ClInclude>
     <ClInclude Include="src\Assets\MaterialAsset.h">
       <Filter>Assets</Filter>
     </ClInclude>
@@ -307,6 +304,9 @@
     </ClInclude>
     <ClInclude Include="src\Input\MouseDevice.h">
       <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Assets\Importers\Formats\ImageLoader.h">
+      <Filter>Assets\Importers\Formats</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -336,7 +336,9 @@
     <FxCompile Include="shaders\Deferred.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\GbufferView.hlsl" />
+    <FxCompile Include="shaders\GbufferView.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="vendor\dxil.dll">

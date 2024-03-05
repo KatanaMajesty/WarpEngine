@@ -25,11 +25,11 @@ namespace Warp
 			// Add importer's supported formats here
 			AddFormat(".bmp", EAssetFormat::Bmp);
 			AddFormat(".png", EAssetFormat::Png);
+			AddFormat(".jpg", EAssetFormat::Jpeg);
 			AddFormat(".jpeg", EAssetFormat::Jpeg);
 		}
 
 		AssetProxy ImportFromFile(const std::string& filepath, const ImportDesc& importDesc);
-		AssetProxy ImportFromMemory(const ImageLoader::Image& image);
 	};
 
 }

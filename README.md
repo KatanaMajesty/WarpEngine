@@ -12,4 +12,4 @@ tl;dr
 - [x] Physically-Based shading using BRDF for directional lights (Will be expanded in future)
 
 ## Mesh Rendering
-![HelloPbrImage](images/WE_Img_Pbr.jpg)
+![EarlySponza](images/WE_Img_EarlySponza.jpg)

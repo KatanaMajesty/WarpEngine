@@ -58,6 +58,36 @@ namespace Warp
 
 	struct AssetProxy
 	{
+		AssetProxy() = default;
+
+		AssetProxy(const AssetProxy&) = default;
+		AssetProxy& operator=(const AssetProxy&) = default;
+
+		AssetProxy(AssetProxy&& other) noexcept
+			: ID(other.ID)
+			, Index(other.Index)
+			, Type(other.Type)
+		{
+			other.ID	= Asset::InvalidID;
+			other.Index = Asset::InvalidID;
+			other.Type	= EAssetType::Unknown;
+		}
+
+		AssetProxy& operator=(AssetProxy&& other) noexcept
+		{
+			if (this != &other)
+			{
+				this->ID	= other.ID;
+				this->Index = other.Index;
+				this->Type	= other.Type;
+
+				other.ID	= Asset::InvalidID;
+				other.Index = Asset::InvalidID;
+				other.Type	= EAssetType::Unknown;
+			}
+			return *this;
+		}
+
 		inline constexpr bool IsValid() const
 		{
 			return ID != Asset::InvalidID && 

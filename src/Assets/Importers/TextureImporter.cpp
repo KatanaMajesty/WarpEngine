@@ -8,9 +8,9 @@
 #include "../../Core/Assert.h"
 
 #include "../../Renderer/Renderer.h"
-
-#include "../../Util/ImageLoader.h"
 #include "../../Util/String.h"
+
+#include "Formats/ImageLoader.h"
 #include "../AssetManager.h"
 
 namespace Warp
@@ -25,6 +25,15 @@ namespace Warp
 			return AssetProxy();
 		}
 
+		AssetManager* manager = GetAssetManager();
+		AssetProxy proxy = manager->GetAssetProxy(filepath);
+		if (proxy.IsValid())
+		{
+			WARP_ASSERT(proxy.Type == EAssetType::Texture, "This should only be texture! Nothing else");
+			WARP_LOG_INFO("TextureImporter::ImportFromFile -> Returning cached asset proxy for a texture \'{}\'", filepath);
+			return proxy;
+		}
+
 		ImageLoader::Image image;
 		switch (format)
 		{
@@ -36,25 +45,7 @@ namespace Warp
 		default: WARP_ASSERT(false, "Shouldn't happen"); break;
 		}
 
-		AssetProxy proxy = ImportFromMemory(image);
-		return proxy;
-	}
-
-	AssetProxy TextureImporter::ImportFromMemory(const ImageLoader::Image& image)
-	{
-		if (!image.IsValid())
-		{
-			return AssetProxy();
-		}
-
-		AssetManager* manager = GetAssetManager();
-		AssetProxy proxy = manager->GetAssetProxy(image.Filepath);
-		if (proxy.IsValid())
-		{
-			return proxy;
-		}
-		
-		proxy = manager->CreateAsset<TextureAsset>();
+		proxy = manager->CreateAsset<TextureAsset>(filepath);
 		TextureAsset* asset = manager->GetAs<TextureAsset>(proxy);
 
 		// TODO: (14.02.2024) -> Singleton... meh
@@ -83,7 +74,7 @@ namespace Warp
 		asset->Texture = RHITexture(Device, D3D12_HEAP_TYPE_DEFAULT, D3D12_RESOURCE_STATE_COMMON, desc);
 		if (!image.Filepath.empty())
 		{
-			asset->Texture.SetName(StringToWString(image.Filepath)); 
+			asset->Texture.SetName(StringToWString(image.Filepath));
 		}
 
 		asset->SrvAllocation = Device->GetViewHeap()->Allocate(1);
@@ -98,7 +89,7 @@ namespace Warp
 				.pData = subImage.pixels,
 				.RowPitch = (LONG_PTR)subImage.rowPitch,
 				.SlicePitch = (LONG_PTR)subImage.slicePitch
-			});
+				});
 		}
 
 		RHICopyCommandContext& copyContext = renderer->GetCopyContext();

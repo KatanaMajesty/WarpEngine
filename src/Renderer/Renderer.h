@@ -123,7 +123,7 @@ namespace Warp
 		CShader m_PSGbufferView;
 		
 		void AllocateGlobalCbuffers();
-		static constexpr size_t SizeOfGlobalCb = 64 * 512;
+		static constexpr size_t SizeOfGlobalCb = 64 * 16384;
 		RHIBuffer m_constantBuffers[SimultaneousFrames];
 	};
 }

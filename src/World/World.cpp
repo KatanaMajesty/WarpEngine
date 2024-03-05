@@ -26,13 +26,14 @@ namespace Warp
 	{
 		m_timeElapsed += timestep;
 
-		m_entityRegistry.view<TransformComponent>().each(
+		// TODO: Was temporary removed as of 05.03.24 in favor of Sponza
+		/*m_entityRegistry.view<TransformComponent>().each(
 			[this](TransformComponent& transformComponent)
 			{
 				float pitch = m_timeElapsed;
 				transformComponent.Rotation = Math::Vector3(0.0f, pitch, 0.0f);
 			}
-		);
+		);*/
 
 		EulersCameraComponent& cameraComponent = m_worldCamera.GetComponent<EulersCameraComponent>();
 		bool dirtyView = false;

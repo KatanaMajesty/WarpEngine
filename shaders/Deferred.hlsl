@@ -130,6 +130,6 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         Lo += shadow * O * LdotN * light.Radiance * light.Intensity;
     }
     
-    const float3 ambient = 0.07;
+    const float3 ambient = float3(0.12, 0.1, 0.06) * albedo;
     return float4(ambient + Lo, 1.0); // TODO: Add support of alpha from albedo gbuffer (??)
 }

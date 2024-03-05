@@ -21,6 +21,15 @@ namespace Warp
 		AssetProxy ImportStaticMeshFromFile(const std::string& filepath);
 
 	private:
+		AssetProxy ImportStaticMeshFromGltfFile(const std::string& filepath);
+
+		// TODO: Maybe this should be moved elsewhere? Who cares
+		struct MeshletComputationAndOptimizationContext
+		{
+			bool OptimizeSubmesh();
+
+		};
+
 		TextureImporter m_textureImporter;
 	};
 
