@@ -7,30 +7,30 @@
 namespace Warp::Pix
 {
 
-	// For more info https://devblogs.microsoft.com/pix/winpixeventruntime/
+    // For more info https://devblogs.microsoft.com/pix/winpixeventruntime/
 
-	void BeginEvent(RHICommandContext* commandContext, std::string_view name);
-	void EndEvent(RHICommandContext* commandContext);
+    void BeginEvent(RHICommandContext* commandContext, std::string_view name);
+    void EndEvent(RHICommandContext* commandContext);
 
-	struct ScopedEvent
-	{
-		inline ScopedEvent(RHICommandContext* commandContext, std::string_view name)
-			: Context(commandContext)
-		{
-			BeginEvent(Context, name);
-		}
+    struct ScopedEvent
+    {
+        inline ScopedEvent(RHICommandContext* commandContext, std::string_view name)
+            : Context(commandContext)
+        {
+            BeginEvent(Context, name);
+        }
 
-		inline ~ScopedEvent()
-		{
-			EndEvent(Context);
-		}
+        inline ~ScopedEvent()
+        {
+            EndEvent(Context);
+        }
 
-		RHICommandContext* Context;
-	};
+        RHICommandContext* Context;
+    };
 
-	// TODO: Replace this with HANDLE. I was to lazy to figure-out includes
-	// Smhw pix3.h wants stdafx.h to be included before itself
-	void NotifyWakeFromSignal(HANDLE event);
+    // TODO: Replace this with HANDLE. I was to lazy to figure-out includes
+    // Smhw pix3.h wants stdafx.h to be included before itself
+    void NotifyWakeFromSignal(HANDLE event);
 }
 
 #define WARP_CONCAT(a, b) a##b
