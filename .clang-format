@@ -10,15 +10,24 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: DontAlign
 AllowShortBlocksOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
+
+# Constructor initializers stuff for Warp Engine
+# TODO: When we switch to CMake we could easily integrate ClangFormat 14+ which would allow us to use PackConstructorInitializers
+# For now we are using deprecated alternative though
+# PackConstructorInitializers: NextLineOnly -> Only for ClangFormat 14
+AllowAllConstructorInitializersOnNextLine: true
+BreakConstructorInitializers: BeforeComma
+
 BasedOnStyle: LLVM
 BraceWrapping:
-  AfterClass: false    # TODO: verify
-  AfterControlStatement: false    # TODO: verify
-  AfterEnum: false    # TODO: verify
-  AfterFunction: false    # TODO: verify
-  AfterNamespace: false    # TODO: verify
-  AfterStruct: false    # TODO: verify
-  AfterUnion: false    # TODO: verify
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterStruct: true
+  AfterUnion: true
   BeforeCatch: true
   BeforeElse: true
   IndentBraces: false
