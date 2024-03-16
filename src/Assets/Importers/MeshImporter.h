@@ -6,6 +6,10 @@
 namespace Warp
 {
 	
+	// TODO: We should provide importer with asset type to import with
+	// for example ImportStaticMeshFromFile(const std::string& filepath); -> ImportStaticMeshFromFile(const std::string& filepath, EAssetFormat format);
+	// responsibility of determining format of the asset is up to user
+
 	class MeshImporter : public AssetImporter
 	{
 	public:
@@ -22,13 +26,6 @@ namespace Warp
 
 	private:
 		AssetProxy ImportStaticMeshFromGltfFile(const std::string& filepath);
-
-		// TODO: Maybe this should be moved elsewhere? Who cares
-		struct MeshletComputationAndOptimizationContext
-		{
-			bool OptimizeSubmesh();
-
-		};
 
 		TextureImporter m_textureImporter;
 	};

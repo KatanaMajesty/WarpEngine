@@ -126,10 +126,32 @@ float4 PSMain(OutVertex vertex) : SV_Target0
         float2 uv = float2(projCoords.x * 0.5 + 0.5, projCoords.y * -0.5 + 0.5);
         
         float depth = projCoords.z;
-        float shadow = DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, depth);
+        float shadow = 0.0;
+
+        static const int2 ShadowOffsets[] =
+        {
+            int2( 0,  0),
+            int2( 1,  0),
+            int2( 1,  1),
+            int2( 0,  1),
+            int2(-1,  1),
+            int2(-1,  0),
+            int2(-1, -1),
+            int2( 0, -1),
+            int2( 1, -1),
+        };
+        static const uint NumShadowOffsets = 9; // sizeof(ShadowOffsets) / sizeof(int2); -> VS HLSL intellisense cannot eat sizeof()...
+        static const float NumShadowOffsetsInv = 1.0 / NumShadowOffsets;
+        
+        for (uint shadowSampleIdx = 0; shadowSampleIdx < NumShadowOffsets; ++shadowSampleIdx)
+        {
+            shadow += DirectionalShadowmaps[i].SampleCmpLevelZero(ShadowmapSampler, uv, depth, ShadowOffsets[shadowSampleIdx]);
+        }
+
+        shadow *= NumShadowOffsetsInv;
         Lo += shadow * O * LdotN * light.Radiance * light.Intensity;
     }
     
-    const float3 ambient = float3(0.12, 0.1, 0.06) * albedo;
+    const float3 ambient = float3(0.2, 0.2, 0.28) * albedo;
     return float4(ambient + Lo, 1.0); // TODO: Add support of alpha from albedo gbuffer (??)
 }

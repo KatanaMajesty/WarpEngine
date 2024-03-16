@@ -19,21 +19,9 @@
 namespace Warp
 {
 
-	using EApplicationFlags = uint32_t;
-	enum EApplicationFlag
-	{
-		EApplicationFlag_None = 0,
-
-		// Allows for multiple resize callbacks when a window is resized
-		// If this flag is not specified, resize callback will only be sent after the resizing has finished
-		// and unblocked the main thread, after which the Application::Tick() method will be called
-		EApplicationFlag_InstantResize = 1,
-	};
-
 	struct ApplicationDesc
 	{
 		std::filesystem::path WorkingDirectory;
-		EApplicationFlags Flags = EApplicationFlag_None;
 	};
 
 	class Application
@@ -44,6 +32,9 @@ namespace Warp
 	public:
 		Application(const Application&) = delete;
 		Application& operator=(const Application&) = delete;
+
+		Application(Application&&) = delete;
+		Application operator=(Application&&) = delete;
 
 		// Creates an application, allocating memory for it
 		static bool Create(const ApplicationDesc& desc);
@@ -66,11 +57,9 @@ namespace Warp
 		inline Renderer* GetRenderer() const { return m_renderer.get(); }
 
 		// Returns the working directory
-		inline const std::filesystem::path& GetWorkingDirectory() const { return m_workingDirectory; }
-		inline const std::filesystem::path& GetShaderPath() const { return m_shaderPath; }
-		inline const std::filesystem::path& GetAssetsPath() const { return m_assetsPath; }
-		inline void SetShaderPath(const std::filesystem::path& path) { m_shaderPath = path; }
-		inline void SetAssetsPath(const std::filesystem::path& path) { m_assetsPath = path; }
+		inline const std::filesystem::path& GetWorkingDirectory() const { return m_filepathConfig.WorkingDirectory; }
+		inline const std::filesystem::path& GetShaderPath() const { return m_filepathConfig.ShaderDirectory; }
+		inline const std::filesystem::path& GetAssetsPath() const { return m_filepathConfig.AssetsDirectory; }
 
 		inline bool IsWindowFocused() const noexcept { return m_isWindowFocused; }
 		inline void SetWindowFocused(bool focused) noexcept { m_isWindowFocused = focused; }
@@ -80,7 +69,7 @@ namespace Warp
 		inline TextureImporter& GetTextureImporter() { return m_textureImporter; }
 
 	private:
-		// Moved to private after Application::RequestResize() was introduced
+		// Moved to private, use Application::RequestResize() instead
 		void Resize();
 
 		static inline Application* s_instance = nullptr;
@@ -90,13 +79,16 @@ namespace Warp
 		Timer m_appTimer;
 		double m_lastFrameTime = 0.0;
 
-		std::unique_ptr<Renderer> m_renderer;
-		std::filesystem::path m_workingDirectory;
-		std::filesystem::path m_shaderPath;
-		std::filesystem::path m_assetsPath;
-		bool m_isWindowFocused = true;
+		struct FilepathConfig
+		{
+			std::filesystem::path WorkingDirectory;
+			std::filesystem::path ShaderDirectory;
+			std::filesystem::path AssetsDirectory;
+		};
+		const FilepathConfig m_filepathConfig; // For now it is const, we do not plan on ever changing it (yet)
 
-		EApplicationFlags m_flags;
+		std::unique_ptr<Renderer> m_renderer;
+		bool m_isWindowFocused = true;
 		bool m_scheduledResize = false;
 		uint32_t m_width = 0;
 		uint32_t m_height = 0;

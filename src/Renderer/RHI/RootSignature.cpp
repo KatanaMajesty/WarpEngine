@@ -2,6 +2,7 @@
 
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
+#include "../../Core/Logger.h"
 #include "Device.h"
 
 namespace Warp

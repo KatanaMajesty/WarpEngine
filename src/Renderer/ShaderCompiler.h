@@ -28,6 +28,7 @@ namespace Warp
 
 	// Shader define should only live in a scope of shader compilation
 	// TODO: Maybe somehow replace convertion from std::string_view to std::wstring?
+    // TODO: 16.03.24 -> An old issue with defines. They won't work in shaders basically rn. Figure out whats up with those? Maybe we should rewrite or remove them
 	struct ShaderDefine
 	{
 		ShaderDefine() = default;
@@ -59,8 +60,8 @@ namespace Warp
 
 		std::vector<ShaderDefine> Defines;
 		const std::string_view EntryPoint;
-		const EShaderModel ShaderModel;
-		const EShaderType ShaderType;
+		const EShaderModel     ShaderModel;
+		const EShaderType      ShaderType;
 	};
 
 	class CShaderCompiler
@@ -70,8 +71,6 @@ namespace Warp
 
 		CShaderCompiler(const CShaderCompiler&) = delete;
 		CShaderCompiler& operator=(const CShaderCompiler&) = delete;
-
-		~CShaderCompiler() = default;
 
 		CShader CompileShader(const std::string& filepath, 
 			const ShaderCompilationDesc& desc, 
@@ -93,8 +92,8 @@ namespace Warp
 			std::wstring_view targetProfile,
 			const std::vector<DxcDefine>& defines, EShaderCompilationFlags flags);
 
-		ComPtr<IDxcUtils> m_DxcUtils;
-		ComPtr<IDxcCompiler3> m_DxcCompiler;
+		ComPtr<IDxcUtils>          m_DxcUtils;
+		ComPtr<IDxcCompiler3>      m_DxcCompiler;
 		ComPtr<IDxcIncludeHandler> m_DxcIncludeHandler;
 	};
 

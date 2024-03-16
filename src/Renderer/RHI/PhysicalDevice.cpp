@@ -6,7 +6,8 @@
 
 // https://pcisig.com/membership/member-companies?combine=&order=field_vendor_id&sort=asc
 #define WARP_PCI_VENDOR_ID_NVIDIA 0x10DE
-#define WARP_PCI_VENDOR_ID_AMD 0x1022
+#define WARP_PCI_VENDOR_ID_AMD    0x1022
+#define WARP_PCI_VENDOR_ID_INTEL  0x8086
 
 namespace Warp
 {
@@ -38,7 +39,8 @@ namespace Warp
 		switch (m_adapterDesc.VendorId)
 		{
 		case (WARP_PCI_VENDOR_ID_NVIDIA): m_vendorID = RHIVendor::Nvidia; break;
-		case (WARP_PCI_VENDOR_ID_AMD): m_vendorID = RHIVendor::Amd; break;
+		case (WARP_PCI_VENDOR_ID_AMD):    m_vendorID = RHIVendor::Amd; break;
+        case (WARP_PCI_VENDOR_ID_INTEL):  m_vendorID = RHIVendor::Intel; break;
 		default:
 		{
 			WARP_LOG_WARN("Failed to determine if the GPU vendor is AMD or Nvidia. GpuVendor is set to \"unknown\"");
@@ -54,7 +56,7 @@ namespace Warp
 		}
 	}
 
-	bool RHIPhysicalDevice::IsValid() const
+    BOOL RHIPhysicalDevice::IsValid() const
 	{
 		// TODO: Maybe add more checks for adapter
 		return m_HWND && m_factory && m_adapter;
@@ -78,7 +80,7 @@ namespace Warp
 		return m_associatedLogicalDevice;
 	}
 
-	void RHIPhysicalDevice::InitDebugInterface(bool enableGpuBasedValidation)
+	void RHIPhysicalDevice::InitDebugInterface(BOOL enableGpuBasedValidation)
 	{
 		WARP_RHI_VALIDATE(D3D12GetDebugInterface(IID_PPV_ARGS(m_debugInterface.ReleaseAndGetAddressOf())));
 		WARP_ASSERT(m_debugInterface);
@@ -106,7 +108,7 @@ namespace Warp
 		return true;
 	}
 
-	bool RHIPhysicalDevice::SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference)
+    BOOL RHIPhysicalDevice::SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference)
 	{
 		WARP_ASSERT(m_factory, "Factory cannot be nullptr at this point");
 
@@ -131,7 +133,7 @@ namespace Warp
 			adapter = nullptr;
 		}
 
-		return m_adapter != nullptr;
+		return (m_adapter != nullptr) ? TRUE : FALSE;
 	}
 
 }

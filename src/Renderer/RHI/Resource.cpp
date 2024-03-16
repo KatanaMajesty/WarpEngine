@@ -235,32 +235,6 @@ namespace Warp
 		}
 	}
 
-	RHIVertexBufferView RHIBuffer::GetVertexBufferView(UINT strideInBytes) const
-	{
-		WARP_ASSERT(IsValid() && IsSrvAllowed(), 
-			"The resource is either invalid or is not allowed to be represented as shader resource");
-
-		D3D12_VERTEX_BUFFER_VIEW vbv;
-		vbv.BufferLocation = GetD3D12Resource()->GetGPUVirtualAddress();
-		vbv.SizeInBytes = static_cast<UINT>(GetSizeInBytes());
-		vbv.StrideInBytes = strideInBytes;
-		return vbv;
-	}
-
-	RHIIndexBufferView RHIBuffer::GetIndexBufferView(DXGI_FORMAT format) const
-	{
-		WARP_ASSERT(IsValid() && IsSrvAllowed(),
-			"The resource is either invalid or is not allowed to be represented as shader resource");
-
-		// TODO: Add check if m_strideInBytes is equal to DXGI_FORMAT's stride
-
-		D3D12_INDEX_BUFFER_VIEW ibv;
-		ibv.BufferLocation = GetD3D12Resource()->GetGPUVirtualAddress();
-		ibv.Format = format;
-		ibv.SizeInBytes = static_cast<UINT>(GetSizeInBytes());
-		return ibv;
-	}
-
 	RHITexture::RHITexture(RHIDevice* device,
 		D3D12_HEAP_TYPE heapType, 
 		D3D12_RESOURCE_STATES initialState, 

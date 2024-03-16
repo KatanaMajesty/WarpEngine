@@ -5,12 +5,7 @@
 namespace Warp
 {
 
-	namespace ImageLoader
-	{
-		struct Image;
-	}
-
-	struct ImportDesc
+	struct TextureImportDesc
 	{
 		bool GenerateMips = false;
 	};
@@ -29,7 +24,7 @@ namespace Warp
 			AddFormat(".jpeg", EAssetFormat::Jpeg);
 		}
 
-		AssetProxy ImportFromFile(const std::string& filepath, const ImportDesc& importDesc);
+		AssetProxy ImportFromFile(const std::string& filepath, const TextureImportDesc& importDesc);
 	};
 
 }

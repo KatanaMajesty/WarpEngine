@@ -26,7 +26,7 @@ namespace Warp
 	};
 
 	using EHlslDrawPropertyFlags = uint32_t;
-	enum EHlslDrawPropertyFlag
+	enum  EHlslDrawPropertyFlag
 	{
 		eHlslDrawPropertyFlag_None = 0,
 		eHlslDrawPropertyFlag_HasTexCoords = 1,
@@ -152,7 +152,8 @@ namespace Warp
 		, m_computeContext(RHICommandContext(L"RHICommandContext_Compute", m_device->GetComputeQueue()))
 		, m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
 	{
-		WARP_ASSERT(m_device->CheckMeshShaderSupport(), "we only use mesh shaders");
+        WARP_ASSERT(m_device->GetDeviceCapabilities().MeshShaderSupportTier != ERHIMeshShaderSupportTier::NotSupported, 
+            "We only use mesh shader to render geometry");
 
 		AllocateGlobalCbuffers();
 
@@ -203,7 +204,7 @@ namespace Warp
 		};
 
 		std::vector<MeshInstance> meshInstances;
-		world->GetEntityRegistry().view<MeshComponent, TransformComponent>().each(
+		world->GetEntityCapacitor().ViewOf<MeshComponent, TransformComponent>().each(
 			[&meshInstances](MeshComponent& meshComponent, const TransformComponent& transformComponent)
 			{
 				MeshInstance& instance = meshInstances.emplace_back();
@@ -265,12 +266,12 @@ namespace Warp
 		}
 
 		HlslLightEnvironment environment = HlslLightEnvironment();
-		for (auto&& [entity, dirLightComponent] : world->GetEntityRegistry().view<DirectionalLightComponent>().each())
+		for (auto&& [entity, dirLightComponent] : world->GetEntityCapacitor().ViewOf<DirectionalLightComponent>().each())
 		{
 			WARP_ASSERT(environment.NumDirectionalLights < HlslLightEnvironment::MaxDirectionalLights, "Too many dir lights! Handle this");
 
 			// TODO: Currently we check if there is shadowmapping component. If no - add it
-			Entity e = Entity(world, entity);
+			Entity e = Entity(&world->GetEntityCapacitor(), entity);
 			if (dirLightComponent.CastsShadow && !e.HasComponents<DirectionalLightShadowmappingComponent>())
 			{
 				// Lazy-allocate if only we have any shadows to render
@@ -281,13 +282,16 @@ namespace Warp
 				}
 
 				// TODO: We should use camera's frustum for this
-				Math::Vector3 DirLightPosition = dirLightComponent.Direction * -20.0f;
+                Math::Vector3 DirLightDirection;
+                dirLightComponent.Direction.Normalize(DirLightDirection);
+
+				Math::Vector3 DirLightPosition = DirLightDirection * -20.0f;
 
 				DirectionalLightShadowmappingComponent& shadowComponent = e.AddComponent<DirectionalLightShadowmappingComponent>();
-				shadowComponent.LightView = Math::Matrix::CreateLookAt(DirLightPosition, DirLightPosition + dirLightComponent.Direction, Math::Vector3(0.0f, 1.0f, 0.0f));
+				shadowComponent.LightView = Math::Matrix::CreateLookAt(DirLightPosition, DirLightPosition + DirLightDirection, Math::Vector3(0.0f, 1.0f, 0.0f));
 				shadowComponent.LightView.Invert(shadowComponent.LightInvView);
 
-				shadowComponent.LightProj = Math::Matrix::CreateOrthographicOffCenter(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 200.0f);
+				shadowComponent.LightProj = Math::Matrix::CreateOrthographicOffCenter(-20.0f, 20.0f, -20.0f, 20.0f, 0.1f, 40.0f);
 				shadowComponent.LightProj.Invert(shadowComponent.LightInvProj);
 				
 				RHIDevice* Device = GetDevice();
@@ -338,7 +342,7 @@ namespace Warp
 
 		// TODO: Maybe redo this in-place? Idk idk
 		HlslShadowmappingTargets shadowmappingTargets;
-		world->GetEntityRegistry().view<DirectionalLightShadowmappingComponent>().each(
+		world->GetEntityCapacitor().ViewOf<DirectionalLightShadowmappingComponent>().each(
 			[&shadowmappingTargets](DirectionalLightShadowmappingComponent& shadowComponent)
 			{
 				WARP_ASSERT(shadowmappingTargets.NumTargets < HlslLightEnvironment::MaxDirectionalLights, "Too many dir lights! Handle this");

@@ -21,14 +21,14 @@ namespace Warp
 	{
 		switch (type)
 		{
-		case EAssetType::Mesh: return "Mesh";
-		case EAssetType::Texture:  return "Texture";
-		case EAssetType::Material: return "Material";
+		case EAssetType::Mesh:      return "Mesh";
+		case EAssetType::Texture:   return "Texture";
+		case EAssetType::Material:  return "Material";
 		case EAssetType::Unknown: WARP_ATTR_FALLTHROUGH;
 		default: return "Unknown";
 		}
 	}
-
+	
 	class Asset
 	{
 	public:

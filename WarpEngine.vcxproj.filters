@@ -46,6 +46,9 @@
     <Filter Include="Assets\Importers\Formats">
       <UniqueIdentifier>{bda90769-402f-47a5-9ca8-cd7d9ba12b68}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes">
+      <UniqueIdentifier>{0902bd6f-1617-498a-a61c-4b51a85e0e04}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -145,6 +148,9 @@
     <ClCompile Include="src\Assets\Importers\Formats\ImageLoader.cpp">
       <Filter>Assets\Importers\Formats</Filter>
     </ClCompile>
+    <ClCompile Include="src\World\EntityCapacitor.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -161,9 +167,6 @@
     </ClInclude>
     <ClInclude Include="src\Core\Assert.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Renderer\RHI\stdafx.h">
-      <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\Renderer.h">
       <Filter>Renderer</Filter>
@@ -308,6 +311,24 @@
     <ClInclude Include="src\Assets\Importers\Formats\ImageLoader.h">
       <Filter>Assets\Importers\Formats</Filter>
     </ClInclude>
+    <ClInclude Include="src\World\Components\ParentComponent.h">
+      <Filter>World\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\EntityCapacitor.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="src\World\EntityGraph.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\FrameGraph.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RHI\stdafx.h">
+      <Filter>Renderer\RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\Scene.h">
+      <Filter>Scenes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
@@ -333,10 +354,10 @@
     <FxCompile Include="shaders\DirectionalShadowing.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\Deferred.hlsl">
+    <FxCompile Include="shaders\GbufferView.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\GbufferView.hlsl">
+    <FxCompile Include="shaders\Deferred.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

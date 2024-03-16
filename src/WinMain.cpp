@@ -112,9 +112,10 @@ auto WINAPI wWinMain(
         return -1;
     }
 
-    Warp::ApplicationDesc appDesc;
-    appDesc.WorkingDirectory = GetWorkingDirectory();
-    appDesc.Flags = Warp::EApplicationFlag_None;
+    Warp::ApplicationDesc appDesc = Warp::ApplicationDesc{
+        .WorkingDirectory = GetWorkingDirectory(),
+    };
+
     if (!Warp::Application::Create(appDesc))
     {
         // We failed to create application

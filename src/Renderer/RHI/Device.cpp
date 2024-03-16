@@ -61,6 +61,8 @@ namespace Warp
 			}
 		}
 
+        InitCapabilitiesAndAssociateDevice();
+
 		D3D12MA::ALLOCATOR_DESC resourceAllocatorDesc{};
 		resourceAllocatorDesc.pAdapter = m_physicalDevice->GetAdapter();
 		resourceAllocatorDesc.pDevice = GetD3D12Device();
@@ -68,9 +70,6 @@ namespace Warp
 
 		InitCommandQueues();
 		InitDescriptorHeaps();
-
-		// Associate a logical device with physical device!
-		physicalDevice->AssociateLogicalDevice(this);
 	}
 
 	RHIDevice::~RHIDevice()
@@ -114,13 +113,6 @@ namespace Warp
 		}
 	}
 
-	bool RHIDevice::CheckMeshShaderSupport() const
-	{
-		D3D12_FEATURE_DATA_D3D12_OPTIONS7 feature;
-		WARP_RHI_VALIDATE(m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &feature, sizeof(decltype(feature))));
-		return feature.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1;
-	}
-
 	UINT64 RHIDevice::GetCopyableBytes(RHIResource* res, UINT subresourceOffset, UINT numSubresources)
 	{
 		UINT64 TotalBytes = 0;
@@ -130,6 +122,58 @@ namespace Warp
 			numSubresources, 0, nullptr, nullptr, nullptr, &TotalBytes);
 		return TotalBytes;
 	}
+
+    void RHIDevice::InitCapabilitiesAndAssociateDevice()
+    {
+        WARP_ASSERT(m_device, "RHIDevice should be initialized before initializing its capabilities and device association")
+        m_deviceCapabilities = RHIDeviceCapabilities();
+        m_deviceCapabilities.MeshShaderSupportTier = QueryMeshShaderSupportTier();
+        m_deviceCapabilities.RayTracingSupportTier = QueryRaytracingSupportTier();
+
+        // Associate a logical device with physical device!
+        m_physicalDevice->AssociateLogicalDevice(this);
+    }
+
+    ERHIMeshShaderSupportTier RHIDevice::QueryMeshShaderSupportTier() const
+    {
+        D3D12_FEATURE_DATA_D3D12_OPTIONS7 featureSupportData = {};
+        if (FAILED(m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &featureSupportData, sizeof(featureSupportData))))
+        {
+            return ERHIMeshShaderSupportTier::NotSupported;
+        }
+
+        switch (featureSupportData.MeshShaderTier)
+        {
+        case D3D12_MESH_SHADER_TIER_NOT_SUPPORTED: return ERHIMeshShaderSupportTier::NotSupported;
+        case D3D12_MESH_SHADER_TIER_1:             return ERHIMeshShaderSupportTier::SupportTier_1_0;
+
+        // We should not get here! This probably means we did not handle some switch-case and our code is outdated
+        WARP_ATTR_UNLIKELY default: 
+            WARP_ASSERT(false, "Outdated code! Handle all cases of featureSupportData.MeshShaderTier");
+            return ERHIMeshShaderSupportTier::NotSupported;
+        }
+    }
+
+    ERHIRaytracingSupportTier RHIDevice::QueryRaytracingSupportTier() const
+    {
+        D3D12_FEATURE_DATA_D3D12_OPTIONS5 featureSupportData = {};
+        if (FAILED(m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &featureSupportData, sizeof(featureSupportData))))
+        {
+            return ERHIRaytracingSupportTier::NotSupported;
+        }
+
+        switch (featureSupportData.RaytracingTier)
+        {
+        case D3D12_RAYTRACING_TIER_NOT_SUPPORTED: return ERHIRaytracingSupportTier::NotSupported;
+        case D3D12_RAYTRACING_TIER_1_0:           return ERHIRaytracingSupportTier::SupportTier_1_0;
+        case D3D12_RAYTRACING_TIER_1_1:           return ERHIRaytracingSupportTier::SupportTier_1_1;
+
+        // We should not get here! This probably means we did not handle some switch-case and our code is outdated
+        WARP_ATTR_UNLIKELY default:
+            WARP_ASSERT(false, "Outdated code! Handle all cases of featureSupportData.RaytracingTier");
+            return ERHIRaytracingSupportTier::NotSupported;
+        }
+    }
 
 	void RHIDevice::InitCommandQueues()
 	{

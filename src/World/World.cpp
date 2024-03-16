@@ -108,35 +108,16 @@ namespace Warp
 
 	Entity World::CreateEntity(std::string_view name)
 	{
-		entt::entity handle = m_entityRegistry.create();
-		Entity entity = Entity(this, handle);
+		Entity entity = m_entityCapacitor.CreateEntity();
 
-		m_entityContainer.AddEntity(entity);
 		entity.AddComponent<NametagComponent>(name);
 		return entity;
 	}
 
-	Entity World::DestroyEntity(Entity entity)
+	Entity World::RemoveEntity(Entity entity)
 	{
-		m_entityRegistry.destroy(entity.GetHandle());
+        m_entityCapacitor.RemoveEntity(entity);
 		return Entity();
-	}
-
-	bool World::EntityContainer::HasEntity(Entity entity) const
-	{
-		return Container.find(entity.GetID()) != Container.end();
-	}
-
-	void World::EntityContainer::AddEntity(Entity entity)
-	{
-		WARP_ASSERT(!HasEntity(entity));
-		Container[entity.GetID()] = entity;
-	}
-
-	void World::EntityContainer::RemoveEntity(Entity entity)
-	{
-		WARP_ASSERT(HasEntity(entity));
-		Container.erase(entity.GetID());
 	}
 
 }

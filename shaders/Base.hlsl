@@ -132,10 +132,10 @@ struct OutFragment
 
 OutFragment PSMain(OutVertex vertex)
 {
-    float3 albedo = 0.0;
+    float4 albedo = 0.0;
     if ((CbDrawData.DrawFlags & DRAWFLAG_NO_BASECOLORMAP) == 0)
     {
-        albedo = BaseColor.Sample(StaticSampler, vertex.TexUv).rgb;
+        albedo = BaseColor.Sample(StaticSampler, vertex.TexUv);
     }
 
     float3 GN = normalize(vertex.Normal);
@@ -160,7 +160,7 @@ OutFragment PSMain(OutVertex vertex)
     }
     
     OutFragment output;
-    output.Albedo = float4(albedo, 0.0);
+    output.Albedo = albedo;
     output.Normal = float4(Oct16_FastPack(GN), Oct16_FastPack(SN));
     output.RoughnessMetalness = roughnessMetalness;
     return output;

@@ -28,9 +28,14 @@ namespace Warp
 
 	CShader CShaderCompiler::CompileShader(const std::string& filepath, const ShaderCompilationDesc& desc, EShaderCompilationFlags flags)
 	{
-		std::wstring wFilepath = StringToWString(filepath);
+		std::wstring wFilepath   = StringToWString(filepath);
 		std::wstring wEntryPoint = StringToWString(desc.EntryPoint);
 		std::wstring_view wTargetProfile = GetTargetProfile(desc.ShaderModel, desc.ShaderType);
+        if (wTargetProfile.empty())
+        {
+            WARP_LOG_FATAL("CShaderCompiler::CompileShader -> Could not retrieve a correct HLSL target profile");
+            return CShader();
+        }
 
 		std::vector<DxcDefine> dxcDefines;
 		dxcDefines.reserve(desc.Defines.size());
@@ -51,15 +56,19 @@ namespace Warp
 		{
 			switch (shaderType)
 			{
-			case EShaderType::Vertex: return L"vs_6_5";
-			case EShaderType::Amplification: return L"as_6_5";
-			case EShaderType::Mesh: return L"ms_6_5";
-			case EShaderType::Pixel: return L"ps_6_5";
-			case EShaderType::Compute: return L"cs_6_5";
-			default: WARP_ASSERT(false); return L"";
+			case EShaderType::Vertex:           return L"vs_6_5";
+			case EShaderType::Amplification:    return L"as_6_5";
+			case EShaderType::Mesh:             return L"ms_6_5";
+			case EShaderType::Pixel:            return L"ps_6_5";
+			case EShaderType::Compute:          return L"cs_6_5";
+			WARP_ATTR_UNLIKELY default: 
+                WARP_ASSERT(false); 
+                return L"";
 			};
 		}; break;
-		default: WARP_ASSERT(false); return L"";
+		WARP_ATTR_UNLIKELY default: 
+            WARP_ASSERT(false); 
+            return L"";
 		};
 	}
 
@@ -73,6 +82,8 @@ namespace Warp
 		static constexpr std::array dxcDefault =
 		{
 #ifdef WARP_DEBUG
+            // TODO: 16.03.24 -> It might get harder to debug in future with this flag always on by default
+            // We might want to move it out to flags
 			L"-Od", // no optimization
 #else
 			L"-O3", // max optimization
@@ -86,11 +97,9 @@ namespace Warp
 			L"-all_resources_bound", // Enables agressive flattening
 		};
 
-		std::string pdbPath = std::filesystem::path(WStringToString(filepath))
+		std::wstring wPdbPath = std::filesystem::path(filepath)
 			.replace_extension("pdb")
-			.string();
-
-		std::wstring wPdbPath = StringToWString(pdbPath);
+			.wstring();
 
 		std::vector<LPCWSTR> dxcArguments(dxcDefault.begin(), dxcDefault.end());
 		if (flags & eShaderCompilationFlag_StripDebug)
@@ -171,7 +180,7 @@ namespace Warp
 
 			if (flags & eShaderCompilationFlag_StripDebug)
 			{
-				std::ofstream pdbFile = std::ofstream(pdbPath, std::ios::binary);
+				std::ofstream pdbFile = std::ofstream(wPdbPath, std::ios::binary);
 				pdbFile.write((const char*)result.Pdb->GetBufferPointer(), result.Pdb->GetBufferSize());
 				pdbFile.close();
 			}

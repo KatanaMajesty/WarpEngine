@@ -51,6 +51,7 @@
     <ClCompile Include="src\Renderer\Shader.cpp" />
     <ClCompile Include="src\Renderer\ShaderCompiler.cpp" />
     <ClCompile Include="src\Util\String.cpp" />
+    <ClCompile Include="src\World\EntityCapacitor.cpp" />
     <ClCompile Include="src\World\World.cpp" />
     <ClCompile Include="vendor\D3D12MA\D3D12MemAlloc.cpp" />
   </ItemGroup>
@@ -66,6 +67,7 @@
     <ClInclude Include="src\Input\DeviceManager.h" />
     <ClInclude Include="src\Input\KeyboardDevice.h" />
     <ClInclude Include="src\Input\MouseDevice.h" />
+    <ClInclude Include="src\Renderer\FrameGraph.h" />
     <ClInclude Include="src\Util\Guid.h" />
     <ClInclude Include="src\Assets\Importers\Formats\ImageLoader.h" />
     <ClInclude Include="src\Core\Application.h" />
@@ -105,8 +107,12 @@
     <ClInclude Include="src\World\Components\LightComponent.h" />
     <ClInclude Include="src\World\Components\MeshComponent.h" />
     <ClInclude Include="src\World\Components\NametagComponent.h" />
+    <ClInclude Include="src\World\Components\ParentComponent.h" />
     <ClInclude Include="src\World\Components\TransformComponent.h" />
     <ClInclude Include="src\World\Entity.h" />
+    <ClInclude Include="src\World\EntityCapacitor.h" />
+    <ClInclude Include="src\Scenes\Scene.h" />
+    <ClInclude Include="src\World\EntityGraph.h" />
     <ClInclude Include="src\World\World.h" />
     <ClInclude Include="vendor\D3D12MA\D3D12MemAlloc.h" />
     <ClInclude Include="vendor\d3dx12.h" />
@@ -137,6 +143,11 @@
     <FxCompile Include="shaders\Deferred.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Mesh</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Mesh</ShaderType>
+      <FileType>Document</FileType>
     </FxCompile>
     <FxCompile Include="shaders\DirectionalShadowing.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>

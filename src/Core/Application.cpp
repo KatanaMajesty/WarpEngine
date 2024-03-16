@@ -12,17 +12,22 @@ namespace Warp
 {
 
 	Application::Application(const ApplicationDesc& desc)
-		// TODO: This is a temporary workaround in order to make our SolutionDir a working directory
-		: m_workingDirectory(desc.WorkingDirectory)
-		, m_flags(desc.Flags)
+		: m_filepathConfig([&desc]
+			{
+				// TODO: This might look bad, but it works alright for now. Will be changed in future defo
+				const std::filesystem::path relativePath = desc.WorkingDirectory.parent_path().parent_path();
+				FilepathConfig config = FilepathConfig{
+					.WorkingDirectory = desc.WorkingDirectory,
+					.ShaderDirectory = relativePath / "shaders",
+					.AssetsDirectory = relativePath / "assets",
+				};
+				return config;
+			}())
 		// TODO: (14.02.2024) -> Asset manager and importers are on stack. Can cause any problems? Recheck it when youre sane
 		, m_assetManager()
 		, m_meshImporter(&m_assetManager)
 		, m_textureImporter(&m_assetManager)
 	{
-		std::filesystem::path relativePath = desc.WorkingDirectory.parent_path().parent_path();
-		SetShaderPath(relativePath / "shaders");
-		SetAssetsPath(relativePath / "assets");
 	}
 
 	bool Application::Create(const ApplicationDesc& desc)
@@ -148,12 +153,7 @@ namespace Warp
 	{
 		m_width = width;
 		m_height = height;
-		if (m_flags & EApplicationFlag_InstantResize)
-		{
-			// Do all the resizing
-			Resize();
-		}
-		else m_scheduledResize = true; // Else schedule the resize for the next Tick() call
+		m_scheduledResize = true; // Schedule the resize for the next Tick() call
 	}
 
 	void Application::Resize()

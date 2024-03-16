@@ -3,6 +3,16 @@
 namespace Warp
 {
 
+	AssetManager::~AssetManager()
+	{
+		WARP_LOG_INFO("AssetManager::Destructor -> Destroying asset manager");
+
+		// Iterate over each asset and destroy it here, warning user that there was a memory cleanup needed to shut the manager down
+		ResetRegistry<TextureAsset>();
+		ResetRegistry<MaterialAsset>();
+		ResetRegistry<MeshAsset>();
+	}
+	
 	AssetProxy AssetManager::DestroyAsset(AssetProxy proxy)
 	{
 		WARP_ASSERT(proxy.IsValid());

@@ -5,14 +5,14 @@
 namespace Warp
 {
 
-	class World;
+	class EntityCapacitor;
 
 	class Entity
 	{
 	public:
 		Entity() = default;
-		Entity(World* world, entt::entity handle)
-			: m_world(world)
+		Entity(EntityCapacitor* capacitor, entt::entity handle)
+			: m_capacitor(capacitor)
 			, m_handle(handle)
 		{
 		}
@@ -34,11 +34,14 @@ namespace Warp
 
 		inline bool IsValid() const;
 
-		auto GetHandle() const { return m_handle; }
-		auto GetID() const { return static_cast<uint32_t>(GetHandle()); } // Currently we use entt::entity as its ID
-
 	private:
-		World* m_world;
+        // TODO: This function might look weird but I thought it might look better than *this
+        // Maybe remove?
+        Entity CopySelf() const { return Entity(m_capacitor, m_handle); }
+
+        friend class EntityCapacitor;
+
+        EntityCapacitor* m_capacitor;
 		entt::entity m_handle = entt::null;
 	};
 

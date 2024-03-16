@@ -127,7 +127,7 @@ namespace Warp
 				std::string imagePath = (folder / img->uri).string();
 
 				// TODO: GenerateMips is always true? How to get around this one?
-				AssetProxy proxy = importer->ImportFromFile(imagePath, ImportDesc{ .GenerateMips = true });
+				AssetProxy proxy = importer->ImportFromFile(imagePath, TextureImportDesc{ .GenerateMips = true });
 				if (!proxy.IsValid())
 				{
 					WARP_LOG_ERROR("GltfImporter::StaticMesh_ImportTextureFromView -> Failed to import a texture \'{}\' from view", imagePath);
@@ -697,6 +697,10 @@ namespace Warp
 			mesh->Submeshes.emplace_back(submesh);
 			mesh->SubmeshMaterials.emplace_back(materialProxy);
 		}
+
+		// Shrink capacity to size, do not waste extra memory for no reason (This is static mesh)
+		mesh->Submeshes.shrink_to_fit();
+		mesh->SubmeshMaterials.shrink_to_fit();
 		
 		return proxy;
 	}

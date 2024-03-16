@@ -16,7 +16,7 @@
 namespace Warp
 {
 
-	AssetProxy TextureImporter::ImportFromFile(const std::string& filepath, const ImportDesc& importDesc)
+	AssetProxy TextureImporter::ImportFromFile(const std::string& filepath, const TextureImportDesc& importDesc)
 	{
 		EAssetFormat format = GetFormat(std::filesystem::path(filepath).extension().string());
 		if (format == EAssetFormat::Unknown)

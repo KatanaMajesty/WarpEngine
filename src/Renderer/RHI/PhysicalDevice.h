@@ -10,11 +10,11 @@ namespace Warp
 
 	struct RHIPhysicalDeviceDesc
 	{
-		HWND hwnd = nullptr;
+		HWND hwnd = NULL;
 
 		// Enables debug layer for a GPU device. This allows to enable.
 		// The debug layer adds important debug and diagnostic features for application developers during application development.
-		bool EnableDebugLayer = false;
+		BOOL EnableDebugLayer = FALSE;
 
 		// GPU-based validation helps to identify the following errors :
 		// 
@@ -27,7 +27,7 @@ namespace Warp
 		// 
 		// For more info see https://learn.microsoft.com/en-us/windows/win32/direct3d12/using-d3d12-debug-layer-gpu-based-validation
 		// NOTICE! GPU-based validation can only be enabled if the debug layer is enabled as well.
-		bool EnableGpuBasedValidation = false;
+        BOOL EnableGpuBasedValidation = FALSE;
 	};
 
 	enum class RHIVendor
@@ -35,6 +35,7 @@ namespace Warp
 		Unknown = 0,
 		Nvidia,
 		Amd,
+        Intel,
 	};
 
 	class RHIDevice;
@@ -55,20 +56,20 @@ namespace Warp
 		RHIPhysicalDevice& operator=(const RHIPhysicalDevice&) = delete;
 
 		// Queries if the physical device is valid and was initialized correctly
-		WARP_ATTR_NODISCARD bool IsValid() const;
+		WARP_ATTR_NODISCARD BOOL IsValid() const;
 		WARP_ATTR_NODISCARD inline constexpr RHIVendor GetDeviceVendor() const { return m_vendorID; }
 
 		WARP_ATTR_NODISCARD inline HWND GetWindowHandle() const { return m_HWND; }
 		WARP_ATTR_NODISCARD inline IDXGIFactory7* GetFactory() const { return m_factory.Get(); }
 		WARP_ATTR_NODISCARD inline IDXGIAdapter1* GetAdapter() const { return m_adapter.Get(); }
-		WARP_ATTR_NODISCARD inline bool IsDebugLayerEnabled() const { return m_debugInterface != nullptr; }
+		WARP_ATTR_NODISCARD inline BOOL IsDebugLayerEnabled() const { return m_debugInterface != nullptr; }
 
 		void AssociateLogicalDevice(RHIDevice* device);
 		RHIDevice* GetAssociatedLogicalDevice();
 
 	private:
-		void InitDebugInterface(bool enableGpuBasedValidation);
-		bool SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference);
+		void InitDebugInterface(BOOL enableGpuBasedValidation);
+        BOOL SelectBestSuitableDXGIAdapter(DXGI_GPU_PREFERENCE preference);
 
 		HWND m_HWND = nullptr;
 		ComPtr<IDXGIFactory7> m_factory;

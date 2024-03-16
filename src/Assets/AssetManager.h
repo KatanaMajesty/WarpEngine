@@ -51,6 +51,16 @@ namespace Warp
 	class AssetManager
 	{
 	public:
+		AssetManager() = default;
+
+		AssetManager(const AssetManager&) = delete;
+		AssetManager operator=(const AssetManager&) = delete;
+
+		AssetManager(AssetManager&&) = delete;
+		AssetManager operator=(AssetManager&&) = delete;
+
+		~AssetManager();
+
 		// Allocates an asset and returns a proxy to an asset
 		// The proxy should be stored and can be passed in-and-out in functions as it is a light-weight object
 		// Assets are queried from AssetManager on the fly using AssetManager::GetAs member function
@@ -158,18 +168,24 @@ namespace Warp
 
 			// Resets the registry. You should probably never call this function at this point
 			// If you call the function though, ensure that there are NO asset proxies left alive from this registry
+			//
+			// As of 05.03.24 -> We assume there are not alive proxies. THIS MIGHT RUIN THE IDEA OF REF-COUNTING TO BE INTRODUCED!
+			// If it does - ignore it anyways. This method would only be called on shutdown anyways
 			void Reset();
 
 			// This is how we store assets... insane, right? Allocation? Lmao it is indeed an ALLOCATION
 			struct AssetAllocation
 			{
+				bool IsOccupied() const { return Ptr != nullptr; }
+				void Destroy() { Ptr.reset(); }
+
 				std::unique_ptr<T> Ptr;
 			};
 			std::vector<AssetAllocation> AssetContainer;
 			std::queue<uint32_t> FreedProxies;
 		};
 
-		template<typename T>
+		template<ValidAssetType T>
 		Registry<T>* GetRegistry()
 		{
 			WARP_INTERNAL_ASSET_MANAGER_RETURN_REGISTRY(T, MaterialAsset, &m_materialRegistry);
@@ -178,11 +194,19 @@ namespace Warp
 			return nullptr;
 		}
 
-		template<typename T>
+		template<ValidAssetType T>
 		const Registry<T>* GetRegistry() const
 		{
 			using NonConstMe = std::remove_const_t<std::remove_pointer_t<decltype(this)>>*;
 			return const_cast<NonConstMe>(this)->GetRegistry<T>();
+		}
+
+		// 05.03.24 -> Manage asset cleanup manually if the user has not cleaned them up before
+		template<ValidAssetType T>
+		void ResetRegistry()
+		{
+			Registry<T>* registry = GetRegistry<T>();
+			registry->Reset();
 		}
 
 		Registry<MaterialAsset> m_materialRegistry;
@@ -291,8 +315,22 @@ namespace Warp
 	template<ValidAssetType T>
 	inline void AssetManager::Registry<T>::Reset()
 	{
+		for (AssetAllocation& allocation : AssetContainer)
+		{
+			if (allocation.IsOccupied())
+			{
+				T* asset = allocation.Ptr.get();
+				WARP_LOG_WARN("AssetManager::Registry::Reset -> Destroying asset of type {} (ID: {})", GetAssetTypeName(asset->GetType()), asset->GetID());
+
+				// Release allocations' internal memory
+				// NOTE: In fact, it is not mandatory to destroy asset allocations manually as they are RAII std::unique_ptr
+				// Although just do it for future. We might use arena allocators at some point in time
+				allocation.Destroy();
+			}
+		}
+
 		AssetContainer.clear();
-		std::queue<size_t>().swap(FreedProxies);
+		std::queue<uint32_t>().swap(FreedProxies);
 	}
 
 }
