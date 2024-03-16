@@ -25,10 +25,10 @@ struct OutVertex
     float4 Pos : SV_Position;
 };
 
-StructuredBuffer<float3>    Positions : register(t0, space0);
-StructuredBuffer<Meshlet>   Meshlets : register(t1);
-ByteAddressBuffer           UniqueVertexIndices : register(t2);
-StructuredBuffer<uint>      PrimitiveIndices : register(t3);
+StructuredBuffer<float3> Positions : register(t0, space0);
+StructuredBuffer<Meshlet> Meshlets : register(t1);
+ByteAddressBuffer UniqueVertexIndices : register(t2);
+StructuredBuffer<uint> PrimitiveIndices : register(t3);
 
 uint3 UnpackPrimitive(uint primitive)
 {
@@ -60,8 +60,8 @@ OutVertex GetVertex(uint meshletIndex, uint vertexIndex)
 [outputtopology("triangle")]
 [numthreads(128, 1, 1)]
 void MSMain(
-    in uint groupID: SV_GroupID,
-    in uint groupThreadID: SV_GroupThreadID,
+    in uint groupID : SV_GroupID,
+    in uint groupThreadID : SV_GroupThreadID,
     out vertices OutVertex outVerts[128],
     out indices uint3 outIndices[128])
 {

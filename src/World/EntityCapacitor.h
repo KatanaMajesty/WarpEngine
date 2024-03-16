@@ -12,8 +12,8 @@ namespace Warp
     class EntityCapacitor
     {
     public:
-		template<typename... ComponentTypes>
-		using ExcludeWrapperType = entt::exclude_t<ComponentTypes...>;
+        template<typename... ComponentTypes>
+        using ExcludeWrapperType = entt::exclude_t<ComponentTypes...>;
 
         EntityCapacitor() = default;
 
@@ -28,7 +28,7 @@ namespace Warp
         }
 
         template<typename... ComponentTypes>
-        bool HasComponents(Entity entity) const 
+        bool HasComponents(Entity entity) const
         {
             WARP_ASSERT(IsValid(entity));
             return m_registry.all_of<ComponentTypes...>(entity.m_handle);
@@ -58,11 +58,11 @@ namespace Warp
 
         bool IsValid(Entity entity) const;
 
-		template<typename ComponentType, typename... OtherTypes, typename... ExcludedTypes>
-		auto ViewOf(ExcludeWrapperType<ExcludedTypes...> excludes = ExcludeWrapperType())
-		{
-			return m_registry.view<ComponentType, OtherTypes...>(excludes);
-		}
+        template<typename ComponentType, typename... OtherTypes, typename... ExcludedTypes>
+        auto ViewOf(ExcludeWrapperType<ExcludedTypes...> excludes = ExcludeWrapperType())
+        {
+            return m_registry.view<ComponentType, OtherTypes...>(excludes);
+        }
 
     private:
         friend class Entity;
@@ -71,39 +71,39 @@ namespace Warp
         entt::registry m_registry;
     };
 
-	template<typename ComponentType, typename... Args>
-	auto Entity::AddComponent(Args&&... args) -> ComponentType&
-	{
-		return m_capacitor->AddComponent<ComponentType>(CopySelf(), std::forward<Args>(args)...);
-	}
+    template<typename ComponentType, typename... Args>
+    auto Entity::AddComponent(Args&&... args) -> ComponentType&
+    {
+        return m_capacitor->AddComponent<ComponentType>(CopySelf(), std::forward<Args>(args)...);
+    }
 
-	template<typename ComponentType>
-	auto Entity::GetComponent() -> ComponentType&
-	{
-		return m_capacitor->GetComponent<ComponentType>(CopySelf());
-	}
-
-	template<typename ComponentType>
-	auto Entity::GetComponent() const -> const ComponentType&
-	{
+    template<typename ComponentType>
+    auto Entity::GetComponent() -> ComponentType&
+    {
         return m_capacitor->GetComponent<ComponentType>(CopySelf());
-	}
+    }
 
-	template<typename ComponentType>
-	bool Entity::RemoveComponent()
-	{
+    template<typename ComponentType>
+    auto Entity::GetComponent() const -> const ComponentType&
+    {
+        return m_capacitor->GetComponent<ComponentType>(CopySelf());
+    }
+
+    template<typename ComponentType>
+    bool Entity::RemoveComponent()
+    {
         return m_capacitor->RemoveComponent<ComponentType>(CopySelf());
-	}
+    }
 
-	template<typename... ComponentTypes>
-	bool Entity::HasComponents() const
-	{
-		return m_capacitor->HasComponents<ComponentTypes...>(CopySelf());
-	}
+    template<typename... ComponentTypes>
+    bool Entity::HasComponents() const
+    {
+        return m_capacitor->HasComponents<ComponentTypes...>(CopySelf());
+    }
 
-	inline bool Entity::IsValid() const
-	{
-		return m_capacitor->IsValid(CopySelf());
-	}
+    inline bool Entity::IsValid() const
+    {
+        return m_capacitor->IsValid(CopySelf());
+    }
 
 }

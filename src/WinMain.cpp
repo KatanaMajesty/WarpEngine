@@ -37,9 +37,9 @@ std::filesystem::path GetWorkingDirectory();
 
 // https://learn.microsoft.com/en-us/windows/win32/learnwin32/winmain--the-application-entry-point
 auto WINAPI wWinMain(
-    _In_ HINSTANCE hInstance, 
+    _In_ HINSTANCE hInstance,
     _In_opt_ HINSTANCE hPrevInstance, // has no meaning. It was used in 16-bit Windows, but is now always zero.
-    _In_ PWSTR pCmdLine, 
+    _In_ PWSTR pCmdLine,
     _In_ int32_t nCmdShow) -> int32_t
 {
     InitWinConsole();
@@ -75,7 +75,7 @@ auto WINAPI wWinMain(
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
     windowClass.lpszClassName = g_ClassName;
     RegisterClassEx(&windowClass);
-    
+
     RECT desktopRect;
     GetClientRect(GetDesktopWindow(), &desktopRect);
 
@@ -137,7 +137,7 @@ auto WINAPI wWinMain(
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        
+
         application.Tick();
     }
 

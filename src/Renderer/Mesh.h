@@ -6,13 +6,13 @@
 namespace Warp
 {
 
-	struct MeshInstance
-	{
-		AssetProxy Mesh;
-		std::vector<AssetProxy> MaterialOverrides;
+    struct MeshInstance
+    {
+        AssetProxy Mesh;
+        std::vector<AssetProxy> MaterialOverrides;
 
-		Math::Matrix InstanceToWorld;
-		Math::Matrix NormalMatrix;
-	};
+        Math::Matrix InstanceToWorld;
+        Math::Matrix NormalMatrix;
+    };
 
 }

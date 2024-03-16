@@ -14,7 +14,7 @@ namespace Warp
 
     WARP_ATTR_NODISCARD D3D12_GPU_DESCRIPTOR_HANDLE RHIDescriptorAllocation::GetGpuAddress(UINT index) const
     {
-        WARP_ASSERT(index < NumDescriptors && IsShaderVisible());
+        WARP_ASSERT(index < NumDescriptors&& IsShaderVisible());
         return CD3DX12_GPU_DESCRIPTOR_HANDLE(GpuHandle, index, DescriptorIncrementSize);
     }
 
@@ -26,7 +26,7 @@ namespace Warp
     {
         // TODO: Implement feature check and max allowed numDescriptors check
         // https://learn.microsoft.com/en-gb/windows/win32/direct3d12/hardware-support?redirectedfrom=MSDN
-        
+
         if (m_shaderVisible && !IsTypeShaderVisible(type))
         {
             WARP_LOG_WARN("Descriptor heap was created with shaderVisible = true, but its type cannot be shader visible");
@@ -45,13 +45,13 @@ namespace Warp
 
         WARP_RHI_VALIDATE(
             device->GetD3D12Device()->CreateDescriptorHeap(
-                &desc, 
+                &desc,
                 IID_PPV_ARGS(m_D3D12DescriptorHeap.ReleaseAndGetAddressOf())
             ));
 
         m_baseCpuDescriptorHandle = m_D3D12DescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-        m_baseGpuDescriptorHandle = IsShaderVisible() ? 
-            m_D3D12DescriptorHeap->GetGPUDescriptorHandleForHeapStart() : 
+        m_baseGpuDescriptorHandle = IsShaderVisible() ?
+            m_D3D12DescriptorHeap->GetGPUDescriptorHandleForHeapStart() :
             D3D12_GPU_DESCRIPTOR_HANDLE{ 0 };
 
         // Just add the whole heap into the available range
@@ -79,7 +79,7 @@ namespace Warp
                 allocationIt = it;
             }
         }
-        
+
         // If we found no available to use allocations, we return null-allocation
         if (allocationIt == m_availableRanges.end())
         {

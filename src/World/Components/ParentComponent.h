@@ -10,7 +10,7 @@ namespace Warp
         ParentComponent() = default;
         ParentComponent(Entity parent)
             : Parent(parent)
-        { 
+        {
         }
 
         Entity Parent;

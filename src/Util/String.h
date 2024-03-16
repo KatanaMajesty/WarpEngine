@@ -5,6 +5,6 @@
 
 namespace Warp
 {
-	std::string WStringToString(std::wstring_view wstr) noexcept;
-	std::wstring StringToWString(std::string_view view);
+    std::string WStringToString(std::wstring_view wstr) noexcept;
+    std::wstring StringToWString(std::string_view view);
 }

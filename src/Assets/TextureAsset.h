@@ -10,15 +10,15 @@
 namespace Warp
 {
 
-	struct TextureAsset : Asset
-	{
-		static constexpr EAssetType StaticType = EAssetType::Texture;
+    struct TextureAsset : Asset
+    {
+        static constexpr EAssetType StaticType = EAssetType::Texture;
 
-		TextureAsset(uint32_t ID) : Asset(ID, StaticType) {}
+        TextureAsset(uint32_t ID) : Asset(ID, StaticType) {}
 
-		RHITexture Texture;
-		RHIDescriptorAllocation SrvAllocation;
-		RHIShaderResourceView Srv;
-	};
+        RHITexture Texture;
+        RHIDescriptorAllocation SrvAllocation;
+        RHIShaderResourceView Srv;
+    };
 
 }

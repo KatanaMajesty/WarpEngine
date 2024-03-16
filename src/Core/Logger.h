@@ -6,15 +6,15 @@
 
 namespace Warp::Logging
 {
-	enum class Severity
-	{
-		WARP_SEVERITY_INFO,
-		WARP_SEVERITY_WARNING,
-		WARP_SEVERITY_ERROR,
-		WARP_SEVERITY_FATAL,
-	};
+    enum class Severity
+    {
+        WARP_SEVERITY_INFO,
+        WARP_SEVERITY_WARNING,
+        WARP_SEVERITY_ERROR,
+        WARP_SEVERITY_FATAL,
+    };
 
-	void Init(Severity severity);
+    void Init(Severity severity);
 }
 
 #ifdef WARP_DEBUG

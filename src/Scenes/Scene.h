@@ -28,7 +28,7 @@ namespace Warp
         World& GetWorld() { return m_World; }
 
     private:
-        AssetManager*   m_AssetManager;
+        AssetManager* m_AssetManager;
         MeshImporter    m_MeshImporter;
         TextureImporter m_TextureImporter;
 

@@ -7,8 +7,8 @@ struct OutVertex
 // .xy - pos, .zw - uv
 static const float4 FullscreenTriangle[3] =
 {
-    float4(-1.0,  1.0, 0.0, 0.0),
-    float4( 3.0,  1.0, 2.0, 0.0),
+    float4(-1.0, 1.0, 0.0, 0.0),
+    float4(3.0, 1.0, 2.0, 0.0),
     float4(-1.0, -3.0, 0.0, 2.0),
 };
 
@@ -47,7 +47,7 @@ ConstantBuffer<LightEnv> CbLightEnv : register(b1);
 Texture2D<float4> GbufferAlbedo : register(t0, space0);
 Texture2D<float4> GbufferNormal : register(t0, space1);
 Texture2D<float2> GbufferRoughnessMetalness : register(t0, space2);
-Texture2D<float>  SceneDepth : register(t1);
+Texture2D<float> SceneDepth : register(t1);
 SamplerState StaticSampler : register(s0);
 
 // TODO: Instead we want screen-space shadows
@@ -130,15 +130,15 @@ float4 PSMain(OutVertex vertex) : SV_Target0
 
         static const int2 ShadowOffsets[] =
         {
-            int2( 0,  0),
-            int2( 1,  0),
-            int2( 1,  1),
-            int2( 0,  1),
-            int2(-1,  1),
-            int2(-1,  0),
+            int2(0, 0),
+            int2(1, 0),
+            int2(1, 1),
+            int2(0, 1),
+            int2(-1, 1),
+            int2(-1, 0),
             int2(-1, -1),
-            int2( 0, -1),
-            int2( 1, -1),
+            int2(0, -1),
+            int2(1, -1),
         };
         static const uint NumShadowOffsets = 9; // sizeof(ShadowOffsets) / sizeof(int2); -> VS HLSL intellisense cannot eat sizeof()...
         static const float NumShadowOffsetsInv = 1.0 / NumShadowOffsets;

@@ -7,27 +7,27 @@ namespace Warp
 {
 
     // TODO: Rewrite timer pls
-    class Timer 
+    class Timer
     {
     public:
-        Timer() 
+        Timer()
         {
             Reset();
         }
 
-        inline void Reset() 
+        inline void Reset()
         {
             start_time = std::chrono::high_resolution_clock::now();
         }
 
-        inline double GetElapsedSeconds() 
+        inline double GetElapsedSeconds()
         {
             auto end_time = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double> elapsed = end_time - start_time;
             return elapsed.count();
         }
 
-        inline double GetElapsedMilliseconds() 
+        inline double GetElapsedMilliseconds()
         {
             return GetElapsedSeconds() * 1000.0;
         }

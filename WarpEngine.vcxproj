@@ -36,7 +36,6 @@
     <ClCompile Include="src\Renderer\Renderer.cpp" />
     <ClCompile Include="src\Renderer\RHI\CommandList.cpp" />
     <ClCompile Include="src\Renderer\RHI\CommandQueue.cpp" />
-    <ClCompile Include="src\Renderer\RHI\Descriptor.cpp" />
     <ClCompile Include="src\Renderer\RHI\DescriptorHeap.cpp" />
     <ClCompile Include="src\Renderer\RHI\Device.cpp" />
     <ClCompile Include="src\Renderer\RHI\PhysicalDevice.cpp" />
@@ -97,7 +96,6 @@
     <ClInclude Include="src\Renderer\Shader.h" />
     <ClInclude Include="src\Renderer\ShaderCompiler.h" />
     <ClInclude Include="src\Renderer\Vertex.h" />
-    <ClInclude Include="src\Util\ArrayView.h" />
     <ClInclude Include="src\Util\String.h" />
     <ClInclude Include="src\Util\Timer.h" />
     <ClInclude Include="src\WinAPI.h" />

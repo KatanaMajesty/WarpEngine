@@ -8,95 +8,95 @@
 namespace Warp
 {
 
-	enum class EAssetType
-	{
-		Unknown = 0,
-		Texture,
-		Material,
-		Mesh,
-		NumTypes,
-	};
+    enum class EAssetType
+    {
+        Unknown = 0,
+        Texture,
+        Material,
+        Mesh,
+        NumTypes,
+    };
 
-	inline constexpr std::string_view GetAssetTypeName(EAssetType type)
-	{
-		switch (type)
-		{
-		case EAssetType::Mesh:      return "Mesh";
-		case EAssetType::Texture:   return "Texture";
-		case EAssetType::Material:  return "Material";
-		case EAssetType::Unknown: WARP_ATTR_FALLTHROUGH;
-		default: return "Unknown";
-		}
-	}
-	
-	class Asset
-	{
-	public:
-		static constexpr uint32_t InvalidID = uint32_t(-1);
-		static constexpr EAssetType StaticType = EAssetType::Unknown;
+    inline constexpr std::string_view GetAssetTypeName(EAssetType type)
+    {
+        switch (type)
+        {
+        case EAssetType::Mesh:      return "Mesh";
+        case EAssetType::Texture:   return "Texture";
+        case EAssetType::Material:  return "Material";
+        case EAssetType::Unknown: WARP_ATTR_FALLTHROUGH;
+        default: return "Unknown";
+        }
+    }
 
-		Asset() = default;
-		Asset(uint32_t ID, EAssetType type)
-			: m_ID(ID)
-			, m_type(type)
-			, m_Guid(Guid::Create())
-		{
-		}
+    class Asset
+    {
+    public:
+        static constexpr uint32_t InvalidID = uint32_t(-1);
+        static constexpr EAssetType StaticType = EAssetType::Unknown;
 
-		inline constexpr uint32_t GetID() const { return m_ID; }
-		inline constexpr const Guid& GetGuid() const { return m_Guid; }
-		inline constexpr EAssetType GetType() const { return m_type; }
+        Asset() = default;
+        Asset(uint32_t ID, EAssetType type)
+            : m_ID(ID)
+            , m_type(type)
+            , m_Guid(Guid::Create())
+        {
+        }
 
-		inline constexpr bool IsValid() const { return GetID() != Asset::InvalidID && m_type != EAssetType::Unknown; }
+        inline constexpr uint32_t GetID() const { return m_ID; }
+        inline constexpr const Guid& GetGuid() const { return m_Guid; }
+        inline constexpr EAssetType GetType() const { return m_type; }
 
-	protected:
-		uint32_t m_ID = Asset::InvalidID;
-		EAssetType m_type = EAssetType::Unknown;
+        inline constexpr bool IsValid() const { return GetID() != Asset::InvalidID && m_type != EAssetType::Unknown; }
 
-		Guid m_Guid;
-	};
+    protected:
+        uint32_t m_ID = Asset::InvalidID;
+        EAssetType m_type = EAssetType::Unknown;
 
-	struct AssetProxy
-	{
-		AssetProxy() = default;
+        Guid m_Guid;
+    };
 
-		AssetProxy(const AssetProxy&) = default;
-		AssetProxy& operator=(const AssetProxy&) = default;
+    struct AssetProxy
+    {
+        AssetProxy() = default;
 
-		AssetProxy(AssetProxy&& other) noexcept
-			: ID(other.ID)
-			, Index(other.Index)
-			, Type(other.Type)
-		{
-			other.ID	= Asset::InvalidID;
-			other.Index = Asset::InvalidID;
-			other.Type	= EAssetType::Unknown;
-		}
+        AssetProxy(const AssetProxy&) = default;
+        AssetProxy& operator=(const AssetProxy&) = default;
 
-		AssetProxy& operator=(AssetProxy&& other) noexcept
-		{
-			if (this != &other)
-			{
-				this->ID	= other.ID;
-				this->Index = other.Index;
-				this->Type	= other.Type;
+        AssetProxy(AssetProxy&& other) noexcept
+            : ID(other.ID)
+            , Index(other.Index)
+            , Type(other.Type)
+        {
+            other.ID = Asset::InvalidID;
+            other.Index = Asset::InvalidID;
+            other.Type = EAssetType::Unknown;
+        }
 
-				other.ID	= Asset::InvalidID;
-				other.Index = Asset::InvalidID;
-				other.Type	= EAssetType::Unknown;
-			}
-			return *this;
-		}
+        AssetProxy& operator=(AssetProxy&& other) noexcept
+        {
+            if (this != &other)
+            {
+                this->ID = other.ID;
+                this->Index = other.Index;
+                this->Type = other.Type;
 
-		inline constexpr bool IsValid() const
-		{
-			return ID != Asset::InvalidID && 
-				Index != Asset::InvalidID && Type != EAssetType::Unknown;
-		}
+                other.ID = Asset::InvalidID;
+                other.Index = Asset::InvalidID;
+                other.Type = EAssetType::Unknown;
+            }
+            return *this;
+        }
 
-		uint32_t ID = Asset::InvalidID; // Represents a unique identifier of an asset at runtime
-		uint32_t Index = Asset::InvalidID; // Index represents a value that can be used to access the actual asset inside of the registry
-		EAssetType Type = EAssetType::Unknown;
-	};
+        inline constexpr bool IsValid() const
+        {
+            return ID != Asset::InvalidID &&
+                Index != Asset::InvalidID && Type != EAssetType::Unknown;
+        }
+
+        uint32_t ID = Asset::InvalidID; // Represents a unique identifier of an asset at runtime
+        uint32_t Index = Asset::InvalidID; // Index represents a value that can be used to access the actual asset inside of the registry
+        EAssetType Type = EAssetType::Unknown;
+    };
 
 }

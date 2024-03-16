@@ -118,9 +118,6 @@
     <ClCompile Include="src\Assets\AssetManager.cpp">
       <Filter>Assets</Filter>
     </ClCompile>
-    <ClCompile Include="src\Renderer\RHI\Descriptor.cpp">
-      <Filter>Renderer\RHI</Filter>
-    </ClCompile>
     <ClCompile Include="src\Util\Guid.cpp">
       <Filter>Util</Filter>
     </ClCompile>
@@ -258,9 +255,6 @@
     </ClInclude>
     <ClInclude Include="src\Assets\MeshAsset.h">
       <Filter>Assets</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Util\ArrayView.h">
-      <Filter>Util</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\RHI\Descriptor.h">
       <Filter>Renderer\RHI</Filter>

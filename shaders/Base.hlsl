@@ -42,14 +42,14 @@ struct Meshlet
     uint PrimitiveOffset;
 };
 
-StructuredBuffer<float3>    Positions   : register(t0, space0);
-StructuredBuffer<float3>    Normals     : register(t0, space1);
-StructuredBuffer<float2>    TexCoords   : register(t0, space2);
-StructuredBuffer<float3>    Tangents    : register(t0, space3);
-StructuredBuffer<float3>    Bitangents  : register(t0, space4);
-StructuredBuffer<Meshlet>   Meshlets    : register(t1);
-ByteAddressBuffer           UniqueVertexIndices : register(t2);
-StructuredBuffer<uint>      PrimitiveIndices : register(t3);
+StructuredBuffer<float3> Positions : register(t0, space0);
+StructuredBuffer<float3> Normals : register(t0, space1);
+StructuredBuffer<float2> TexCoords : register(t0, space2);
+StructuredBuffer<float3> Tangents : register(t0, space3);
+StructuredBuffer<float3> Bitangents : register(t0, space4);
+StructuredBuffer<Meshlet> Meshlets : register(t1);
+ByteAddressBuffer UniqueVertexIndices : register(t2);
+StructuredBuffer<uint> PrimitiveIndices : register(t3);
 
 uint3 UnpackPrimitive(uint primitive)
 {
@@ -69,7 +69,7 @@ uint GetVertexIndex(Meshlet m, uint localIndex)
 }
 
 OutVertex GetVertex(uint meshletIndex, uint vertexIndex)
-{   
+{
     matrix mvp = mul(CbDrawData.InstanceToWorld, mul(CbViewData.View, CbViewData.Projection));
     float4 pos = mul(float4(Positions[vertexIndex], 1.0), mvp);
     float4 posWorld = mul(float4(Positions[vertexIndex], 1.0), CbDrawData.InstanceToWorld);
@@ -77,7 +77,7 @@ OutVertex GetVertex(uint meshletIndex, uint vertexIndex)
     OutVertex v;
     v.Pos = pos;
     v.PosWorld = posWorld.xyz;
-    v.Normal = normalize(mul(Normals[vertexIndex], (float3x3)CbDrawData.NormalMatrix));
+    v.Normal = normalize(mul(Normals[vertexIndex], (float3x3) CbDrawData.NormalMatrix));
     
     if (CbDrawData.DrawFlags & DRAWFLAG_HAS_TEXCOORDS)
         v.TexUv = TexCoords[vertexIndex];
@@ -140,8 +140,8 @@ OutFragment PSMain(OutVertex vertex)
 
     float3 GN = normalize(vertex.Normal);
     float3 SN = GN;
-    if ((CbDrawData.DrawFlags & DRAWFLAG_NO_NORMALMAP) == 0 && 
-        (CbDrawData.DrawFlags & DRAWFLAG_HAS_TANGENTS) && 
+    if ((CbDrawData.DrawFlags & DRAWFLAG_NO_NORMALMAP) == 0 &&
+        (CbDrawData.DrawFlags & DRAWFLAG_HAS_TANGENTS) &&
         (CbDrawData.DrawFlags & DRAWFLAG_HAS_BITANGENTS))
     {
         float3 tangent = normalize(vertex.Tangent);
