@@ -335,6 +335,7 @@
     <None Include="shaders\OctahedronEncoding.hlsli">
       <Filter>Shaders</Filter>
     </None>
+    <None Include=".clang-format" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="vendor\D3D12MA\D3D12MemAlloc.natvis">
