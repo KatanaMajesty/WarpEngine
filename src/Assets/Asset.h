@@ -50,8 +50,8 @@ namespace Warp
         inline constexpr bool IsValid() const { return GetID() != Asset::InvalidID && m_type != EAssetType::Unknown; }
 
     protected:
-        uint32_t m_ID = Asset::InvalidID;
-        EAssetType m_type = EAssetType::Unknown;
+        uint32_t    m_ID = Asset::InvalidID;
+        EAssetType  m_type = EAssetType::Unknown;
 
         Guid m_Guid;
     };
@@ -77,13 +77,13 @@ namespace Warp
         {
             if (this != &other)
             {
-                this->ID = other.ID;
+                this->ID    = other.ID;
                 this->Index = other.Index;
-                this->Type = other.Type;
+                this->Type  = other.Type;
 
-                other.ID = Asset::InvalidID;
+                other.ID    = Asset::InvalidID;
                 other.Index = Asset::InvalidID;
-                other.Type = EAssetType::Unknown;
+                other.Type  = EAssetType::Unknown;
             }
             return *this;
         }
@@ -94,8 +94,8 @@ namespace Warp
                 Index != Asset::InvalidID && Type != EAssetType::Unknown;
         }
 
-        uint32_t ID = Asset::InvalidID; // Represents a unique identifier of an asset at runtime
-        uint32_t Index = Asset::InvalidID; // Index represents a value that can be used to access the actual asset inside of the registry
+        uint32_t ID     = Asset::InvalidID; // Represents a unique identifier of an asset at runtime
+        uint32_t Index  = Asset::InvalidID; // Index represents a value that can be used to access the actual asset inside of the registry
         EAssetType Type = EAssetType::Unknown;
     };
 

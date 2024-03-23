@@ -24,6 +24,12 @@ namespace Warp
         CResourceState() = default;
         CResourceState(UINT numSubresources, D3D12_RESOURCE_STATES initialState);
 
+        CResourceState(const CResourceState&) = default;
+        CResourceState& operator=(const CResourceState&) = default;
+
+        CResourceState(CResourceState&&) = default;
+        CResourceState& operator=(CResourceState&&) = default;
+
         // If subresourceIndex is D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES, then all subresources will be updated
         void SetSubresourceState(UINT subresourceIndex, D3D12_RESOURCE_STATES state);
         WARP_ATTR_NODISCARD D3D12_RESOURCE_STATES GetSubresourceState(UINT subresourceIndex) const;
