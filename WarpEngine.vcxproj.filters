@@ -49,6 +49,9 @@
     <Filter Include="Scenes">
       <UniqueIdentifier>{0902bd6f-1617-498a-a61c-4b51a85e0e04}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer\RenderTaskGraph">
+      <UniqueIdentifier>{fc7b081d-808a-42ea-8dbe-b8f80d39bb53}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\Application.cpp">
@@ -147,6 +150,12 @@
     </ClCompile>
     <ClCompile Include="src\World\EntityCapacitor.cpp">
       <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RenderTaskGraph\RenderTaskGraph.cpp">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RenderTaskGraph\RenderTask.cpp">
+      <Filter>Renderer\RenderTaskGraph</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -319,6 +328,24 @@
     </ClInclude>
     <ClInclude Include="src\Scenes\Scene.h">
       <Filter>Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\RenderTaskGraph.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\RenderTask.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceManager.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceCommon.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\Defines.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\TaskAllocator.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
