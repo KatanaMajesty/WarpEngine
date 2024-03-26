@@ -8,6 +8,8 @@
 #include "ResourceCommon.h"
 #include "TaskAllocator.h"
 
+#include "../RHI/CommandContext.h"
+
 namespace Warp
 {
 
@@ -24,7 +26,7 @@ namespace Warp
 
         // Task that is retrieved as a result of AddRenderTask() call should be immediately initialized in-place
         RTGRenderTask* AddRenderTask();
-        void Execute();
+        void Execute(RHICommandContext* context, RTGResourceManager* resourceManager);
         void Compile();
         void Cleanup();
 
@@ -59,7 +61,6 @@ namespace Warp
         std::vector<RTGRenderTask*>     m_RenderTasks;
 
         std::vector<TaskDependencyGroup> m_DependencyLevels;
-        RTGResourceManager m_ResourceManager;
     };
 
 }

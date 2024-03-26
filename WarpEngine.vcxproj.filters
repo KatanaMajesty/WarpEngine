@@ -157,6 +157,12 @@
     <ClCompile Include="src\Renderer\RenderTaskGraph\RenderTask.cpp">
       <Filter>Renderer\RenderTaskGraph</Filter>
     </ClCompile>
+    <ClCompile Include="src\Renderer\RenderTaskGraph\ResourceManager.cpp">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Renderer\RenderTaskGraph\ResourceMemoryArena.cpp">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -345,6 +351,12 @@
       <Filter>Renderer\RenderTaskGraph</Filter>
     </ClInclude>
     <ClInclude Include="src\Renderer\RenderTaskGraph\TaskAllocator.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceMemoryArena.h">
+      <Filter>Renderer\RenderTaskGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceAllocator.h">
       <Filter>Renderer\RenderTaskGraph</Filter>
     </ClInclude>
   </ItemGroup>

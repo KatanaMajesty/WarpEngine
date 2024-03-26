@@ -9,11 +9,21 @@
 namespace Warp
 {
 
+    class RTGResourceManager;
+    class RHICommandContext;
+
+    enum class ERTGDependencyType
+    {
+        Read,
+        Write,
+        ReadWrite,
+    };
+
     class RTGRenderTask
     {
     public:
         using DependencyContainer = std::set<RTGResourceProxy>;
-        using ExecuteCallback = std::function<void(RTGRenderTask*, RTGResourceManager&)>;
+        using ExecuteCallback = std::function<void(RHICommandContext*, RTGRenderTask*, RTGResourceManager*)>;
 
         RTGRenderTask() = default;
 

@@ -136,15 +136,15 @@ namespace Warp
             [hwnd]() -> std::unique_ptr<RHIPhysicalDevice>
             {
                 RHIPhysicalDeviceDesc physicalDeviceDesc;
-    physicalDeviceDesc.hwnd = hwnd;
+                physicalDeviceDesc.hwnd = hwnd;
 #ifdef WARP_DEBUG
-    physicalDeviceDesc.EnableDebugLayer = true;
-    physicalDeviceDesc.EnableGpuBasedValidation = true;
+                physicalDeviceDesc.EnableDebugLayer = true;
+                physicalDeviceDesc.EnableGpuBasedValidation = true;
 #else
-    physicalDeviceDesc.EnableDebugLayer = false;
-    physicalDeviceDesc.EnableGpuBasedValidation = false;
+                physicalDeviceDesc.EnableDebugLayer = false;
+                physicalDeviceDesc.EnableGpuBasedValidation = false;
 #endif
-    return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
+                return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
             }())
         , m_device(std::make_unique<RHIDevice>(GetPhysicalDevice()))
                 , m_graphicsContext(RHICommandContext(L"RHICommandContext_Graphics", m_device->GetGraphicsQueue()))
@@ -209,54 +209,54 @@ namespace Warp
                     {
                         MeshInstance& instance = meshInstances.emplace_back();
 
-                Math::Matrix translation = Math::Matrix::CreateTranslation(transformComponent.Translation);
-                Math::Matrix rotation = Math::Matrix::CreateFromYawPitchRoll(transformComponent.Rotation);
-                Math::Matrix scale = Math::Matrix::CreateScale(transformComponent.Scaling);
+                        Math::Matrix translation = Math::Matrix::CreateTranslation(transformComponent.Translation);
+                        Math::Matrix rotation = Math::Matrix::CreateFromYawPitchRoll(transformComponent.Rotation);
+                        Math::Matrix scale = Math::Matrix::CreateScale(transformComponent.Scaling);
 
-                MeshAsset* mesh = meshComponent.GetMesh();
+                        MeshAsset* mesh = meshComponent.GetMesh();
 
-                instance.Manager = meshComponent.Manager;
-                instance.MeshProxy = meshComponent.Proxy;
+                        instance.Manager = meshComponent.Manager;
+                        instance.MeshProxy = meshComponent.Proxy;
 
-                instance.InstanceToWorld = scale * rotation * translation;
-                instance.InstanceToWorld.Invert(instance.NormalMatrix);
-                instance.NormalMatrix.Transpose(instance.NormalMatrix);
+                        instance.InstanceToWorld = scale * rotation * translation;
+                        instance.InstanceToWorld.Invert(instance.NormalMatrix);
+                        instance.NormalMatrix.Transpose(instance.NormalMatrix);
 
-                instance.Submeshes.resize(mesh->GetNumSubmeshes());
-                for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
-                {
-                    Submesh& submesh = mesh->Submeshes[submeshIndex];
+                        instance.Submeshes.resize(mesh->GetNumSubmeshes());
+                        for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
+                        {
+                            Submesh& submesh = mesh->Submeshes[submeshIndex];
 
-                    MaterialAsset* material = meshComponent.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
-                    if (!material)
-                    {
-                        // TODO: Somehow handle it better? Maybe warn? Maybe draw with default material?
-                        continue;
-                    }
+                            MaterialAsset* material = meshComponent.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
+                            if (!material)
+                            {
+                                // TODO: Somehow handle it better? Maybe warn? Maybe draw with default material?
+                                continue;
+                            }
 
-                    EHlslDrawPropertyFlags& flags = instance.Submeshes[submeshIndex].DrawFlags;
+                            EHlslDrawPropertyFlags& flags = instance.Submeshes[submeshIndex].DrawFlags;
 
-                    if (submesh.HasAttributes(eVertexAttribute_TextureCoords))
-                        flags |= eHlslDrawPropertyFlag_HasTexCoords;
+                            if (submesh.HasAttributes(eVertexAttribute_TextureCoords))
+                                flags |= eHlslDrawPropertyFlag_HasTexCoords;
 
-                    if (submesh.HasAttributes(eVertexAttribute_Tangents))
-                        flags |= eHlslDrawPropertyFlag_HasTangents;
+                            if (submesh.HasAttributes(eVertexAttribute_Tangents))
+                                flags |= eHlslDrawPropertyFlag_HasTangents;
 
-                    if (submesh.HasAttributes(eVertexAttribute_Bitangents))
-                        flags |= eHlslDrawPropertyFlag_HasBitangents;
+                            if (submesh.HasAttributes(eVertexAttribute_Bitangents))
+                                flags |= eHlslDrawPropertyFlag_HasBitangents;
 
-                    if (!material->HasNormalMap() ||
-                        !meshComponent.Manager->IsValid<TextureAsset>(material->NormalMap))
-                        flags |= eHlslDrawPropertyFlag_NoNormalMap;
+                            if (!material->HasNormalMap() ||
+                                !meshComponent.Manager->IsValid<TextureAsset>(material->NormalMap))
+                                flags |= eHlslDrawPropertyFlag_NoNormalMap;
 
-                    if (!material->HasRoughnessMetalnessMap() ||
-                        !meshComponent.Manager->IsValid<TextureAsset>(material->RoughnessMetalnessMap))
-                        flags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
+                            if (!material->HasRoughnessMetalnessMap() ||
+                                !meshComponent.Manager->IsValid<TextureAsset>(material->RoughnessMetalnessMap))
+                                flags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
 
-                    if (!material->HasAlbedoMap() ||
-                        !meshComponent.Manager->IsValid<TextureAsset>(material->AlbedoMap))
-                        flags |= eHlslDrawPropertyFlag_NoBaseColorMap;
-                }
+                            if (!material->HasAlbedoMap() ||
+                                !meshComponent.Manager->IsValid<TextureAsset>(material->AlbedoMap))
+                                flags |= eHlslDrawPropertyFlag_NoBaseColorMap;
+                        }
                     }
                 );
 

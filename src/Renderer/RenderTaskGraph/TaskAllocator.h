@@ -47,7 +47,7 @@ namespace Warp
         TaskType* AllocateTask(Args&&... args)
         {
             void* bytes = Allocate(TaskSize);
-            TaskType* task = new(bytes) TaskType;
+            TaskType* task = new (bytes) TaskType;
             return task;
         }
 

@@ -12,7 +12,7 @@ namespace Warp
         return task;
     }
 
-    void RenderTaskGraph::Execute()
+    void RenderTaskGraph::Execute(RHICommandContext* context, RTGResourceManager* resourceManager)
     {
         Compile();
 
@@ -23,7 +23,7 @@ namespace Warp
                 RTGRenderTask* renderTask = m_RenderTasks[taskIdx];
                 assert(renderTask->IsValid() && !renderTask->IsEmpty());
 
-                std::invoke(renderTask->GetExecuteCallback(), renderTask, m_ResourceManager);
+                std::invoke(renderTask->GetExecuteCallback(), context, renderTask, resourceManager);
             }
         }
 
@@ -58,6 +58,7 @@ namespace Warp
     void RenderTaskGraph::Cleanup()
     {
         m_DependencyLevels.clear();
+
         m_RenderTasks.clear();
         m_RenderTaskAllocator.Cleanup();
     }

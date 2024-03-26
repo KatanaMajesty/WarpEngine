@@ -30,6 +30,8 @@
     <ClCompile Include="src\Input\MouseDevice.cpp" />
     <ClCompile Include="src\Renderer\RenderTaskGraph\RenderTask.cpp" />
     <ClCompile Include="src\Renderer\RenderTaskGraph\RenderTaskGraph.cpp" />
+    <ClCompile Include="src\Renderer\RenderTaskGraph\ResourceManager.cpp" />
+    <ClCompile Include="src\Renderer\RenderTaskGraph\ResourceMemoryArena.cpp" />
     <ClCompile Include="src\Util\Guid.cpp" />
     <ClCompile Include="src\Assets\Importers\Formats\ImageLoader.cpp" />
     <ClCompile Include="src\Core\Application.cpp" />
@@ -60,6 +62,7 @@
     <ClInclude Include="src\Renderer\RenderTaskGraph\Defines.h" />
     <ClInclude Include="src\Renderer\RenderTaskGraph\RenderTask.h" />
     <ClInclude Include="src\Renderer\RenderTaskGraph\RenderTaskGraph.h" />
+    <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceAllocator.h" />
     <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceCommon.h" />
     <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceManager.h" />
     <ClInclude Include="src\Assets\Asset.h" />
@@ -73,6 +76,7 @@
     <ClInclude Include="src\Input\DeviceManager.h" />
     <ClInclude Include="src\Input\KeyboardDevice.h" />
     <ClInclude Include="src\Input\MouseDevice.h" />
+    <ClInclude Include="src\Renderer\RenderTaskGraph\ResourceMemoryArena.h" />
     <ClInclude Include="src\Renderer\RenderTaskGraph\TaskAllocator.h" />
     <ClInclude Include="src\Util\Guid.h" />
     <ClInclude Include="src\Assets\Importers\Formats\ImageLoader.h" />
