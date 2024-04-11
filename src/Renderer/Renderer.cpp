@@ -369,7 +369,6 @@ namespace Warp
                 graphicsContext.Open();
                 {
                     WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_ShadowPasses_Frame{}", frameIndex + 1));
-
                     {
                         WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 

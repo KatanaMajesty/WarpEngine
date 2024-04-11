@@ -66,6 +66,7 @@
     <ClInclude Include="src\Input\DeviceManager.h" />
     <ClInclude Include="src\Input\KeyboardDevice.h" />
     <ClInclude Include="src\Input\MouseDevice.h" />
+    <ClInclude Include="src\RHI\D3D12\Device.h" />
     <ClInclude Include="src\Util\Guid.h" />
     <ClInclude Include="src\Assets\Importers\Formats\ImageLoader.h" />
     <ClInclude Include="src\Core\Application.h" />
