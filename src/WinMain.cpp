@@ -14,6 +14,9 @@
 #include "WinAPI.h"
 #include "WinInput.h"
 
+// TODO:
+#include "rhi/D3D12/_Device.h"
+
 static constexpr WCHAR g_ClassName[] = L"WarpEngineClass";
 
 void InitWinConsole()
@@ -123,11 +126,19 @@ auto WINAPI wWinMain(
         return -1;
     }
 
-    Warp::Application& application = Warp::Application::Get();
-    application.Init(hwnd);
-
     ShowWindow(hwnd, nCmdShow);
     UpdateWindow(hwnd);
+
+    Warp::rhi::D3D12PhysicalDeviceDesc deviceDesc = Warp::rhi::D3D12PhysicalDeviceDesc{
+        .Hwnd = hwnd,
+        .EnableDebugLayer = true,
+        .EnableGpuBasedValidation = true,
+    };
+
+    Warp::rhi::D3D12PhysicalDevice physicalDevice = Warp::rhi::D3D12PhysicalDevice(deviceDesc);
+
+    Warp::Application& application = Warp::Application::Get();
+    application.Init(hwnd);
 
     MSG msg = { 0 };
     while (msg.message != WM_QUIT)

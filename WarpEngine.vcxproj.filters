@@ -148,6 +148,7 @@
     <ClCompile Include="src\World\EntityCapacitor.cpp">
       <Filter>World</Filter>
     </ClCompile>
+    <ClCompile Include="src\rhi\D3D12\_Device.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -320,6 +321,9 @@
     <ClInclude Include="src\Scenes\Scene.h">
       <Filter>Scenes</Filter>
     </ClInclude>
+    <ClInclude Include="src\rhi\D3D12\_Device.h" />
+    <ClInclude Include="src\rc\RcPtr.h" />
+    <ClInclude Include="src\rc\RefCounted.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
