@@ -3,7 +3,7 @@
 // Warp Engine
 // Reference Counting namespace
 
-#include "RefCounted.h"
+#include "RcCommon.h"
 
 namespace Warp::rc
 {

@@ -148,7 +148,7 @@
     <ClCompile Include="src\World\EntityCapacitor.cpp">
       <Filter>World</Filter>
     </ClCompile>
-    <ClCompile Include="src\rhi\D3D12\_Device.cpp" />
+    <ClCompile Include="src\RHI\D3D12\_Device.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\Application.h">
@@ -321,9 +321,11 @@
     <ClInclude Include="src\Scenes\Scene.h">
       <Filter>Scenes</Filter>
     </ClInclude>
-    <ClInclude Include="src\rhi\D3D12\_Device.h" />
-    <ClInclude Include="src\rc\RcPtr.h" />
-    <ClInclude Include="src\rc\RefCounted.h" />
+    <ClInclude Include="src\RHI\D3D12\_Device.h" />
+    <ClInclude Include="src\Rc\RcPtr.h" />
+    <ClInclude Include="src\Rc\RcCommon.h" />
+    <ClInclude Include="src\RHI\D3D12\RHI.h" />
+    <ClInclude Include="src\RHI\D3D12\DeviceInstance.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="vcpkg.json">
@@ -364,5 +366,8 @@
     <CopyFileToFolders Include="vendor\dxcompiler.dll">
       <Filter>Vendor</Filter>
     </CopyFileToFolders>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
 </Project>
