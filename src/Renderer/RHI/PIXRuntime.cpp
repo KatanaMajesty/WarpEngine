@@ -1,8 +1,7 @@
 #include "PIXRuntime.h"
 
-#define	USE_PIX // TODO: Currently bruteforce. Just a workaround
-#include <pix3.h>
-#pragma comment(lib, "WinPixEventRuntime.lib")
+#define	USE_PIX
+#include <WinPixEventRuntime/pix3.h>
 
 namespace Warp::Pix
 {

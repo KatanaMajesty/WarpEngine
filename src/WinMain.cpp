@@ -14,7 +14,7 @@
 #include "WinAPI.h"
 #include "WinInput.h"
 
-static constexpr WCHAR g_ClassName[] = L"WarpEngineClass";
+static constexpr LPCSTR g_ClassName = "WarpEngineClass";
 
 void InitWinConsole()
 {
@@ -94,7 +94,7 @@ auto WINAPI wWinMain(
 
     HWND hwnd = CreateWindow(
         g_ClassName,
-        L"Warp Engine",
+        "Warp Engine",
         WS_OVERLAPPEDWINDOW,
         posX,
         posY,
@@ -144,7 +144,7 @@ auto WINAPI wWinMain(
     // TODO: Application Shutdown
     Warp::Application::Delete();
 
-    UnregisterClassW(g_ClassName, hInstance);
+    UnregisterClass(g_ClassName, hInstance);
     DeinitWinConsole();
 
     return (int32_t)msg.wParam;

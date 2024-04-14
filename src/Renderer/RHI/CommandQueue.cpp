@@ -71,7 +71,7 @@ namespace Warp
             return;
         }
 
-        HANDLE event = CreateEvent(NULL, FALSE, FALSE, L"RHICommandQueue::HostWaitForValue");
+        HANDLE event = CreateEvent(NULL, FALSE, FALSE, "RHICommandQueue::HostWaitForValue");
         WARP_MAYBE_UNUSED HRESULT hr = m_fence->SetEventOnCompletion(fenceValue, event);
         WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (CPU-sided)");
 

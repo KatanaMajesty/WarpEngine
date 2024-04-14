@@ -2,7 +2,7 @@
 
 #include <string>
 #include <string_view>
-#include "DirectXTex.h"
+#include <DirectXTex/DirectXTex.h>
 
 #include "../../../Core/Defines.h"
 

@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 project(WarpEngine LANGUAGES CXX)
 
-add_executable(WarpEngine)
+add_executable(WarpEngine WIN32)
+
+# Use C++20
+set_property(TARGET WarpEngine PROPERTY CXX_STANDARD 20)
 
 # Explicitly list sources instead of globbing
 # From CMake docs ->
@@ -9,6 +12,13 @@ add_executable(WarpEngine)
 # If no CMakeLists.txt file changes when a source is added or removed then the generated build system cannot know 
 # when to ask CMake to regenerate.)
 set(WARP_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
+
+target_sources(WarpEngine
+PRIVATE
+    "${WARP_SRC_DIR}/WinAPI.h"
+    "${WARP_SRC_DIR}/WinInput.h"
+    "${WARP_SRC_DIR}/WinMain.cpp"
+)
 
 # Assets subdirectory
 set(WARP_SRC_ASSETS
@@ -134,17 +144,62 @@ set(WARP_SRC_WORLD
 target_sources(WarpEngine PRIVATE ${WARP_SRC_WORLD})
 
 # Vendor is here
-set(WARP_VENDOR_DIR "${CMAKE_SOURCE_DIR}/vendor")
+set(WARP_VENDOR_DIR         "${CMAKE_SOURCE_DIR}/vendor")
 set(WARP_VENDOR_D3D12MA_DIR "${WARP_VENDOR_DIR}/D3D12MA")
+set(WARP_VENDOR_DX12TK_DIR  "${WARP_VENDOR_DIR}/DirectXTK12")
+set(WARP_VENDOR_DXMESH_DIR  "${WARP_VENDOR_DIR}/DirectXMesh")
+set(WARP_VENDOR_DXTEX_DIR   "${WARP_VENDOR_DIR}/DirectXTex")
+set(WARP_VENDOR_PIX_DIR     "${WARP_VENDOR_DIR}/WinPixEventRuntime")
+
+set(WARP_DIRECTX_MESH_LIBRARY 
+    optimized "${WARP_VENDOR_DXMESH_DIR}/Bin/x64/Release/DirectXMesh.lib" 
+    debug "${WARP_VENDOR_DXMESH_DIR}/Bin/x64/Debug/DirectXMesh.lib"
+)
+
+set(WARP_DIRECTX_TEX_LIBRARY
+    optimized "${WARP_VENDOR_DXTEX_DIR}/Bin/x64/Release/DirectXTex.lib" 
+    debug "${WARP_VENDOR_DXTEX_DIR}/Bin/x64/Debug/DirectXTex.lib"
+)
 
 # TODO: Maybe make D3D12MA as a separate add_library?
 target_sources(WarpEngine 
 PRIVATE
+    "${WARP_VENDOR_DIR}/DirectXTex/DDSTextureLoader/DDSTextureLoader12.cpp"
+    "${WARP_VENDOR_DIR}/DirectXTex/DDSTextureLoader/DDSTextureLoader12.h"
+    "${WARP_VENDOR_DIR}/DirectXTex/WICTextureLoader/WICTextureLoader12.cpp"
+    "${WARP_VENDOR_DIR}/DirectXTex/WICTextureLoader/WICTextureLoader12.h"
+    "${WARP_VENDOR_DX12TK_DIR}/Include/SimpleMath.h"
     "${WARP_VENDOR_D3D12MA_DIR}/D3D12MemAlloc.cpp"    
-    "${WARP_VENDOR_D3D12MA_DIR}/D3D12MemAlloc.h"    
+    "${WARP_VENDOR_D3D12MA_DIR}/D3D12MemAlloc.h"
 )
 
 # Add vendor as an include directory
-target_include_directories(WarpEngine PRIVATE "${WARP_VENDOR_DIR}")
+target_include_directories(WarpEngine 
+PRIVATE 
+    "${WARP_VENDOR_DIR}"
+    "${WARP_VENDOR_DX12TK_DIR}/Include"
+    "${WARP_VENDOR_PIX_DIR}/Include"
+)
 
-# TODO: For morning -> replace VcPkg
+add_subdirectory("${WARP_VENDOR_DIR}/entt")
+add_subdirectory("${WARP_VENDOR_DIR}/spdlog")
+
+# Resolve PIX profiling API
+add_library(WinPixEventRuntime SHARED IMPORTED)
+set_target_properties(WinPixEventRuntime PROPERTIES IMPORTED_LOCATION "${WARP_VENDOR_PIX_DIR}/bin/x64/WinPixEventRuntime.dll")
+set_target_properties(WinPixEventRuntime PROPERTIES IMPORTED_IMPLIB   "${WARP_VENDOR_PIX_DIR}/bin/x64/WinPixEventRuntime.lib")
+
+target_link_libraries(WarpEngine
+PRIVATE
+    ${WARP_DIRECTX_MESH_LIBRARY}
+    ${WARP_DIRECTX_TEX_LIBRARY}
+    EnTT::EnTT
+    spdlog::spdlog
+    WinPixEventRuntime
+)
+
+# Copy DLLs to the out path
+add_custom_command(TARGET WarpEngine POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:WarpEngine> $<TARGET_FILE_DIR:WarpEngine>
+  COMMAND_EXPAND_LISTS
+)
