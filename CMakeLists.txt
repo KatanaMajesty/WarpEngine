@@ -201,5 +201,6 @@ PRIVATE
 # Copy DLLs to the out path
 add_custom_command(TARGET WarpEngine POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:WarpEngine> $<TARGET_FILE_DIR:WarpEngine>
+  COMMAND ${CMAKE_COMMAND} -E copy ${WARP_VENDOR_DIR}/dxcompiler.dll ${WARP_VENDOR_DIR}/dxil.dll $<TARGET_FILE_DIR:WarpEngine>
   COMMAND_EXPAND_LISTS
 )

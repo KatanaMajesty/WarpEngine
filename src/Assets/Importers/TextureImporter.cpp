@@ -18,6 +18,13 @@ namespace Warp
 
     AssetProxy TextureImporter::ImportFromFile(const std::string& filepath, const TextureImportDesc& importDesc)
     {
+        // 17.04.24 -> Check if COM library is available at runtime. If not - bail out and yell
+        if (!winapi::ComLibraryWrapper::IsInitialized())
+        {
+            WARP_LOG_ERROR("TextureImporter::ImportFromFile -> COM Library is not initialized!");
+            return AssetProxy();
+        }
+
         EAssetFormat format = GetFormat(std::filesystem::path(filepath).extension().string());
         if (format == EAssetFormat::Unknown)
         {
@@ -43,6 +50,12 @@ namespace Warp
             image = ImageLoader::LoadWICFromFile(filepath, importDesc.GenerateMips);
             break;
         default: WARP_ASSERT(false, "Shouldn't happen"); break;
+        }
+
+        if (!image.IsValid())
+        {
+            WARP_LOG_ERROR("TextureImporter::ImportFromFile -> Failed to load image from file \'{}\'", filepath);
+            return AssetProxy();
         }
 
         proxy = manager->CreateAsset<TextureAsset>(filepath);

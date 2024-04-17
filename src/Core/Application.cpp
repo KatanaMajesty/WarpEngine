@@ -15,12 +15,12 @@ namespace Warp
         : m_filepathConfig([&desc]
             {
                 // TODO: This might look bad, but it works alright for now. Will be changed in future defo
-                const std::filesystem::path relativePath = desc.WorkingDirectory.parent_path().parent_path();
-    FilepathConfig config = FilepathConfig{
-        .WorkingDirectory = desc.WorkingDirectory,
-        .ShaderDirectory = relativePath / "shaders",
-        .AssetsDirectory = relativePath / "assets",
-    };
+                const std::filesystem::path relativePath = desc.WorkingDirectory.parent_path().parent_path().parent_path();
+                FilepathConfig config = FilepathConfig{
+                    .WorkingDirectory = desc.WorkingDirectory,
+                    .ShaderDirectory = relativePath / "shaders",
+                    .AssetsDirectory = relativePath / "assets",
+                };
     return config;
             }())
         // TODO: (14.02.2024) -> Asset manager and importers are on stack. Can cause any problems? Recheck it when youre sane

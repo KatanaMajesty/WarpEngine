@@ -136,21 +136,21 @@ namespace Warp
             [hwnd]() -> std::unique_ptr<RHIPhysicalDevice>
             {
                 RHIPhysicalDeviceDesc physicalDeviceDesc;
-    physicalDeviceDesc.hwnd = hwnd;
-#ifdef WARP_DEBUG
-    physicalDeviceDesc.EnableDebugLayer = true;
-    physicalDeviceDesc.EnableGpuBasedValidation = true;
-#else
-    physicalDeviceDesc.EnableDebugLayer = false;
-    physicalDeviceDesc.EnableGpuBasedValidation = false;
-#endif
-    return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
+                physicalDeviceDesc.hwnd = hwnd;
+            #ifdef WARP_DEBUG
+                physicalDeviceDesc.EnableDebugLayer = true;
+                physicalDeviceDesc.EnableGpuBasedValidation = true;
+            #else
+                physicalDeviceDesc.EnableDebugLayer = false;
+                physicalDeviceDesc.EnableGpuBasedValidation = false;
+            #endif
+                return std::make_unique<RHIPhysicalDevice>(physicalDeviceDesc);
             }())
         , m_device(std::make_unique<RHIDevice>(GetPhysicalDevice()))
-                , m_graphicsContext(RHICommandContext(L"RHICommandContext_Graphics", m_device->GetGraphicsQueue()))
-                , m_copyContext(RHICopyCommandContext(L"RHICommandContext_Copy", m_device->GetCopyQueue()))
-                , m_computeContext(RHICommandContext(L"RHICommandContext_Compute", m_device->GetComputeQueue()))
-                , m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
+        , m_graphicsContext(RHICommandContext(L"RHICommandContext_Graphics", m_device->GetGraphicsQueue()))
+        , m_copyContext(RHICopyCommandContext(L"RHICommandContext_Copy", m_device->GetCopyQueue()))
+        , m_computeContext(RHICommandContext(L"RHICommandContext_Compute", m_device->GetComputeQueue()))
+        , m_swapchain(std::make_unique<RHISwapchain>(m_physicalDevice.get()))
     {
         WARP_ASSERT(m_device->GetDeviceCapabilities().MeshShaderSupportTier != ERHIMeshShaderSupportTier::NotSupported,
             "We only use mesh shader to render geometry");
