@@ -1,7 +1,6 @@
-#pragma once
+#include "WinWrap.h"
 
 #include <unordered_map>
-#include <Windows.h>
 #include <windowsx.h>
 
 #include "Input/DeviceManager.h"
@@ -11,19 +10,10 @@
 using  KeyMappingContainer = std::unordered_map<WORD, Warp::EKeycode>;
 static KeyMappingContainer g_keyMapping;
 
-namespace Warp::winapi
-{
-    // For more info on keyboards - https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input#keystroke-message-flags
-    // For more info on mouses - https://learn.microsoft.com/en-us/windows/win32/inputdev/mouse-input
-    void ProcessWinInput(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-    void InitWinInputMappings();
-};
-
-namespace Warp::winapi
+namespace Warp::WinWrap::IO
 {
 
-    void ProcessWinInput(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    void ProcessInput(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
         using namespace Warp;
         InputDeviceManager& inputDeviceManager = InputDeviceManager::Get();
@@ -106,7 +96,7 @@ namespace Warp::winapi
         }
     }
 
-    void InitWinInputMappings()
+    void InitInputMappings()
     {
         using namespace Warp;
         KeyMappingContainer& keyMapping = g_keyMapping;

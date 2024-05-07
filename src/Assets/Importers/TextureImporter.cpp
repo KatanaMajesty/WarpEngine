@@ -13,13 +13,16 @@
 #include "Formats/ImageLoader.h"
 #include "../AssetManager.h"
 
+#include "../../WinWrap.h"
+
 namespace Warp
 {
 
     AssetProxy TextureImporter::ImportFromFile(const std::string& filepath, const TextureImportDesc& importDesc)
     {
         // 17.04.24 -> Check if COM library is available at runtime. If not - bail out and yell
-        if (!winapi::ComLibraryWrapper::IsInitialized())
+        // TODO: Bad decision to do such checks. You never know when you want to support other platforms
+        if (!WinWrap::ScopedCOMLibrary::IsInitialized())
         {
             WARP_LOG_ERROR("TextureImporter::ImportFromFile -> COM Library is not initialized!");
             return AssetProxy();

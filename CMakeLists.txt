@@ -4,7 +4,7 @@ project(WarpEngine LANGUAGES CXX)
 add_executable(WarpEngine WIN32)
 
 # Use C++20
-set_property(TARGET WarpEngine PROPERTY CXX_STANDARD 20)
+set_property(TARGET WarpEngine PROPERTY CXX_STANDARD 23)
 
 # Explicitly list sources instead of globbing
 # From CMake docs ->
@@ -16,8 +16,11 @@ set(WARP_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 target_sources(WarpEngine
 PRIVATE
     "${WARP_SRC_DIR}/WinAPI.h"
-    "${WARP_SRC_DIR}/WinInput.h"
+    "${WARP_SRC_DIR}/WinCOM.cpp"
+    "${WARP_SRC_DIR}/WinInn.cpp"
+    "${WARP_SRC_DIR}/WinInput.cpp"
     "${WARP_SRC_DIR}/WinMain.cpp"
+    "${WARP_SRC_DIR}/WinWrap.h"
 )
 
 # Assets subdirectory
