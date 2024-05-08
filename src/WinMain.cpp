@@ -131,6 +131,7 @@ int32_t WINAPI WinMain(
 
     // TODO: Application Shutdown
     Warp::Application::Delete();
+    Warp::Log::Logger::Delete();
 
     UnregisterClass(winClassName, hInstance);
     Warp::WinWrap::StopConsole();

@@ -110,9 +110,9 @@ namespace Warp
                     GetMeshImporter(),
                     GetWorld(),
                     TransformComponent(Math::Vector3(0.0f, -3.0f, -4.0f), Math::Vector3(), Math::Vector3(0.5f))
-                );
+                );*/
 
-                AddEntityFromMesh(GetAssetsPath(), "asteroid/Asteroid.gltf",
+                /*AddEntityFromMesh(GetAssetsPath(), "asteroid/Asteroid.gltf",
                     m_assetManager,
                     GetMeshImporter(),
                     GetWorld(),

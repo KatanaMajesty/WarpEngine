@@ -18,7 +18,7 @@ namespace Warp::Log
         Fatal,
     };
 
-    inline constexpr spdlog::level::level_enum ConvertSeverity(ESeverity severity)
+    inline constexpr spdlog::level::level_enum ConvertSeverity(ESeverity severity) noexcept
     {
         using namespace spdlog::level;
         switch (severity)
@@ -42,29 +42,30 @@ namespace Warp::Log
         static constexpr std::string_view MainLoggerName = "WarpMain";
 
         // Creates a main Logger instance
-        static bool Create(std::string_view name = MainLoggerName);
-        static bool Delete(std::string_view name = MainLoggerName);
+        static bool Create(std::string_view name = MainLoggerName) noexcept;
+        static bool Delete(std::string_view name = MainLoggerName) noexcept;
 
-        static Logger* Get(std::string_view name = MainLoggerName);
+        static Logger* Get(std::string_view name = MainLoggerName) noexcept;
 
-        Logger(std::string_view name);
+        Logger(std::string_view name) noexcept;
 
         Logger(const Logger&) = delete;
         Logger& operator=(const Logger&) = delete;
 
-        bool IsInitialized() const { return m_handle != nullptr; }
+        bool IsInitialized() const noexcept { return m_handle != nullptr; }
 
-        void SetSeverity(ESeverity severity);
+        // Not noexcept in spdlog although under the hood is still noexcept
+        void SetSeverity(ESeverity severity) noexcept;
 
         template<typename T>
-        void Log(ESeverity severity, const T& t)
+        void Log(ESeverity severity, const T& t) noexcept
         {
             assert(m_handle != nullptr && "Logger should be initialized before Log");
             m_handle->log(ConvertSeverity(severity), t);
         }
     
         template<typename... Args>
-        void Log(ESeverity severity, FormatString_type<Args...> fmt, Args&&... args)
+        void Log(ESeverity severity, FormatString_type<Args...> fmt, Args&&... args) noexcept
         {
             assert(m_handle != nullptr && "Logger should be initialized before Log");
             m_handle->log(ConvertSeverity(severity), fmt, std::forward<Args>(args)...);
