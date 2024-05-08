@@ -157,7 +157,7 @@ namespace Warp
             "We only use mesh shader to render geometry");
 
         // Zero-initialize arrays
-        Memset(m_frameFenceValues, 0, sizeof(m_frameFenceValues));
+        Warp::Memset(m_frameFenceValues, 0, sizeof(m_frameFenceValues));
 
         AllocateGlobalCbuffers();
 
@@ -213,54 +213,54 @@ namespace Warp
             {
                 MeshInstance& instance = meshInstances.emplace_back();
 
-        Math::Matrix translation = Math::Matrix::CreateTranslation(transformComponent.Translation);
-        Math::Matrix rotation = Math::Matrix::CreateFromYawPitchRoll(transformComponent.Rotation);
-        Math::Matrix scale = Math::Matrix::CreateScale(transformComponent.Scaling);
+                Math::Matrix translation = Math::Matrix::CreateTranslation(transformComponent.Translation);
+                Math::Matrix rotation = Math::Matrix::CreateFromYawPitchRoll(transformComponent.Rotation);
+                Math::Matrix scale = Math::Matrix::CreateScale(transformComponent.Scaling);
 
-        MeshAsset* mesh = meshComponent.GetMesh();
+                MeshAsset* mesh = meshComponent.GetMesh();
 
-        instance.Manager = meshComponent.Manager;
-        instance.MeshProxy = meshComponent.Proxy;
+                instance.Manager = meshComponent.Manager;
+                instance.MeshProxy = meshComponent.Proxy;
 
-        instance.InstanceToWorld = scale * rotation * translation;
-        instance.InstanceToWorld.Invert(instance.NormalMatrix);
-        instance.NormalMatrix.Transpose(instance.NormalMatrix);
+                instance.InstanceToWorld = scale * rotation * translation;
+                instance.InstanceToWorld.Invert(instance.NormalMatrix);
+                instance.NormalMatrix.Transpose(instance.NormalMatrix);
 
-        instance.Submeshes.resize(mesh->GetNumSubmeshes());
-        for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
-        {
-            Submesh& submesh = mesh->Submeshes[submeshIndex];
+                instance.Submeshes.resize(mesh->GetNumSubmeshes());
+                for (uint32_t submeshIndex = 0; submeshIndex < mesh->GetNumSubmeshes(); ++submeshIndex)
+                {
+                    Submesh& submesh = mesh->Submeshes[submeshIndex];
 
-            MaterialAsset* material = meshComponent.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
-            if (!material)
-            {
-                // TODO: Somehow handle it better? Maybe warn? Maybe draw with default material?
-                continue;
-            }
+                    MaterialAsset* material = meshComponent.Manager->GetAs<MaterialAsset>(mesh->SubmeshMaterials[submeshIndex]);
+                    if (!material)
+                    {
+                        // TODO: Somehow handle it better? Maybe warn? Maybe draw with default material?
+                        continue;
+                    }
 
-            EHlslDrawPropertyFlags& flags = instance.Submeshes[submeshIndex].DrawFlags;
+                    EHlslDrawPropertyFlags& flags = instance.Submeshes[submeshIndex].DrawFlags;
 
-            if (submesh.HasAttributes(eVertexAttribute_TextureCoords))
-                flags |= eHlslDrawPropertyFlag_HasTexCoords;
+                    if (submesh.HasAttributes(eVertexAttribute_TextureCoords))
+                        flags |= eHlslDrawPropertyFlag_HasTexCoords;
 
-            if (submesh.HasAttributes(eVertexAttribute_Tangents))
-                flags |= eHlslDrawPropertyFlag_HasTangents;
+                    if (submesh.HasAttributes(eVertexAttribute_Tangents))
+                        flags |= eHlslDrawPropertyFlag_HasTangents;
 
-            if (submesh.HasAttributes(eVertexAttribute_Bitangents))
-                flags |= eHlslDrawPropertyFlag_HasBitangents;
+                    if (submesh.HasAttributes(eVertexAttribute_Bitangents))
+                        flags |= eHlslDrawPropertyFlag_HasBitangents;
 
-            if (!material->HasNormalMap() ||
-                !meshComponent.Manager->IsValid<TextureAsset>(material->NormalMap))
-                flags |= eHlslDrawPropertyFlag_NoNormalMap;
+                    if (!material->HasNormalMap() ||
+                        !meshComponent.Manager->IsValid<TextureAsset>(material->NormalMap))
+                        flags |= eHlslDrawPropertyFlag_NoNormalMap;
 
-            if (!material->HasRoughnessMetalnessMap() ||
-                !meshComponent.Manager->IsValid<TextureAsset>(material->RoughnessMetalnessMap))
-                flags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
+                    if (!material->HasRoughnessMetalnessMap() ||
+                        !meshComponent.Manager->IsValid<TextureAsset>(material->RoughnessMetalnessMap))
+                        flags |= eHlslDrawPropertyFlag_NoRoughnessMetalnessMap;
 
-            if (!material->HasAlbedoMap() ||
-                !meshComponent.Manager->IsValid<TextureAsset>(material->AlbedoMap))
-                flags |= eHlslDrawPropertyFlag_NoBaseColorMap;
-        }
+                    if (!material->HasAlbedoMap() ||
+                        !meshComponent.Manager->IsValid<TextureAsset>(material->AlbedoMap))
+                        flags |= eHlslDrawPropertyFlag_NoBaseColorMap;
+                }
             }
         );
 
@@ -349,8 +349,10 @@ namespace Warp
         world->GetEntityCapacitor().ViewOf<DirectionalLightShadowmappingComponent>().each(
             [&shadowmappingTargets](DirectionalLightShadowmappingComponent& shadowComponent)
             {
-                WARP_ASSERT(shadowmappingTargets.NumTargets < HlslLightEnvironment::MaxDirectionalLights, "Too many dir lights! Handle this");
-        shadowmappingTargets.Targets[shadowmappingTargets.NumTargets++] = &shadowComponent;
+                WARP_ASSERT(shadowmappingTargets.NumTargets < HlslLightEnvironment::MaxDirectionalLights, 
+                    "Too many dir lights! Handle this");
+
+                shadowmappingTargets.Targets[shadowmappingTargets.NumTargets++] = &shadowComponent;
             }
         );
 
@@ -407,7 +409,7 @@ namespace Warp
                 };
                 RHIBuffer::Address cbViewData(&constantBuffer, sizeof(HlslDirShadowingViewData), currentCbOffset);
                 currentCbOffset += cbViewData.SizeInBytes;
-                memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslDirShadowingViewData));
+                Warp::Memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslDirShadowingViewData));
 
                 graphicsContext->SetGraphicsRootConstantBufferView(DirShadowingRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
 
@@ -421,7 +423,7 @@ namespace Warp
 
                     RHIBuffer::Address cbDrawData(&constantBuffer, sizeof(HlslShadowingDrawData), currentCbOffset);
                     currentCbOffset += cbDrawData.SizeInBytes;
-                    memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslShadowingDrawData));
+                    Warp::Memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslShadowingDrawData));
 
                     graphicsContext->SetGraphicsRootConstantBufferView(DirShadowingRootParamIdx_CbDrawData, cbDrawData.GetGpuAddress());
 
@@ -500,7 +502,7 @@ namespace Warp
                 };
                 RHIBuffer::Address cbViewData(&constantBuffer, sizeof(HlslViewData), currentCbOffset);
                 currentCbOffset += cbViewData.SizeInBytes;
-                memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslViewData));
+                Warp::Memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslViewData));
 
                 graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
 
@@ -535,7 +537,7 @@ namespace Warp
 
                         RHIBuffer::Address cbDrawData(&constantBuffer, sizeof(HlslDrawData), currentCbOffset);
                         currentCbOffset += cbDrawData.SizeInBytes;
-                        memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslDrawData));
+                        Warp::Memcpy(cbDrawData.GetCpuAddress(), &drawData, sizeof(HlslDrawData));
 
                         graphicsContext->SetGraphicsRootConstantBufferView(BasicRootParamIdx_CbDrawData, cbDrawData.GetGpuAddress());
 
@@ -638,13 +640,13 @@ namespace Warp
 
                 RHIBuffer::Address cbViewData(&constantBuffer, sizeof(HlslDeferredLightingViewData), currentCbOffset);
                 currentCbOffset += cbViewData.SizeInBytes;
-                memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslDeferredLightingViewData));
+                Warp::Memcpy(cbViewData.GetCpuAddress(), &viewData, sizeof(HlslDeferredLightingViewData));
 
                 graphicsContext->SetGraphicsRootConstantBufferView(DeferredLightingRootParamIdx_CbViewData, cbViewData.GetGpuAddress());
 
                 RHIBuffer::Address cbLightEnv(&constantBuffer, sizeof(HlslLightEnvironment), currentCbOffset);
                 currentCbOffset += cbLightEnv.SizeInBytes;
-                memcpy(cbLightEnv.GetCpuAddress(), &environment, sizeof(HlslLightEnvironment));
+                Warp::Memcpy(cbLightEnv.GetCpuAddress(), &environment, sizeof(HlslLightEnvironment));
                 graphicsContext->SetGraphicsRootConstantBufferView(DeferredLightingRootParamIdx_CbLightEnv, cbLightEnv.GetGpuAddress());
 
                 // Transition and set gbuffers
