@@ -1,9 +1,9 @@
 #include "Application.h"
 
-#include "Logger.h"
 #include "Defines.h"
 #include "Assert.h"
 #include "../Input/DeviceManager.h"
+#include "../Util/Logger.h"
 
 // TODO: Remove
 #include "../World/Components.h"

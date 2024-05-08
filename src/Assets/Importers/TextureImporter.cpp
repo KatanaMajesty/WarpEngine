@@ -4,7 +4,7 @@
 #include <filesystem>
 
 #include "../../Core/Application.h"
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 #include "../../Core/Assert.h"
 
 #include "../../Renderer/Renderer.h"

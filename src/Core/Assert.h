@@ -11,7 +11,7 @@
 // Defines.h assures that the specified platform is Win32
 // If its not then we don't even care
 #include <filesystem>
-#include "Logger.h"
+#include "../Util/Logger.h"
 
 #define WARP_INTERNAL_EXPAND(x) x
 #define WARP_INTERNAL_DEBUGBREAK() __debugbreak();

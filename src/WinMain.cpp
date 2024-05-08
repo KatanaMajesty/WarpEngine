@@ -3,9 +3,7 @@
 #include "WinAPI.h"
 #include "WinWrap.h"
 #include "Core/Application.h"
-#include "Core/Logger.h"
-
-static constexpr LPCSTR g_ClassName = "WarpEngineClass";
+#include "Util/Logger.h"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -29,11 +27,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         break;
     }
 
-    Warp::WinWrap::IO::ProcessInput(hwnd, uMsg, wParam, lParam);
+    Warp::WinWrap::WinProc_ProcessInput(hwnd, uMsg, wParam, lParam);
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
 // https://learn.microsoft.com/en-us/windows/win32/learnwin32/winmain--the-application-entry-point
+// TODO: Add check if window of instance is already opened (use mutex and hPrevInstance)
 int32_t WINAPI WinMain(
     _In_        HINSTANCE hInstance,
     _In_opt_    HINSTANCE hPrevInstance, // has no meaning. It was used in 16-bit Windows, but is now always zero.
@@ -41,11 +40,17 @@ int32_t WINAPI WinMain(
     _In_        int32_t nCmdShow)
 {
     Warp::WinWrap::ScopedCOMLibrary comLibrary;
-    Warp::WinWrap::Inn::InitConsole();
-    std::vector<std::string> cmdLineArgs = Warp::WinWrap::Inn::ConvertCmdLineArguments(pCmdLine);
+    Warp::WinWrap::InitConsole();
+    Warp::WinWrap::InitInputMappings();
 
-    Warp::WinWrap::IO::InitInputMappings();
-    Warp::Logging::Init(Warp::Logging::Severity::WARP_SEVERITY_INFO);
+    // Create default logger
+    if (Warp::Log::Logger::Create())
+        Warp::Log::Logger::Get()->SetSeverity(Warp::Log::ESeverity::Info);
+
+    std::vector<std::string> cmdLineArgs = Warp::WinWrap::ConvertCmdLineArguments(pCmdLine);
+
+    LPCSTR winClassName = Warp::WinWrap::WindowDefaultClassName.data();
+    LPCSTR winName      = Warp::WinWrap::WindowDefaultName.data();
 
     WNDCLASSEX windowClass;
     ZeroMemory(&windowClass, sizeof(WNDCLASSEX));
@@ -58,7 +63,7 @@ int32_t WINAPI WinMain(
     windowClass.hIcon = NULL; // TODO: Set an Icon
     windowClass.hIconSm = NULL; // TODO: Set an Icon. Win 4.0 only. A handle to a small icon that is associated with the window class.
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    windowClass.lpszClassName = g_ClassName;
+    windowClass.lpszClassName = winClassName;
     RegisterClassEx(&windowClass);
 
     RECT desktopRect;
@@ -74,12 +79,10 @@ int32_t WINAPI WinMain(
 
     uint32_t windowWidth = windowRect.right - windowRect.left;
     uint32_t windowHeight = windowRect.bottom - windowRect.top;
-    /*int32_t posX = (desktopWidth - windowWidth) / 2;
-    int32_t posY = (desktopHeight - windowHeight) / 2;*/
 
     HWND hwnd = CreateWindow(
-        g_ClassName,
-        "Warp Engine",
+        winClassName,
+        winName,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         CW_USEDEFAULT,
@@ -98,7 +101,7 @@ int32_t WINAPI WinMain(
     }
 
     Warp::ApplicationDesc appDesc = Warp::ApplicationDesc{
-        .WorkingDirectory = Warp::WinWrap::Inn::GetModuleDirectory(),
+        .WorkingDirectory = Warp::WinWrap::GetModuleDirectory(),
     };
 
     if (!Warp::Application::Create(appDesc))
@@ -129,8 +132,8 @@ int32_t WINAPI WinMain(
     // TODO: Application Shutdown
     Warp::Application::Delete();
 
-    UnregisterClass(g_ClassName, hInstance);
-    Warp::WinWrap::Inn::StopConsole();
+    UnregisterClass(winClassName, hInstance);
+    Warp::WinWrap::StopConsole();
 
     return (int32_t)msg.wParam;
 }

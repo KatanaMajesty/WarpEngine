@@ -16,10 +16,9 @@ set(WARP_SRC_DIR "${CMAKE_SOURCE_DIR}/src")
 target_sources(WarpEngine
 PRIVATE
     "${WARP_SRC_DIR}/WinAPI.h"
-    "${WARP_SRC_DIR}/WinCOM.cpp"
-    "${WARP_SRC_DIR}/WinInn.cpp"
     "${WARP_SRC_DIR}/WinInput.cpp"
     "${WARP_SRC_DIR}/WinMain.cpp"
+    "${WARP_SRC_DIR}/WinWrap.cpp"
     "${WARP_SRC_DIR}/WinWrap.h"
 )
 
@@ -49,8 +48,6 @@ set(WARP_SRC_CORE
     "${WARP_SRC_DIR}/Core/Application.h"
     "${WARP_SRC_DIR}/Core/Assert.h"
     "${WARP_SRC_DIR}/Core/Defines.h"
-    "${WARP_SRC_DIR}/Core/Logger.cpp"
-    "${WARP_SRC_DIR}/Core/Logger.h"
 )
 target_sources(WarpEngine PRIVATE ${WARP_SRC_CORE})
 
@@ -128,6 +125,8 @@ target_sources(WarpEngine PRIVATE ${WARP_SRC_RENDERER})
 set(WARP_SRC_UTIL
     "${WARP_SRC_DIR}/Util/Guid.cpp"
     "${WARP_SRC_DIR}/Util/Guid.h"
+    "${WARP_SRC_DIR}/Util/Logger.cpp"
+    "${WARP_SRC_DIR}/Util/Logger.h"
     "${WARP_SRC_DIR}/Util/String.cpp"
     "${WARP_SRC_DIR}/Util/String.h"
     "${WARP_SRC_DIR}/Util/Timer.h"

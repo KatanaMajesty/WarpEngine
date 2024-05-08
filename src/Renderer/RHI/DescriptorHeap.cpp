@@ -1,7 +1,7 @@
 #include "DescriptorHeap.h"
 
 #include "Device.h"
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 
 namespace Warp
 {

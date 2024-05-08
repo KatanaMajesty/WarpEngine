@@ -10,12 +10,11 @@
 using  KeyMappingContainer = std::unordered_map<WORD, Warp::EKeycode>;
 static KeyMappingContainer g_keyMapping;
 
-namespace Warp::WinWrap::IO
+namespace Warp::WinWrap
 {
 
-    void ProcessInput(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+    void WinProc_ProcessInput(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-        using namespace Warp;
         InputDeviceManager& inputDeviceManager = InputDeviceManager::Get();
 
         KeyboardDevice& keyboard = inputDeviceManager.GetKeyboard();

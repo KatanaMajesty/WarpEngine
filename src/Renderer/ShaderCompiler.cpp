@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <array>
 #include "../Core/Defines.h"
-#include "../Core/Logger.h"
+#include "../Util/Logger.h"
 #include "../Core/Assert.h"
 #include "../Util/String.h"
 
