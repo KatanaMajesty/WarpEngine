@@ -7,7 +7,7 @@ namespace Warp::Log
 
     std::unordered_map<std::string_view, std::unique_ptr<Logger>> Logger::s_instanceMap = {};
 
-    bool Logger::Create(std::string_view name)
+    bool Logger::Create(std::string_view name) noexcept
     {
         if (Get(name) != nullptr)
         {
@@ -20,19 +20,19 @@ namespace Warp::Log
         return true;
     }
 
-    bool Logger::Delete(std::string_view name)
+    bool Logger::Delete(std::string_view name) noexcept
     {
         // erase returns number of elements removed (0 or 1).
         return s_instanceMap.erase(name) > 0;
     }
 
-    Logger* Logger::Get(std::string_view name)
+    Logger* Logger::Get(std::string_view name) noexcept
     {
         auto it = s_instanceMap.find(name);
         return it == s_instanceMap.end() ? nullptr : it->second.get();
     }
 
-    Logger::Logger(std::string_view name)
+    Logger::Logger(std::string_view name) noexcept
     {
         try
         {
@@ -54,7 +54,7 @@ namespace Warp::Log
         }
     }
 
-    void Logger::SetSeverity(ESeverity severity)
+    void Logger::SetSeverity(ESeverity severity) noexcept
     {
         if (m_handle)
             m_handle->set_level(ConvertSeverity(severity));
