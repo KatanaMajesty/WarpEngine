@@ -76,7 +76,9 @@ namespace Warp
         WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (CPU-sided)");
 
         WaitForSingleObject(event, INFINITE);
-        Pix::NotifyWakeFromSignal(event);
+
+        // TODO: Temporarily handling PIX here, but rather just return handle and let user wait and notify implicitly (i guess?)
+        Pix::NotifyFenceWakeup(event);
     }
 
     bool RHICommandQueue::IsFenceComplete(UINT64 fenceValue) const

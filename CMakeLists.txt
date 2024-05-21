@@ -91,7 +91,6 @@ set(WARP_SRC_RHI
     "${WARP_SRC_RHI_DIR}/PipelineState.cpp"
     "${WARP_SRC_RHI_DIR}/PipelineState.h"
     # TODO: PIX runtime should be moved out of RHI probably and be in a separate subdir
-    "${WARP_SRC_RHI_DIR}/PIXRuntime.cpp"    
     "${WARP_SRC_RHI_DIR}/PIXRuntime.h"
     "${WARP_SRC_RHI_DIR}/Resource.cpp"    
     "${WARP_SRC_RHI_DIR}/Resource.h"    

@@ -374,10 +374,10 @@ namespace Warp
         RHICommandContext& graphicsContext = GetGraphicsContext();
         graphicsContext.Open();
         {
-            WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_ShadowPasses_Frame{}", frameIndex + 1));
+            WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_ShadowPasses_Frame%d", frameIndex + 1);
 
             {
-                WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+                WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
                 std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
                     Device->GetSamplerHeap()->GetD3D12Heap(),
@@ -455,12 +455,12 @@ namespace Warp
 
         graphicsContext.Open();
         {
-            WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_BasePass_Frame{}", frameIndex + 1));
+            WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_BasePass_Frame%d", frameIndex + 1);
             graphicsContext.SetViewport(0, 0, Width, Height);
             graphicsContext.SetScissorRect(0, 0, Width, Height);
 
             {
-                WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+                WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
                 std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
                     Device->GetSamplerHeap()->GetD3D12Heap(),
@@ -603,12 +603,12 @@ namespace Warp
         // Deferred pass
         graphicsContext.Open();
         {
-            WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_RenderWorld_DeferredPass_Frame{}", frameIndex + 1));
+            WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_DeferredPass_Frame%d", frameIndex + 1);
             graphicsContext.SetViewport(0, 0, Width, Height);
             graphicsContext.SetScissorRect(0, 0, Width, Height);
 
             {
-                WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+                WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
                 std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
                     Device->GetSamplerHeap()->GetD3D12Heap(),
@@ -687,12 +687,12 @@ namespace Warp
 
             graphicsContext.Open();
             {
-                WARP_SCOPED_EVENT(&graphicsContext, fmt::format("Renderer_GbufferView_Frame{}", frameIndex + 1));
+                WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_GbufferView_Frame%d", frameIndex + 1);
                 graphicsContext.SetViewport(0, 0, Width / 3, Height / 3);
                 graphicsContext.SetScissorRect(0, 0, Width / 3, Height / 3);
 
                 {
-                    WARP_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
+                    WARP_PIX_SCOPED_EVENT(&graphicsContext, "Renderer_RenderWorld_SetDescriptorHeaps");
 
                     std::array<ID3D12DescriptorHeap*, 2> descriptorHeaps = {
                         Device->GetSamplerHeap()->GetD3D12Heap(),
@@ -732,6 +732,7 @@ namespace Warp
 
     void Renderer::WaitForGfxOnFrameToFinish(uint32_t frameIndex)
     {
+        WARP_PIX_SCOPED_EVENT("Renderer::WaitForGfxOnFrameToFinish");
         GetGraphicsContext().GetQueue()->HostWaitForValue(m_frameFenceValues[frameIndex]);
     }
 
