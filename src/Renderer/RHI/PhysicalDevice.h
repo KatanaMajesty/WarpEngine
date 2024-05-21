@@ -81,7 +81,7 @@ namespace Warp
 
         // Direct3D 12 devices are singletons per adapter. If a Direct3D 12 device already exists in the current process for a given adapter, 
         // then a subsequent call to D3D12CreateDevice returns the existing device
-        RHIDevice* m_associatedLogicalDevice;
+        RHIDevice* m_associatedLogicalDevice = nullptr;
     };
 
     class RHIPhysicalDeviceChild

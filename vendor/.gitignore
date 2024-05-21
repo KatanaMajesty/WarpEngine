@@ -1,0 +1,5 @@
+!bin/
+!x64
+!Debug/
+!Release/
+!*.dll

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <DirectXTex.h>
+#include <DirectXTex/DirectXTex.h>
 
 #include "Asset.h"
 #include "../Renderer/RHI/Resource.h"

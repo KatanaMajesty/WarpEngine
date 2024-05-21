@@ -3,7 +3,7 @@
 #include <cmath>
 #include "Device.h"
 
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 
 namespace Warp
 {

@@ -14,7 +14,7 @@
 #include "TextureAsset.h"
 
 #include "../Core/Assert.h"
-#include "../Core/Logger.h"
+#include "../Util/Logger.h"
 
 #define WARP_INTERNAL_ASSET_MANAGER_RETURN_REGISTRY(Type, Expected, Registry)\
 	if constexpr (std::is_same_v<Type, Expected>)\

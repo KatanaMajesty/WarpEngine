@@ -43,7 +43,7 @@ namespace Warp
         static void Delete();
 
         // Getter that returns an application, assuming there is one. 
-        // Calling this function when there was no application created using Application::Create() is considered undefined behavior
+        // Calling this function when there was no application created using Application::Create() is undefined behavior
         static Application& Get();
 
         // Initialize (or reinitialize) the Application

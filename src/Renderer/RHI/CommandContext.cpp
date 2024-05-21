@@ -4,7 +4,7 @@
 #include "Device.h"
 #include "RootSignature.h"
 
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 
 namespace Warp
 {

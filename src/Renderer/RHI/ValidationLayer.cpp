@@ -2,7 +2,7 @@
 
 #include "../../Core/Assert.h"
 #include "../../Core/Defines.h"
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 
 namespace Warp::ValidationLayer
 {

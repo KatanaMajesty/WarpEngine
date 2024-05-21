@@ -1,7 +1,7 @@
 #include "PhysicalDevice.h"
 
 #include "../../Core/Assert.h"
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 #include "Device.h"
 
 // https://pcisig.com/membership/member-companies?combine=&order=field_vendor_id&sort=asc

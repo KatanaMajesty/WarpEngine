@@ -1,66 +1,56 @@
-#include <vector>
-#include <string>
 #include <cstdint>
-#include <iostream>
-#include <string_view>
-#include <unordered_map>
-
-#include "Core/Application.h"
-#include "Core/Logger.h"
-
-#include <wchar.h> // TODO: temp to test inputs
-#include "Util/String.h"
 
 #include "WinAPI.h"
-#include "WinInput.h"
+#include "WinWrap.h"
+#include "Core/Application.h"
+#include "Util/Logger.h"
 
-static constexpr WCHAR g_ClassName[] = L"WarpEngineClass";
-
-void InitWinConsole()
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    AllocConsole();
-    FILE* dummy; // to avoid deprecation errors
-    freopen_s(&dummy, "CONOUT$", "w+", stdout); // stdout will print to the newly created console
-}
-
-void DeinitWinConsole()
-{
-    if (!FreeConsole())
+    Warp::Application& application = Warp::Application::Get();
+    switch (uMsg)
     {
-        WARP_LOG_ERROR("Failed to free the application's console");
+    case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+    case WM_SIZE:
+        if (wParam != SIZE_MINIMIZED)
+        {
+            application.RequestResize(LOWORD(lParam), HIWORD(lParam));
+        }
+        return 0;
+    case WM_KILLFOCUS:
+        application.SetWindowFocused(false);
+        break;
+    case WM_SETFOCUS:
+        application.SetWindowFocused(true);
+        break;
     }
-}
 
-void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLine);
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-std::filesystem::path GetWorkingDirectory();
+    Warp::WinWrap::WinProc_ProcessInput(hwnd, uMsg, wParam, lParam);
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
 
 // https://learn.microsoft.com/en-us/windows/win32/learnwin32/winmain--the-application-entry-point
-auto WINAPI wWinMain(
-    _In_ HINSTANCE hInstance,
-    _In_opt_ HINSTANCE hPrevInstance, // has no meaning. It was used in 16-bit Windows, but is now always zero.
-    _In_ PWSTR pCmdLine,
-    _In_ int32_t nCmdShow) -> int32_t
+// TODO: Add check if window of instance is already opened (use mutex and hPrevInstance)
+int32_t WINAPI WinMain(
+    _In_        HINSTANCE hInstance,
+    _In_opt_    HINSTANCE hPrevInstance, // has no meaning. It was used in 16-bit Windows, but is now always zero.
+    _In_        LPSTR pCmdLine,
+    _In_        int32_t nCmdShow)
 {
-    InitWinConsole();
-    InitWinInputMappings();
+    Warp::WinWrap::ScopedCOMLibrary comLibrary;
+    Warp::WinWrap::InitConsole();
+    Warp::WinWrap::InitInputMappings();
 
-    Warp::Logging::Init(Warp::Logging::Severity::WARP_SEVERITY_INFO);
+    // Create default logger
+    if (Warp::Log::Logger::Create())
+        Warp::Log::Logger::Get()->SetSeverity(Warp::Log::ESeverity::Info);
 
-    // TODO: Maybe move this?
-#if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
-    Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
-    if (FAILED(initialize))
-    {
-        WARP_LOG_FATAL("Failed to initialize COM Library");
-        return -1;
-    }
-#else
-#error Do not support this Windows version
-#endif
+    std::vector<std::string> cmdLineArgs = Warp::WinWrap::ConvertCmdLineArguments(pCmdLine);
 
-    std::vector<std::string> cmdLineArgs;
-    ParseWin32CmdlineParams(cmdLineArgs, pCmdLine);
+    LPCSTR winClassName = Warp::WinWrap::WindowDefaultClassName.data();
+    LPCSTR winName      = Warp::WinWrap::WindowDefaultName.data();
 
     WNDCLASSEX windowClass;
     ZeroMemory(&windowClass, sizeof(WNDCLASSEX));
@@ -73,7 +63,7 @@ auto WINAPI wWinMain(
     windowClass.hIcon = NULL; // TODO: Set an Icon
     windowClass.hIconSm = NULL; // TODO: Set an Icon. Win 4.0 only. A handle to a small icon that is associated with the window class.
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    windowClass.lpszClassName = g_ClassName;
+    windowClass.lpszClassName = winClassName;
     RegisterClassEx(&windowClass);
 
     RECT desktopRect;
@@ -89,15 +79,13 @@ auto WINAPI wWinMain(
 
     uint32_t windowWidth = windowRect.right - windowRect.left;
     uint32_t windowHeight = windowRect.bottom - windowRect.top;
-    int32_t posX = (desktopWidth - windowWidth) / 2;
-    int32_t posY = (desktopHeight - windowHeight) / 2;
 
     HWND hwnd = CreateWindow(
-        g_ClassName,
-        L"Warp Engine",
+        winClassName,
+        winName,
         WS_OVERLAPPEDWINDOW,
-        posX,
-        posY,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
         windowWidth,
         windowHeight,
         NULL,
@@ -113,7 +101,7 @@ auto WINAPI wWinMain(
     }
 
     Warp::ApplicationDesc appDesc = Warp::ApplicationDesc{
-        .WorkingDirectory = GetWorkingDirectory(),
+        .WorkingDirectory = Warp::WinWrap::GetModuleDirectory(),
     };
 
     if (!Warp::Application::Create(appDesc))
@@ -143,54 +131,10 @@ auto WINAPI wWinMain(
 
     // TODO: Application Shutdown
     Warp::Application::Delete();
+    Warp::Log::Logger::Delete();
 
-    UnregisterClassW(g_ClassName, hInstance);
-    DeinitWinConsole();
+    UnregisterClass(winClassName, hInstance);
+    Warp::WinWrap::StopConsole();
 
     return (int32_t)msg.wParam;
-}
-
-#include "Util/String.h"
-#include <iterator>
-
-void ParseWin32CmdlineParams(std::vector<std::string>& cmdLineArgs, PWSTR pCmdLine)
-{
-    std::string args = Warp::WStringToString(pCmdLine);
-    std::istringstream iss(args);
-
-    using IteratorType = std::istream_iterator<std::string>;
-    cmdLineArgs = std::vector(IteratorType(iss), IteratorType());
-}
-
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    Warp::Application& application = Warp::Application::Get();
-    switch (uMsg)
-    {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-    case WM_SIZE:
-        if (wParam != SIZE_MINIMIZED)
-        {
-            application.RequestResize(LOWORD(lParam), HIWORD(lParam));
-        }
-        return 0;
-    case WM_KILLFOCUS:
-        application.SetWindowFocused(false);
-        break;
-    case WM_SETFOCUS:
-        application.SetWindowFocused(true);
-        break;
-    }
-
-    ProcessWinInput(hwnd, uMsg, wParam, lParam);
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
-}
-
-std::filesystem::path GetWorkingDirectory()
-{
-    std::array<char, MAX_PATH> rawPath;
-    GetModuleFileNameA(nullptr, rawPath.data(), (DWORD)rawPath.size()); // this will always return null-termination character
-    return std::filesystem::path(std::string(rawPath.data())).parent_path(); // This std::string constructor will seek for the null-termination character
 }
