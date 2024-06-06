@@ -127,6 +127,7 @@ set(WARP_SRC_UTIL
     "${WARP_SRC_DIR}/Util/Logger.cpp"
     "${WARP_SRC_DIR}/Util/Logger.h"
     "${WARP_SRC_DIR}/Util/Memory.h"
+    "${WARP_SRC_DIR}/Util/Rc.h"
     "${WARP_SRC_DIR}/Util/String.cpp"
     "${WARP_SRC_DIR}/Util/String.h"
     "${WARP_SRC_DIR}/Util/Timer.h"
