@@ -19,7 +19,7 @@
 #include "../../MeshAsset.h"
 
 #include "../../../Math/Math.h"
-#include "../../../Core/Logger.h"
+#include "../../../Util/Logger.h"
 #include "../../../Core/Assert.h"
 #include "../../../Renderer/Vertex.h"
 

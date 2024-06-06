@@ -3,7 +3,7 @@
 #include <cstdint>
 
 #include "../../../Util/String.h"
-#include "../../../Core/Logger.h"
+#include "../../../Util/Logger.h"
 #include "../../../Core/Assert.h"
 
 namespace Warp::ImageLoader

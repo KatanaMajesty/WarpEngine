@@ -1,7 +1,7 @@
 #include "MouseDevice.h"
 
 #include "../Core/Assert.h"
-#include "../Core/Logger.h"
+#include "../Util/Logger.h"
 
 namespace Warp
 {

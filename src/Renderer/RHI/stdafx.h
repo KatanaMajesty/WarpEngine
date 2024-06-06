@@ -26,7 +26,7 @@
 
 #include <string>
 #include <string_view>
-#include <fmt/format.h> // TODO: Currently here, will be removed tho
+#include <format> // TODO: Currently here, will be removed tho
 #include <wrl.h>
 
 // Must be included for WARP_DEBUG to be defined

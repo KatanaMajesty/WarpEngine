@@ -2,7 +2,7 @@
 
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 #include "Device.h"
 
 #include "PIXRuntime.h"
@@ -71,12 +71,14 @@ namespace Warp
             return;
         }
 
-        HANDLE event = CreateEvent(NULL, FALSE, FALSE, L"RHICommandQueue::HostWaitForValue");
+        HANDLE event = CreateEvent(NULL, FALSE, FALSE, "RHICommandQueue::HostWaitForValue");
         WARP_MAYBE_UNUSED HRESULT hr = m_fence->SetEventOnCompletion(fenceValue, event);
         WARP_ASSERT(SUCCEEDED(hr), "Failed to wait for fence completion (CPU-sided)");
 
         WaitForSingleObject(event, INFINITE);
-        Pix::NotifyWakeFromSignal(event);
+
+        // TODO: Temporarily handling PIX here, but rather just return handle and let user wait and notify implicitly (i guess?)
+        Pix::NotifyFenceWakeup(event);
     }
 
     bool RHICommandQueue::IsFenceComplete(UINT64 fenceValue) const

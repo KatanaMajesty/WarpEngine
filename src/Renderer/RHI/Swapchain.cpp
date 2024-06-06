@@ -1,8 +1,5 @@
 #include "Swapchain.h"
 
-#include <fmt/format.h>
-#include <fmt/xchar.h>
-
 #include "../../Core/Assert.h"
 #include "Device.h"
 
@@ -56,7 +53,7 @@ namespace Warp
             WARP_RHI_VALIDATE(m_DXGISwapchain->GetBuffer(i, IID_PPV_ARGS(buffer.GetAddressOf())));
 
             m_backbuffers[i] = RHITexture(device, buffer.Get(), D3D12_RESOURCE_STATE_PRESENT);
-            m_backbuffers[i].SetName(fmt::format(L"RHITexture_RTVBackbuffer_{}", i));
+            m_backbuffers[i].SetName(std::format(L"RHITexture_RTVBackbuffer_{}", i));
             m_backbufferRtvs[i] = RHIRenderTargetView(device, &m_backbuffers[i], nullptr, m_backbufferRtvsAllocation, i);
         }
     }

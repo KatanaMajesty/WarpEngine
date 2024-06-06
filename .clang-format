@@ -59,3 +59,4 @@ SpaceInEmptyParentheses: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+SpaceAfterTemplateKeyword: false # Do not add space after template keyword

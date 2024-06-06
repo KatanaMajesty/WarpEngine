@@ -1,6 +1,6 @@
 #include "World.h"
 
-#include <fmt/format.h>
+#include <format>
 
 #include "Entity.h"
 #include "Components.h"
@@ -12,7 +12,7 @@ namespace Warp
     World::World(const std::string& name)
         : m_worldName(name)
     {
-        m_worldCamera = CreateEntity(fmt::format("{} Camera", name));
+        m_worldCamera = CreateEntity(std::format("{} Camera", name));
         EulersCameraComponent& cameraComponent = m_worldCamera.AddComponent<EulersCameraComponent>(EulersCameraComponent{
             .Pitch = 0.0f,
             .Yaw = -90.0f,

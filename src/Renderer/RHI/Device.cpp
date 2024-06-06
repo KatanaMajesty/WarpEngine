@@ -2,7 +2,7 @@
 
 #include "../../Core/Defines.h"
 #include "../../Core/Assert.h"
-#include "../../Core/Logger.h"
+#include "../../Util/Logger.h"
 #include "PhysicalDevice.h"
 
 #include "ValidationLayer.h"

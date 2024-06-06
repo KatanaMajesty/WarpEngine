@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <DirectXMesh.h>
+#include <DirectXMesh/DirectXMesh.h>
 
 #include "Asset.h"
 #include "../Renderer/RHI/Resource.h"

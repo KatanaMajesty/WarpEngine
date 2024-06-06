@@ -2,7 +2,7 @@
 
 #include <numbers>
 #include <cmath>
-#include "directxtk12/SimpleMath.h"
+#include <SimpleMath.h>
 
 namespace Warp::Math
 {
