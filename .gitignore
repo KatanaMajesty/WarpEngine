@@ -365,3 +365,10 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /vcpkg_installed/x64-windows
+
+old_src
+old_vendor
+old_shaders
+old_CMakeLists.txt
+old_CMakeSettings.json
+old_packages.config

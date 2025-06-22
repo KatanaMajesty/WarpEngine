@@ -199,6 +199,9 @@ PRIVATE
     EnTT::EnTT
     spdlog::spdlog
     WinPixEventRuntime
+
+    # DirectX libraries
+    # TODO: Replace pragmas in stdafx of new RHI for D3D12
 )
 
 # Copy DLLs to the out path
