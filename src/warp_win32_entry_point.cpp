@@ -5,6 +5,8 @@
 #include "common/cross_log.h"
 #include "nebulae/vulkan/nri_vk_instance.h"
 #include "nebulae/vulkan/nri_vk_device.h"
+#include "nebulae/vulkan/nri_vk_surface.h"
+#include "nebulae/vulkan/nri_vk_swapchain.h"
 
 namespace Warp
 {
@@ -90,13 +92,26 @@ namespace Warp
             .appVersion = VK_MAKE_API_VERSION(1, 0, 0, 0),
             .engineName = "Warp Engine",
             .engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0),
-            .surfaceType = vk::ESurfaceType::Win32,
-            .nativeWindowHandle = hwnd,
+            .bSurfaceRequired = true,
         });
+
+        Arc<vk::NriSurface> nriSurface = Arc<vk::NriSurface>::Make(vk::NriSurfaceInfo{
+            .instance = nriInstance,
+            .type = vk::ESurfaceType::Win32,
+            .nativeHandle = hwnd,
+        }); 
 
         Arc<vk::NriDevice> nriDevice = Arc<vk::NriDevice>::Make(vk::NriDeviceInfo{
             .instance = nriInstance,
+            .surface = nriSurface,
+            .bSwapchainRequired = true,
         });
+        
+        Arc<vk::NriSwapchain> nriSwapchain = Arc<vk::NriSwapchain>::Make(vk::NriSwapchainInfo{
+            .surface = nriSurface,
+            .device = nriDevice,
+            .numSwapchainImages = 3,
+        }); 
 
         MSG msg = { 0 };
         while (msg.message != WM_QUIT)

@@ -19,6 +19,10 @@ add_executable(WarpEngine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_instance.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_instance.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_memory_safety.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_physical_device.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_physical_device.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.h"
 

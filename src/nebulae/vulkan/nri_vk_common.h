@@ -25,6 +25,17 @@
 namespace Warp::nri::vk
 {
 
+    /// @brief Direct enum wrapper over VK_API_VERSION macros. Should be used for Vulkan API versioning instead of direct uint32_t
+    enum class EApiVersion : uint32_t
+    {
+        Vk_1_0 = VK_MAKE_API_VERSION(0, /*major*/ 1, /*minor*/ 0, 0),
+        Vk_1_1 = VK_MAKE_API_VERSION(0, /*major*/ 1, /*minor*/ 1, 0),
+        Vk_1_2 = VK_MAKE_API_VERSION(0, /*major*/ 1, /*minor*/ 2, 0),
+        Vk_1_3 = VK_MAKE_API_VERSION(0, /*major*/ 1, /*minor*/ 3, 0),
+        Vk_1_4 = VK_MAKE_API_VERSION(0, /*major*/ 1, /*minor*/ 4, 0),
+        MaxSupported = Vk_1_4, // Specifies the latest version
+    };
+
     template<typename T>
     constexpr T InitVulkanChainableStruct(void* pNext = nullptr) noexcept
     {
@@ -85,3 +96,5 @@ namespace Warp::nri::vk
 #define NRI_VK_CHECK_RESULT(result, ...) Warp::nri::vk::CheckVulkanResult(result, __VA_ARGS__)
 #define NRI_VK_CHECK_BOOL(result, ...) Warp::nri::vk::CheckBooleanResult(result, __VA_ARGS__);
 #define NRI_VK_INSTANCE_PROC_ADDR(function, instance) Warp::nri::vk::GetInstanceProcAddr<PFN_##function>(instance, #function);
+
+#define NRI_MARK_OPTIONAL(x) x

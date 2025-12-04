@@ -1,6 +1,7 @@
 #pragma once
 
 #include "nri_vk_instance.h"
+#include "nri_vk_surface.h"
 
 #include "common/memory/arc_object.h"
 #include "common/memory/arc.h"
@@ -35,6 +36,12 @@ namespace Warp::nri::vk
     struct NriDeviceInfo
     {
         Arc<NriInstance> instance;
+
+        /// Optionally, by providing surface during device creation, 
+        /// only physical devices that support presentation to this surface will be considered suitable for device creation.
+        NRI_MARK_OPTIONAL(Arc<NriSurface>) surface;
+
+        bool bSwapchainRequired = true;
     };
 
     class NriDevice : public AtomicallyRefCounted<NriDevice>
@@ -54,9 +61,14 @@ namespace Warp::nri::vk
         inline Arc<NriPhysicalDevice> GetPhysicalDevice() const noexcept { return m_physicalDevice; }
 
     private:
+        struct SuitableDeviceQueryInfo
+        {
+            Arc<NriSurface> surface;
+            std::span<const char* const> requiredDeviceExtensions;
+        };
         /// @brief Queries all physical devices available in NRI instance provided during NRI device creation.
         /// From all available physical devices, only those that support required extensions and provide suitable queue families are considered.
-        std::vector<NriSuitablePhysicalDeviceInfo> QueryAllSuitableDevices(std::span<const char* const> requiredDeviceExtensions);
+        std::vector<NriSuitablePhysicalDeviceInfo> QueryAllSuitableDevices(const SuitableDeviceQueryInfo& queryInfo);
 
         /// @brief Selects best physical device from all suitable devices (queried from NriDevice::QueryAllSuitableDevices).
         /// Best device is determined by evaluating its properties such as available memory, device type, etc.

@@ -16,10 +16,10 @@ namespace Warp::nri::vk
         // wrap extension names with std::string_view as all NRI API functions use string_view for extension names
         std::vector<const char*> requiredDeviceExtensions;
 
-        if (m_instance->GetSurface() != VK_NULL_HANDLE)
+        if (deviceInfo.bSwapchainRequired)
         {
-            // If NriInstance has a valid surface we need to enable swapchain extension
-            requiredDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+            // if swapchain is required we need to enable swapchain extension
+            requiredDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);            
         }
 
         requiredDeviceExtensions.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
@@ -28,7 +28,10 @@ namespace Warp::nri::vk
         requiredDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
         requiredDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
 
-        std::vector<NriSuitablePhysicalDeviceInfo> suitableDevices = QueryAllSuitableDevices(requiredDeviceExtensions);
+        std::vector<NriSuitablePhysicalDeviceInfo> suitableDevices = QueryAllSuitableDevices(SuitableDeviceQueryInfo{
+            .surface = deviceInfo.surface,
+            .requiredDeviceExtensions = requiredDeviceExtensions 
+        });
         NriSuitablePhysicalDeviceInfo selectedPhysicalDeviceInfo = SelectBestSuitableDevice(suitableDevices);
 
         Arc<NriPhysicalDevice> selectedPhysicalDevice = selectedPhysicalDeviceInfo.physicalDevice;
@@ -109,15 +112,15 @@ namespace Warp::nri::vk
         vkDestroyDevice(GetNativeHandle(), nullptr);
     }
 
-    std::vector<NriSuitablePhysicalDeviceInfo> NriDevice::QueryAllSuitableDevices(std::span<const char* const> requiredDeviceExtensions)
+    std::vector<NriSuitablePhysicalDeviceInfo> NriDevice::QueryAllSuitableDevices(const SuitableDeviceQueryInfo& queryInfo)
     {
         std::vector<NriSuitablePhysicalDeviceInfo> suitablePhysicalDeviceInfoArray;
 
         // This iteration will determine what physical devices can be used for this virtual device creation
-        for (Arc<NriPhysicalDevice> physicalDevice : m_instance->GetAvailablePhysicalDevices())
+        for (Arc<NriPhysicalDevice> physicalDevice : m_instance->QueryAvailablePhysicalDevices())
         {
             // first of all we want to gather all devices that support required extensions
-            for (std::string_view requiredExtension : requiredDeviceExtensions)
+            for (std::string_view requiredExtension : queryInfo.requiredDeviceExtensions)
             {
                 if (!physicalDevice->IsExtensionSupported(requiredExtension))
                 {
@@ -130,19 +133,23 @@ namespace Warp::nri::vk
 
             // Check for minimal surface capabilities support that would be used for swapchain creation.
             // Minimal surface capabilities include:
-            //  maxImages > 2
+            //  maxImages > 1
             //  availableSurfaceFormats > 0
             //  availablePresentModes > 0
-            const NriPhysicalDeviceSurfaceProperties& surfaceProperties = physicalDevice->GetSurfaceProperties();
-            bool bSurfaceImageCountValid = surfaceProperties.maxImageCount > 0;
-            bool bSurfaceFormatsValid = !surfaceProperties.availableSurfaceFormats.empty();
-            bool bSurfacePresentModesValid = !surfaceProperties.availablePresentModes.empty();
-            if (!bSurfaceImageCountValid || !bSurfaceFormatsValid || !bSurfacePresentModesValid)
+            if (queryInfo.surface && queryInfo.surface->GetNativeHandle() != VK_NULL_HANDLE)
             {
-                WARP_LOG_WARN(ELoggerType::NriLogger,
-                    "Physical device '{}' does not contain minimum support capabilities for surface swapchain. Skipping...",
-                    physicalDevice->GetInformation().deviceName);
-                continue;
+                // If valid NriSurface was provided during NriDevice creation we need to check whether it has minimal valid support for this surface handle
+                NriPhysicalDeviceSurfaceProperties surfaceProperties = physicalDevice->QuerySurfaceProperties(queryInfo.surface->GetNativeHandle());
+                bool bSurfaceImageCountValid = surfaceProperties.maxImageCount > 1;
+                bool bSurfaceFormatsValid = !surfaceProperties.availableSurfaceFormats.empty();
+                bool bSurfacePresentModesValid = !surfaceProperties.availablePresentModes.empty();
+                if (!bSurfaceImageCountValid || !bSurfaceFormatsValid || !bSurfacePresentModesValid)
+                {
+                    WARP_LOG_WARN(ELoggerType::NriLogger,
+                        "Physical device '{}' does not contain minimum support capabilities for surface provided during device creation. Skipping...",
+                        physicalDevice->GetInformation().deviceName);
+                    continue;
+                }
             }
 
             // iterate over all queue families to find at queues we are interested in.
@@ -167,10 +174,10 @@ namespace Warp::nri::vk
             std::array<DeviceQueueFamilyCriteria, EnumValue(EDeviceQueueType::NumTypes)> isPerfectQueueFamily =
             {
                 // Universal queue criteria. Checks whether a provided queue family info supports graphics, compute and transfer capabilities
-                [](const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo) -> bool
+                [physicalDevice, nativeSurface = queryInfo.surface->GetNativeHandle()](const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo) -> bool
                 {
                     return queueFamilyInfo.capabilities.AllOf(EQueueCapability::Graphics | EQueueCapability::Compute | EQueueCapability::Transfer) &&
-                           queueFamilyInfo.surfaceSupport; // also make sure to check if this queue supports surface presentation
+                           physicalDevice->IsSurfaceSupportedByQueueFamily(nativeSurface, queueFamilyInfo); // also make sure to check if this queue supports surface
                 },
                 // Transfer queue criteria. Checks whether a provided queue family info supports transfer capability but not compute
                 [](const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo) -> bool
