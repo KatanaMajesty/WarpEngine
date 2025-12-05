@@ -5,6 +5,7 @@
 
 #include "common/memory/arc.h"
 #include "common/memory/arc_object.h"
+#include "common/attr_defs.h"
 
 namespace Warp::nri::vk
 {
@@ -43,6 +44,11 @@ namespace Warp::nri::vk
         ~NriSurface();
 
         inline constexpr VkSurfaceKHR GetNativeHandle() const noexcept { return m_nativeHandle; }
+
+        /// @brief Based on the platform (specified as ESurfaceType provided during this NriSurface creation)
+        /// this method will try to obtain current window's (width, height) using platform-specific handle
+        VkExtent2D QueryCurrentWindowExtent() const noexcept;
+
 
     private:
         VkSurfaceKHR m_nativeHandle = VK_NULL_HANDLE;

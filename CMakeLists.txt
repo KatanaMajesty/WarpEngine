@@ -28,6 +28,10 @@ add_executable(WarpEngine
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/nri_vk_renderer.h"
 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_window.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_window.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_win32_window.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_win32_window.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/warp_win32_entry_point.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/warp_win32_entry_point.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/win_main.cpp"

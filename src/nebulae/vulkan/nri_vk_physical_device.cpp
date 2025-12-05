@@ -45,6 +45,7 @@ namespace Warp::nri::vk
             surfaceProperties.maxImageCount = surfaceCapabilities.maxImageCount;
             surfaceProperties.minExtent = surfaceCapabilities.minImageExtent;
             surfaceProperties.maxExtent = surfaceCapabilities.maxImageExtent;
+            surfaceProperties.currentExtent = surfaceCapabilities.currentExtent;
             surfaceProperties.supportedUsageFlags = surfaceCapabilities.supportedUsageFlags;
         }
 

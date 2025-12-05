@@ -30,16 +30,17 @@ namespace Warp::nri::vk
         createInfo.imageColorSpace = bestSurfaceFormat.colorSpace;
         // TODO: Support more flexible extents (currently using minExtent as default)
         // on Windows minExtent == maxExtent
-        createInfo.imageExtent = surfaceProperties.minExtent;
+        WARP_ASSERT(swapchainInfo.width >= surfaceProperties.minExtent.width && swapchainInfo.width <= surfaceProperties.maxExtent.width, 
+            "Width is out of min/max bounds for this surface");
+        WARP_ASSERT(swapchainInfo.height >= surfaceProperties.minExtent.height && swapchainInfo.height <= surfaceProperties.maxExtent.height,
+            "Height is out of min/max bounds for this surface");
+        createInfo.imageExtent = VkExtent2D{ .width = swapchainInfo.width, .height = swapchainInfo.height };
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = surfaceProperties.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        if (createInfo.imageSharingMode == VK_SHARING_MODE_CONCURRENT)
+        WARP_ASSERT(createInfo.imageSharingMode != VK_SHARING_MODE_CONCURRENT, "Concurrent sharing mode is not supported yet");
         {
-            WARP_ASSERT(false, "Concurrent sharing mode is not supported yet");
-        }
-        else
-        {
+            // As long as concurrent sharing mode is not used for swapchain - dont specify queue families
             createInfo.queueFamilyIndexCount = 0;
             createInfo.pQueueFamilyIndices = nullptr;
         }
@@ -55,7 +56,12 @@ namespace Warp::nri::vk
             "Failed to create Vulkan swapchain handle");
     }
 
-    VkSurfaceFormatKHR NriSwapchain::QueryBestSurfaceFormat(std::span<const VkSurfaceFormatKHR> surfaceFormatArray)
+    NriSwapchain::~NriSwapchain()
+    {
+        vkDestroySwapchainKHR(m_device->GetNativeHandle(), GetNativeHandle(), nullptr);
+    }
+
+    VkSurfaceFormatKHR NriSwapchain::QueryBestSurfaceFormat(std::span<const VkSurfaceFormatKHR> surfaceFormatArray) const noexcept
     {
         WARP_ASSERT(surfaceFormatArray.size() > 0, "No available surface formats to choose from");
         for (VkSurfaceFormatKHR surfaceFormat : surfaceFormatArray)
@@ -67,7 +73,7 @@ namespace Warp::nri::vk
         return surfaceFormatArray[0];
     }
 
-    VkPresentModeKHR NriSwapchain::QueryBestPresentMode(std::span<const VkPresentModeKHR> presentModeArray)
+    VkPresentModeKHR NriSwapchain::QueryBestPresentMode(std::span<const VkPresentModeKHR> presentModeArray) const noexcept
     {
         WARP_ASSERT(presentModeArray.size() > 0, "No available present modes to choose from");
         for (VkPresentModeKHR presentMode : presentModeArray)
@@ -82,6 +88,23 @@ namespace Warp::nri::vk
         // If couldnt find MAILBOT or energy consumption is of priority then fallback to VK_PRESENT_MODE_FIFO_KHR
         // TODO: Check whether FIFO is better than MAILBOX for a device
         return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    VkExtent2D NriSwapchain::QuerySwapchainExtent(const NriPhysicalDeviceSurfaceProperties& surfaceProperties)
+    {
+        if (surfaceProperties.currentExtent.width == UINT_MAX &&
+            surfaceProperties.currentExtent.height == UINT_MAX)
+        {
+            // If current extent is set to the special value (0xFFFFFFFF, 0xFFFFFFFF) this means that
+            // surface extent will be determined by the extent of a swapchain targeting the surface
+        }
+        else
+        {
+            // If current extent is a valid value and is not equal to (0xFFFFFFFF, 0xFFFFFFFF) then
+            // we can immediately return it
+            return surfaceProperties.currentExtent;
+        }
+        return VkExtent2D();
     }
 
 } // Warp::nri::vk namespace

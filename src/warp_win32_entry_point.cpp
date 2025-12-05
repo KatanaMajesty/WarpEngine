@@ -1,6 +1,7 @@
 #if defined(_WIN32)
 
 #include "warp_win32_entry_point.h"
+#include "platform_window.h"
 
 #include "common/cross_log.h"
 #include "nebulae/vulkan/nri_vk_instance.h"
@@ -32,59 +33,25 @@ namespace Warp
         WARP_INIT_LOGGER(ELoggerType::DefaultLogger, ELogLevel::Trace);
         WARP_INIT_LOGGER(ELoggerType::NriLogger,     ELogLevel::Trace, "Nri");
 
-        // create window here and pass its handle to NRI instance creation info
-        LPCSTR winClassName = "Warp window class";
-        LPCSTR winName = "Warp Application Window";
+        
+        std::shared_ptr<IPlatformWindow> window = AllocatePlatformWindow(EWindowType::Win32);
+        WARP_ASSERT(window != nullptr);
 
-        WNDCLASSEX windowClass;
-        ZeroMemory(&windowClass, sizeof(WNDCLASSEX));
-        windowClass.cbSize = sizeof(WNDCLASSEX);
-        windowClass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
-        windowClass.lpfnWndProc = WindowProc;
-        windowClass.cbClsExtra = 0; // The number of extra bytes to allocate following the window-class structure
-        windowClass.cbWndExtra = 0; // The number of extra bytes to allocate following the window instance
-        windowClass.hInstance = instance;
-        windowClass.hIcon = NULL;   // TODO: Set an Icon
-        windowClass.hIconSm = NULL; // TODO: Set an Icon. Win 4.0 only. A handle to a small icon that is associated with the window class.
-        windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-        windowClass.lpszClassName = winClassName;
-        RegisterClassEx(&windowClass);
-
-        RECT desktopRect;
-        GetClientRect(GetDesktopWindow(), &desktopRect);
-
-        uint32_t desktopWidth = desktopRect.right - desktopRect.left;
-        uint32_t desktopHeight = desktopRect.bottom - desktopRect.top;
-        uint32_t clientWidth = 1280;
-        uint32_t clientHeight = 720;
-
-        RECT windowRect = RECT{ 0, 0, (LONG)clientWidth, (LONG)clientHeight };
-        AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);
-
-        uint32_t windowWidth = windowRect.right - windowRect.left;
-        uint32_t windowHeight = windowRect.bottom - windowRect.top;
-
-        HWND hwnd = CreateWindow(
-            winClassName,
-            winName,
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            windowWidth,
-            windowHeight,
-            NULL,
-            NULL,
-            instance,
-            NULL);
-
-        if (!hwnd)
+        // create window here and pass its handle to NRI surface and swapchain
+        if (!window->Init(PlatformWindowInfo{
+                .width = 1280,
+                .height = 720,
+                .title = "Warp application" }))
         {
-            // We failed to create window at this point. Just abort
+            WARP_ASSERT(false, "Failed to init window");
             return EFinishCode::Error;
         }
 
-        ShowWindow(hwnd, SW_SHOWDEFAULT /*nCmdShow*/);
-        UpdateWindow(hwnd);
+        if (!window->SetState(EWindowState::Show))
+        {
+            WARP_ASSERT(false, "Failed to show window");
+            return EFinishCode::Error;
+        }
 
         using namespace nri;
         Arc<vk::NriInstance> nriInstance = Arc<vk::NriInstance>::Make(vk::NriInstanceInfo{
@@ -98,7 +65,7 @@ namespace Warp
         Arc<vk::NriSurface> nriSurface = Arc<vk::NriSurface>::Make(vk::NriSurfaceInfo{
             .instance = nriInstance,
             .type = vk::ESurfaceType::Win32,
-            .nativeHandle = hwnd,
+            .nativeHandle = window->GetNativeHandle(),
         }); 
 
         Arc<vk::NriDevice> nriDevice = Arc<vk::NriDevice>::Make(vk::NriDeviceInfo{
@@ -111,8 +78,12 @@ namespace Warp
             .surface = nriSurface,
             .device = nriDevice,
             .numSwapchainImages = 3,
+            // Width/height is now required when creating swapchain
+            .width = 1280,
+            .height = 720,
         }); 
 
+        // TODO: Move this to IPlatformWindow
         MSG msg = { 0 };
         while (msg.message != WM_QUIT)
         {
@@ -122,8 +93,6 @@ namespace Warp
                 DispatchMessage(&msg);
             }
         }
-
-        UnregisterClass(winClassName, instance);
         return EFinishCode::Success;
     }
 

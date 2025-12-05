@@ -131,6 +131,10 @@ namespace Warp::nri::vk
         /// from https://docs.vulkan.org/refpages/latest/refpages/source/VkSwapchainCreateInfoKHR.html
         VkExtent2D maxExtent = VkExtent2D();
 
+        /// Current extent represents current width and height of the surface, or the special value (0xFFFFFFFF, 0xFFFFFFFF) 
+        /// indicating that the surface size will be determined by the extent of a swapchain targeting the surface.
+        VkExtent2D currentExtent = VkExtent2D();
+
         /// @brief a bitmask of VkImageUsageFlagBits representing the ways the application can use the presentable
         /// images of a swapchain created with VkPresentModeKHR set to:
         ///     VK_PRESENT_MODE_FIFO_LATEST_READY_KHR,
