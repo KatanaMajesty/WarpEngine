@@ -50,5 +50,5 @@ namespace Warp::common
         WARP_A_ASSUME(expr);                                         \
     } while (false)
 #else // !defined(WARP_ENGINE_DEBUG)
-#define WARP_ASSERT(expr, ...) WARP_A_ASSUME(expr)
+#define WARP_ASSERT(expr, ...) WARP_A_ASSUME(expr); expr
 #endif // defined(WARP_ENGINE_DEBUG)

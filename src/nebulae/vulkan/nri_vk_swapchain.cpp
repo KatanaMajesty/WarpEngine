@@ -6,6 +6,7 @@ namespace Warp::nri::vk
     NriSwapchain::NriSwapchain(const NriSwapchainInfo& swapchainInfo)
         : m_device(swapchainInfo.device)
         , m_surface(swapchainInfo.surface)
+        , m_numSwapchainImages(swapchainInfo.numSwapchainImages)
     {
         WARP_ASSERT(m_device != nullptr, "Invalid NRI device provided during swapchain creation");
         
@@ -17,7 +18,7 @@ namespace Warp::nri::vk
 
         NriPhysicalDeviceSurfaceProperties surfaceProperties = physicalDevice->QuerySurfaceProperties(m_surface->GetNativeHandle());
 
-        VkSurfaceFormatKHR bestSurfaceFormat = QueryBestSurfaceFormat(surfaceProperties.availableSurfaceFormats);
+        m_surfaceFormat = QueryBestSurfaceFormat(surfaceProperties.availableSurfaceFormats);
         VkPresentModeKHR bestPresentMode = QueryBestPresentMode(surfaceProperties.availablePresentModes);
 
         auto createInfo = NRI_VK_STRUCT(VkSwapchainCreateInfoKHR);
@@ -26,8 +27,8 @@ namespace Warp::nri::vk
         // This surface is created during NRI instance creation and passed down to physical device and eventually gets to the swapchain here
         createInfo.surface = m_surface->GetNativeHandle();
         createInfo.minImageCount = swapchainInfo.numSwapchainImages;
-        createInfo.imageFormat = bestSurfaceFormat.format;
-        createInfo.imageColorSpace = bestSurfaceFormat.colorSpace;
+        createInfo.imageFormat = m_surfaceFormat.format;
+        createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
         // TODO: Support more flexible extents (currently using minExtent as default)
         // on Windows minExtent == maxExtent
         WARP_ASSERT(swapchainInfo.width >= surfaceProperties.minExtent.width && swapchainInfo.width <= surfaceProperties.maxExtent.width, 
@@ -54,10 +55,17 @@ namespace Warp::nri::vk
         
         NRI_VK_CHECK_RESULT(vkCreateSwapchainKHR(m_device->GetNativeHandle(), &createInfo, nullptr, &m_nativeHandle), 
             "Failed to create Vulkan swapchain handle");
+
+        this->CreateSwapchainImages();
+        this->CreateSwapchainImageViews();
     }
 
     NriSwapchain::~NriSwapchain()
     {
+        for (VkImageView swapchainImageView : m_swapchainImageViewArray)
+        {
+            vkDestroyImageView(m_device->GetNativeHandle(), swapchainImageView, nullptr);
+        }
         vkDestroySwapchainKHR(m_device->GetNativeHandle(), GetNativeHandle(), nullptr);
     }
 
@@ -90,7 +98,7 @@ namespace Warp::nri::vk
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D NriSwapchain::QuerySwapchainExtent(const NriPhysicalDeviceSurfaceProperties& surfaceProperties)
+    VkExtent2D NriSwapchain::QuerySwapchainExtent(const NriPhysicalDeviceSurfaceProperties& surfaceProperties) noexcept
     {
         if (surfaceProperties.currentExtent.width == UINT_MAX &&
             surfaceProperties.currentExtent.height == UINT_MAX)
@@ -105,6 +113,46 @@ namespace Warp::nri::vk
             return surfaceProperties.currentExtent;
         }
         return VkExtent2D();
+    }
+
+    void NriSwapchain::CreateSwapchainImages() noexcept
+    {
+        WARP_ASSERT(this->GetNumSwapchainImages() > 0, "Invalid number of swapchain images");
+
+        uint32_t khrSwapchainImageCount = 0;
+        NRI_VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->GetNativeHandle(), this->GetNativeHandle(), &khrSwapchainImageCount, nullptr), 
+            "Failed to get swapchain image count");
+        WARP_ASSERT(khrSwapchainImageCount >= this->GetNumSwapchainImages(), "Swapchain image count mismatch");
+
+        m_swapchainImageArray.resize(khrSwapchainImageCount);
+        NRI_VK_CHECK_RESULT(vkGetSwapchainImagesKHR(m_device->GetNativeHandle(), this->GetNativeHandle(), &khrSwapchainImageCount, m_swapchainImageArray.data()),
+            "Failed to get swapchain images");
+    }
+
+    void NriSwapchain::CreateSwapchainImageViews() noexcept
+    {
+        uint32_t numSwapchainImages = this->GetNumSwapchainImages();
+        WARP_ASSERT(numSwapchainImages > 0, "Invalid number of swapchain images");
+
+        m_swapchainImageViewArray.resize(numSwapchainImages);
+        for (uint32_t imageIndex = 0; imageIndex < numSwapchainImages; ++imageIndex)
+        {
+            auto viewCreateInfo = NRI_VK_STRUCT(VkImageViewCreateInfo);
+            viewCreateInfo.flags = 0;
+            viewCreateInfo.image = this->GetSwapchainImage(imageIndex);
+            viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            viewCreateInfo.format = this->GetSurfaceFormat().format;
+            viewCreateInfo.components = IdentityComponentMapping;
+            viewCreateInfo.subresourceRange = VkImageSubresourceRange{
+                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                .baseMipLevel = 0,
+                .levelCount = 1,
+                .baseArrayLayer = 0,
+                .layerCount = 1
+            };
+            NRI_VK_CHECK_RESULT(vkCreateImageView(m_device->GetNativeHandle(), &viewCreateInfo, nullptr, &m_swapchainImageViewArray[imageIndex]), 
+                "Failed to create swapchain image view at index {}", imageIndex);
+        }
     }
 
 } // Warp::nri::vk namespace

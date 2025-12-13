@@ -4,36 +4,44 @@
 #include "platform_window.h"
 
 #include "common/cross_log.h"
+
+#include "nebulae/shader_factory/nri_shader_compiler.h"
+
 #include "nebulae/vulkan/nri_vk_instance.h"
 #include "nebulae/vulkan/nri_vk_device.h"
 #include "nebulae/vulkan/nri_vk_surface.h"
 #include "nebulae/vulkan/nri_vk_swapchain.h"
 
+// TODO: Remove this after shader tests
+#include <string>
+#include <fstream>
+#include <streambuf>
+#include <filesystem>
+
 namespace Warp
 {
-
-    LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-    {
-        switch (uMsg)
-        {
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
-        case WM_SIZE:
-            return 0;
-            //    case WM_KILLFOCUS:
-            //    case WM_SETFOCUS:
-        }
-
-        return DefWindowProc(hwnd, uMsg, wParam, lParam);
-    }
 
     EFinishCode Main(HINSTANCE instance, std::span<std::string_view> args)
     {
         WARP_INIT_LOGGER(ELoggerType::DefaultLogger, ELogLevel::Trace);
         WARP_INIT_LOGGER(ELoggerType::NriLogger,     ELogLevel::Trace, "Nri");
 
-        
+        nri::ShaderCompiler* shaderCompiler = nri::ShaderCompiler::Get();
+        WARP_ASSERT(shaderCompiler->Init(), "Failed to initialize shader compiler");
+
+        // TODO: remove this after testing shader compiler
+        std::ifstream shaderFile(std::filesystem::path("shaders") / "slang" / "hello_triangle.slang");
+        std::string shaderCode(
+            (std::istreambuf_iterator<char>(shaderFile)),
+            (std::istreambuf_iterator<char>()));
+
+        nri::SlangToSpvInfo slangToSpvInfo;
+        slangToSpvInfo.moduleCode = shaderCode;
+        slangToSpvInfo.moduleName = "hello_triangle";
+        slangToSpvInfo.entryPointName = "vertexMain";
+        slangToSpvInfo.targetProfile = nri::ESpvProfile::Spirv_1_6;
+        nri::SlangToSpvOutput spirv = shaderCompiler->CompileSlangToSpv(slangToSpvInfo);
+
         std::shared_ptr<IPlatformWindow> window = AllocatePlatformWindow(EWindowType::Win32);
         WARP_ASSERT(window != nullptr);
 
@@ -83,16 +91,11 @@ namespace Warp
             .height = 720,
         }); 
 
-        // TODO: Move this to IPlatformWindow
-        MSG msg = { 0 };
-        while (msg.message != WM_QUIT)
+        while (window->IsOpen())
         {
-            while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
-            {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
+            window->PollEvents();
         }
+
         return EFinishCode::Success;
     }
 

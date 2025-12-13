@@ -1,6 +1,11 @@
 #pragma once
 
+#include "common/memory/arc.h"
 #include "common/memory/arc_object.h"
+
+#include "vulkan/nri_vk_common.h"
+#include "vulkan/nri_vk_device.h"
+#include "vulkan/nri_vk_swapchain.h"
 
 namespace Warp::nri
 {
@@ -13,10 +18,13 @@ namespace Warp::nri
 
         void NextFrame()
         {
-        
+            //vkAcquireNextImageKHR(m_device->GetNativeHandle(), m_swapchain->GetNativeHandle(), UINT64_MAX, )
         }
 
     private:
+        Arc<vk::NriDevice> m_device;
+        Arc<vk::NriSwapchain> m_swapchain;
+
         uint32_t m_frameIndex;
     };
 

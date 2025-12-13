@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.20)
+# CMake 3.28 is required as some features from Vulkan SDK require CMake 3.28+
+cmake_minimum_required(VERSION 3.28)
 project(WarpEngine LANGUAGES CXX)
 
 add_executable(WarpEngine
@@ -13,6 +14,10 @@ add_executable(WarpEngine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/enum_flag_set.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/enum_utils.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/print.h"
+
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_compiler.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_compiler.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_slang_util.h"
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_device.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_device.h"
@@ -45,15 +50,50 @@ if (MSVC)
 endif()
 target_compile_definitions(WarpEngine PRIVATE $<$<CONFIG:Debug>:WARP_ENGINE_DEBUG>)
 
-#include Vulkan and add necessary preprocessor directives
-find_package(Vulkan REQUIRED)
+# WarpEngine's development cycle heavily relies on latest Vulkan SDK
+# We use latest libraries included into lastest Vulkan SDK
+#
+# Below is a setup of all such libraries and packages
 
-target_include_directories(WarpEngine PRIVATE ${Vulkan_INCLUDE_DIRS})
+# include Vulkan and add necessary components
+#
+# This CMake page describes all supported Vulkan SDK components currently availble to the build system
+# https://cmake.org/cmake/help/latest/module/FindVulkan.html
+#
+# Try to specify all required components here in FindVulkan, 
+# but some libraries are still not available here, such as Slang, which Warp relies on, so these exceptions are handled manually
+find_package(Vulkan REQUIRED COMPONENTS SPIRV-Tools)
+
+# Find and include Slang as a main WarpEngine's shading language
+# Slang is currently not a part of FindVulkan so see a link below on how to resolve
+# https://docs.vulkan.org/tutorial/latest/02_Development_environment.html#_cmake 
+find_package(Slang CONFIG HINTS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/slang/cmake")
+get_target_property(Slang_INCLUDE_DIRS slang::slang INTERFACE_INCLUDE_DIRECTORIES)
+
+target_include_directories(WarpEngine PRIVATE 
+    ${Vulkan_INCLUDE_DIRS}
+    ${Slang_INCLUDE_DIRS}) # we also need to manually add Slang include dirs as it is not a part of FindVulkan
 target_link_libraries(WarpEngine 
     PRIVATE
         Vulkan::Vulkan
+        Vulkan::SPIRV-Tools
+        slang::slang
 )
 target_compile_definitions(WarpEngine PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+
+# copy Slang DLL
+add_custom_command(TARGET WarpEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:slang::slang> 
+        $<TARGET_FILE_DIR:WarpEngine>
+)
+
+# Copy shaders into output dir
+add_custom_command(TARGET WarpEngine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae" 
+        $<TARGET_FILE_DIR:WarpEngine>
+)
 
 # 3. Execute Python scripts
 find_package(Python REQUIRED COMPONENTS Interpreter)

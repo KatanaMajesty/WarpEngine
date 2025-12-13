@@ -25,6 +25,13 @@
 namespace Warp::nri::vk
 {
 
+    static constexpr VkComponentMapping IdentityComponentMapping = VkComponentMapping{
+        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+        .a = VK_COMPONENT_SWIZZLE_IDENTITY
+    };
+
     /// @brief Direct enum wrapper over VK_API_VERSION macros. Should be used for Vulkan API versioning instead of direct uint32_t
     enum class EApiVersion : uint32_t
     {

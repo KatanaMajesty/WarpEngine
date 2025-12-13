@@ -142,5 +142,19 @@ namespace Warp
         return true;
     }
 
+    void Win32Window::PollEvents() noexcept
+    {
+        while (PeekMessageW(&m_lastMsg, nullptr, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&m_lastMsg);
+            DispatchMessage(&m_lastMsg);
+        }
+    }
+
+    bool Win32Window::IsOpen() const noexcept
+    {
+        return m_lastMsg.message != WM_QUIT;
+    }
+
 } // Warp namespace
 #endif // defined(_WIN32)

@@ -47,6 +47,13 @@ namespace Warp
         /// For more information on states see EWindowState enumeration.
         virtual bool SetState(EWindowState nextState) noexcept = 0;
 
+        /// Polls window events. After each poll application must check whether window is still active/open.
+        /// To check whether the window is still open call 
+        virtual void PollEvents() noexcept = 0;
+
+        /// @returns true if window is still alive and open, false otherwise (if it was closed)
+        virtual bool IsOpen() const noexcept = 0;
+
         /// @returns Platform-specific native handle associated with this platform window.
         /// Usually to be used by other modules, like NRI.
         virtual void* GetNativeHandle() const noexcept = 0;

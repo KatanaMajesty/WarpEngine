@@ -25,6 +25,10 @@ namespace Warp
 
         virtual bool SetState(EWindowState nextState) noexcept;
 
+        virtual void PollEvents() noexcept;
+
+        virtual bool IsOpen() const noexcept;
+
         virtual void* GetNativeHandle() const noexcept { return m_nativeHandle; }
 
     private:
@@ -35,6 +39,9 @@ namespace Warp
         /// @brief Instance handle associated with HWND of this Win32Window handle.
         /// This instance is obtained using GetModuleHandle(nullptr)
         HINSTANCE m_instanceHandle = NULL;
+
+        /// Last message queried using PeekMessageW
+        MSG m_lastMsg = MSG(0);
     };
 
 } // Warp namespace
