@@ -4,8 +4,6 @@
 #include "nri_vk_instance.h"
 
 #include "common/memory/arc.h"
-#include "common/memory/arc_object.h"
-#include "common/attr_defs.h"
 
 namespace Warp::nri::vk
 {
@@ -32,7 +30,7 @@ namespace Warp::nri::vk
     };
 
     /// It is important to note that NriSurface is not atomically ref counted NRI handle!
-    class NriSurface : public AtomicallyRefCounted<NriSurface>
+    class NriSurface : public ArcMark<NriSurface>
     {
     public:
         NriSurface() = delete; // deleted default constructor, surface must be created with proper info

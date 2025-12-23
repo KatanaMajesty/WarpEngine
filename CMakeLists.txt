@@ -4,7 +4,6 @@ project(WarpEngine LANGUAGES CXX)
 
 add_executable(WarpEngine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/arc.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/arc_object.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/assert.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/attr_defs.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/breakpoint.h"
@@ -13,10 +12,14 @@ add_executable(WarpEngine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/cross_log_colorizer.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/enum_flag_set.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/enum_utils.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/common/filesystem_io.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/common/filesystem_io.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/print.h"
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_compiler.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_compiler.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_library.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_library.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_slang_util.h"
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_device.cpp"
@@ -26,11 +29,14 @@ add_executable(WarpEngine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_memory_safety.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_physical_device.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_physical_device.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_shader_module.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_shader_module.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.h"
 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/nri_vk_renderer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/nri_vk_renderer.h"
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/platform_window.cpp"
@@ -51,8 +57,6 @@ endif()
 target_compile_definitions(WarpEngine PRIVATE $<$<CONFIG:Debug>:WARP_ENGINE_DEBUG>)
 
 # WarpEngine's development cycle heavily relies on latest Vulkan SDK
-# We use latest libraries included into lastest Vulkan SDK
-#
 # Below is a setup of all such libraries and packages
 
 # include Vulkan and add necessary components
@@ -132,3 +136,7 @@ add_dependencies(WarpEngine
     generate_vk_stype_helper
     generate_pci_vendor_list
 )
+
+# Always enable testing
+enable_testing()
+add_subdirectory(tests)

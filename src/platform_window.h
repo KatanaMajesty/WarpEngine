@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/memory/arc.h"
+
 #include <cstdint>
 #include <string_view>
 #include <memory>
@@ -29,7 +31,7 @@ namespace Warp
         Show,
     };
 
-    class IPlatformWindow
+    class IPlatformWindow : public ArcMark<IPlatformWindow>
     {
     public:
         IPlatformWindow() = default;
@@ -68,6 +70,6 @@ namespace Warp
         Win32,
     };
 
-    std::shared_ptr<IPlatformWindow> AllocatePlatformWindow(EWindowType type) noexcept;
+    Arc<IPlatformWindow> AllocatePlatformWindow(EWindowType type) noexcept;
 
 }

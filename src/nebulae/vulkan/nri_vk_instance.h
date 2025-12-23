@@ -3,7 +3,6 @@
 #include "nri_vk_common.h"
 #include "nri_vk_physical_device.h"
 
-#include "common/memory/arc_object.h"
 #include "common/memory/arc.h"
 #include "common/attr_defs.h"
 
@@ -27,7 +26,7 @@ namespace Warp::nri::vk
         bool bSurfaceRequired = true;
     };
 
-    class NriInstance : public AtomicallyRefCounted<NriInstance>
+    class NriInstance : public ArcMark<NriInstance>
     {
     public:
         NriInstance() = default;

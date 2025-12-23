@@ -7,13 +7,13 @@
 namespace Warp
 {
 
-    std::shared_ptr<IPlatformWindow> AllocatePlatformWindow(EWindowType type) noexcept
+    Arc<IPlatformWindow> AllocatePlatformWindow(EWindowType type) noexcept
     {
 #if defined(_WIN32)
         // Just sanity-check whether EWindowType is properly set on Windows OS
         WARP_ASSERT(type == EWindowType::Win32, "EWindowType::Win32 is required to create window on Windows platforms");
 
-        auto platformWindow = std::make_shared<Win32Window>();
+        auto platformWindow = Arc<Win32Window>::Make();
         return platformWindow;
 
 #else // if !defined(_WIN32)

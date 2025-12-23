@@ -5,7 +5,6 @@
 #include "nri_vk_surface.h"
 
 #include "common/memory/arc.h"
-#include "common/memory/arc_object.h"
 
 #include <vector>
 
@@ -22,7 +21,7 @@ namespace Warp::nri::vk
         uint16_t height = 0;
     };
 
-    class NriSwapchain : public AtomicallyRefCounted<NriSwapchain>
+    class NriSwapchain : public ArcMark<NriSwapchain>
     {
     public:
         NriSwapchain() = delete;

@@ -35,14 +35,16 @@ namespace Warp
             (std::istreambuf_iterator<char>(shaderFile)),
             (std::istreambuf_iterator<char>()));
 
+        nri::SlangToSpvValidationInfo slangToSpvValidation;
         nri::SlangToSpvInfo slangToSpvInfo;
         slangToSpvInfo.moduleCode = shaderCode;
         slangToSpvInfo.moduleName = "hello_triangle";
         slangToSpvInfo.entryPointName = "vertexMain";
         slangToSpvInfo.targetProfile = nri::ESpvProfile::Spirv_1_6;
+        slangToSpvInfo.validationInfo = &slangToSpvValidation;
         nri::SlangToSpvOutput spirv = shaderCompiler->CompileSlangToSpv(slangToSpvInfo);
 
-        std::shared_ptr<IPlatformWindow> window = AllocatePlatformWindow(EWindowType::Win32);
+        Arc<IPlatformWindow> window = AllocatePlatformWindow(EWindowType::Win32);
         WARP_ASSERT(window != nullptr);
 
         // create window here and pass its handle to NRI surface and swapchain

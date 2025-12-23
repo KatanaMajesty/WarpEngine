@@ -3,7 +3,6 @@
 #include "nri_vk_common.h"
 #include "generated/nri_pci_vendor_ids.h"
 
-#include "common/memory/arc_object.h"
 #include "common/memory/arc.h"
 #include "common/enum_flag_set.h"
 
@@ -149,7 +148,7 @@ namespace Warp::nri::vk
         std::vector<VkPresentModeKHR> availablePresentModes;
     };
 
-    class NriPhysicalDevice : public AtomicallyRefCounted<NriPhysicalDevice>
+    class NriPhysicalDevice : public ArcMark<NriPhysicalDevice>
     {
     public:
         NriPhysicalDevice() = default;
