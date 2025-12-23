@@ -142,5 +142,19 @@ namespace Warp
             ASSERT_EQ(h2.GetReferenceCount(), 1);
         }
     }
+
+    TEST(ArcTest, DirectPointerAccess)
+    {
+        struct Handle : ArcMark<Handle>
+        {
+            uint32_t i = 0;
+        };
+
+        auto handle = Arc<Handle>::Make();
+        Handle handleCopy = *handle.Get();
+        handle->i = 1;
+        handleCopy.i = 1;
+        ASSERT_EQ(handle->i, handleCopy.i);
+    }
     
 } // Warp namespace
