@@ -14,7 +14,10 @@ namespace Warp
     class Win32Window : public IPlatformWindow
     {
     public:
-        Win32Window() = default;
+        constexpr Win32Window()
+            : IPlatformWindow(EWindowImpl::Win32)
+        {
+        }
 
         Win32Window(const Win32Window&) = delete;
         Win32Window& operator=(const Win32Window&) = delete;
@@ -31,6 +34,14 @@ namespace Warp
 
         virtual void* GetNativeHandle() const noexcept { return m_nativeHandle; }
 
+        virtual WindowExtent GetCurrentExtent() const noexcept { return m_extent; }
+        
+        /// This function should only be accessed by WindowProc
+        void SetCurrentExtent(UINT width, UINT height) noexcept
+        {
+            m_extent = { width, height };
+        }
+
     private:
         inline constexpr bool IsInitialized() const noexcept { return m_nativeHandle != NULL; }
 
@@ -42,6 +53,9 @@ namespace Warp
 
         /// Last message queried using PeekMessageW
         MSG m_lastMsg = MSG(0);
+
+        /// current extent of the window. This variable is updated each time WM_SIZE event is sent
+        WindowExtent m_extent = { 0, 0 };
     };
 
 } // Warp namespace

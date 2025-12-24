@@ -15,10 +15,7 @@ namespace Warp::nri::vk
     {
         Arc<NriSurface> surface;
         Arc<NriDevice> device;
-
         uint32_t numSwapchainImages = 0;
-        uint16_t width = 0;
-        uint16_t height = 0;
     };
 
     class NriSwapchain : public ArcMark<NriSwapchain>

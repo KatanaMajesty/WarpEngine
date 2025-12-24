@@ -31,11 +31,7 @@ namespace Warp::nri::vk
         createInfo.imageColorSpace = m_surfaceFormat.colorSpace;
         // TODO: Support more flexible extents (currently using minExtent as default)
         // on Windows minExtent == maxExtent
-        WARP_ASSERT(swapchainInfo.width >= surfaceProperties.minExtent.width && swapchainInfo.width <= surfaceProperties.maxExtent.width, 
-            "Width is out of min/max bounds for this surface");
-        WARP_ASSERT(swapchainInfo.height >= surfaceProperties.minExtent.height && swapchainInfo.height <= surfaceProperties.maxExtent.height,
-            "Height is out of min/max bounds for this surface");
-        createInfo.imageExtent = VkExtent2D{ .width = swapchainInfo.width, .height = swapchainInfo.height };
+        createInfo.imageExtent = surfaceProperties.currentExtent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = surfaceProperties.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;

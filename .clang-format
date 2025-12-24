@@ -1,6 +1,7 @@
 AccessModifierOffset: -4
 AlignOperands: AlignAfterOperator
-AlignAfterOpenBracket: DontAlign
+AlignAfterOpenBracket: Align
+AllowAllParametersOfDeclarationOnNextLine: true
 AllowShortBlocksOnASingleLine: true
 AllowShortFunctionsOnASingleLine: All
 AllowShortCaseLabelsOnASingleLine: true
@@ -12,9 +13,15 @@ AllowShortCaseLabelsOnASingleLine: true
 AllowAllConstructorInitializersOnNextLine: true
 BreakConstructorInitializers: BeforeComma
 
+LambdaBodyIndentation: Signature
+
+BinPackParameters: false # one param per line once it wraps
+BinPackArguments: false
 BasedOnStyle: LLVM
 BreakBeforeBraces: Allman
-ColumnLimit: 0
+BreakAfterReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 1000000
+ColumnLimit: 140
 Cpp11BracedListStyle: false
 FixNamespaceComments: false
 IndentCaseLabels: false

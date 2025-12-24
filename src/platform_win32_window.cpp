@@ -36,24 +36,41 @@ namespace Warp
         // The parameters we pass in, tell Win32 to create the buffer that holds the message for us
         LPSTR messageBuffer = nullptr;
         size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+                                     NULL,
+                                     errorMessageID,
+                                     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                     (LPSTR)&messageBuffer,
+                                     0,
+                                     NULL);
 
         std::string message(messageBuffer, size);
         LocalFree(messageBuffer);
         return message;
     }
 
+
+    struct WindowReference
+    {
+        Win32Window* window;
+    };
+
     // TODO: Currently nothing sophisticated is needed for WindowProc so it will most likely stay here as it is for a long while
     //      but will probably need to add more support to input handling via callbacks
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
+        // window handle might be null for some events
+        Win32Window* window = reinterpret_cast<Win32Window*>(GetWindowLongPtrA(hwnd, GWLP_USERDATA));
         switch (uMsg)
         {
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
+        case WM_DESTROY: PostQuitMessage(0); return 0;
         case WM_SIZE:
+        {
+            WARP_ASSERT(window != nullptr, "Invalid Win32Window pointer");
+            UINT width = LOWORD(lParam);
+            UINT height = HIWORD(lParam);
+            window->SetCurrentExtent(width, height);
             return 0;
+        }
             //    case WM_KILLFOCUS:
             //    case WM_SETFOCUS:
         }
@@ -69,7 +86,6 @@ namespace Warp
         m_instanceHandle = GetModuleHandle(nullptr);
 
         WARP_ASSERT(windowInfo.width > 0 && windowInfo.height > 0, "Window extent is incorrectly set");
-
 
         // Register window class
         WNDCLASSEX windowClass;
@@ -97,26 +113,42 @@ namespace Warp
         // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-adjustwindowrect
         if (AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE) == 0)
         {
-            WARP_LOG_ERROR(ELoggerType::DefaultLogger, "AdjustWindowRect -> Failed to adjust window to client extent: {}", GetLastErrorAsString());
+            WARP_LOG_ERROR(
+                ELoggerType::DefaultLogger, "AdjustWindowRect -> Failed to adjust window to client extent: {}", GetLastErrorAsString());
             return false;
         }
 
         uint32_t windowWidth = windowRect.right - windowRect.left;
         uint32_t windowHeight = windowRect.bottom - windowRect.top;
+        m_nativeHandle = CreateWindow(WARP_WIN32_WINDOW_CLASS_NAME,
+                                      windowInfo.title.data(),
+                                      WS_OVERLAPPEDWINDOW,
+                                      CW_USEDEFAULT,
+                                      CW_USEDEFAULT,
+                                      windowWidth,
+                                      windowHeight,
+                                      NULL,
+                                      NULL,
+                                      m_instanceHandle,
+                                      NULL);
 
-        m_nativeHandle = CreateWindow(
-            WARP_WIN32_WINDOW_CLASS_NAME,
-            windowInfo.title.data(),
-            WS_OVERLAPPEDWINDOW,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            windowWidth,
-            windowHeight,
-            NULL,
-            NULL,
-            m_instanceHandle,
-            NULL);
+        // WND struct happens to contain one pointer-sized field, which is not used by the system.
+        // It can be accessed using GWLP_USERDATA to store a pointer to user data - in our case 'this' handle
+        //
+        // If the function fails, the return value is zero.
+        // BUT! If the previous value is zero and the function succeeds, the return value is zero, but the function does not clear the last error information.
+        // To determine success or failure, clear the last error information by calling SetLastError with 0, then call SetWindowLongPtr
+        // Function failure will be indicated by a return value of zero and a GetLastError result that is nonzero.
+        SetLastError(0);
+        if (SetWindowLongPtrA(m_nativeHandle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this)) == 0 && GetLastError() != 0)
+        {
+            WARP_LOG_ERROR(ELoggerType::DefaultLogger,
+                           "SetWindowLongPtrA -> Failed to setup GWLP_USERDATA for Win32Window handle: {}",
+                           GetLastErrorAsString());
+            return false;
+        }
 
+        m_extent = WindowExtent{ .width = windowWidth, .height = windowHeight };
         return m_nativeHandle != NULL;
     }
 
@@ -125,11 +157,9 @@ namespace Warp
         int32_t cmdShow = -1;
         switch (nextState)
         {
-            case EWindowState::Hide: cmdShow = SW_HIDE; break;
-            case EWindowState::Show: cmdShow = SW_SHOWDEFAULT; break;
-            default: 
-                WARP_ASSERT(false, "Unknown EWindowState?");
-                return false;
+        case EWindowState::Hide: cmdShow = SW_HIDE; break;
+        case EWindowState::Show: cmdShow = SW_SHOWDEFAULT; break;
+        default: WARP_ASSERT(false, "Unknown EWindowState?"); return false;
         }
         WARP_ASSERT(cmdShow != -1, "Invalid cmdShow");
         ShowWindow(m_nativeHandle, cmdShow);
@@ -151,10 +181,7 @@ namespace Warp
         }
     }
 
-    bool Win32Window::IsOpen() const noexcept
-    {
-        return m_lastMsg.message != WM_QUIT;
-    }
+    bool Win32Window::IsOpen() const noexcept { return m_lastMsg.message != WM_QUIT; }
 
 } // Warp namespace
 #endif // defined(_WIN32)

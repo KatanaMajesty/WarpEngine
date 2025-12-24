@@ -118,6 +118,12 @@ namespace Warp
             this->Log<ELogLevel::Error, ELogFgColor::White, ELogBgColor::Bright_Red>("ERROR", fmt, std::forward<Args>(args)...); 
         }
 
+        // TODO: change this to be a proper log avoiding string copies
+        inline void Trace(std::string_view msg) const noexcept { this->Trace("{}", msg); }
+        inline void Info(std::string_view msg) const noexcept { this->Info("{}", msg); }
+        inline void Warn(std::string_view msg) const noexcept { this->Warn("{}", msg); }
+        inline void Error(std::string_view msg) const noexcept { this->Error("{}", msg); }
+
         inline constexpr bool IsInitialized() const { return m_isInitialized; }
 
     private:

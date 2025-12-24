@@ -22,6 +22,15 @@ namespace Warp
         std::string_view title;
     };
 
+    enum class EWindowImpl
+    {
+        /// Invalid window type, should not be specified when creating a window
+        None,
+
+        /// This type specifies that window will be created for Windows platforms.
+        Win32,
+    };
+
     enum class EWindowState
     {
         /// On Win32 reflects SW_HIDE. Hides the window and activates another window.
@@ -31,10 +40,20 @@ namespace Warp
         Show,
     };
 
+    struct WindowExtent
+    {
+        uint32_t width;
+        uint32_t height;
+    };
+    
     class IPlatformWindow : public ArcMark<IPlatformWindow>
     {
     public:
-        IPlatformWindow() = default;
+        IPlatformWindow() = delete;
+        constexpr IPlatformWindow(EWindowImpl impl)
+            : m_impl(impl)
+        {
+        }
 
         IPlatformWindow(const IPlatformWindow&) = delete;
         IPlatformWindow& operator=(const IPlatformWindow&) = delete;
@@ -59,17 +78,16 @@ namespace Warp
         /// @returns Platform-specific native handle associated with this platform window.
         /// Usually to be used by other modules, like NRI.
         virtual void* GetNativeHandle() const noexcept = 0;
+
+        /// @returns Current window extent that is kept updated by the platform-specific window implementation
+        virtual WindowExtent GetCurrentExtent() const noexcept = 0;
+
+        inline constexpr EWindowImpl GetType() const noexcept { return m_impl; }
+
+    protected: 
+        EWindowImpl m_impl = EWindowImpl::None;
     };
 
-    enum class EWindowType
-    {
-        /// Invalid window type, should not be specified when creating a window
-        None,
-
-        /// This type specifies that window will be created for Windows platforms.
-        Win32,
-    };
-
-    Arc<IPlatformWindow> AllocatePlatformWindow(EWindowType type) noexcept;
+    Arc<IPlatformWindow> AllocatePlatformWindow(EWindowImpl impl) noexcept;
 
 }

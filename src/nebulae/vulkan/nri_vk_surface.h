@@ -43,11 +43,6 @@ namespace Warp::nri::vk
 
         inline constexpr VkSurfaceKHR GetNativeHandle() const noexcept { return m_nativeHandle; }
 
-        /// @brief Based on the platform (specified as ESurfaceType provided during this NriSurface creation)
-        /// this method will try to obtain current window's (width, height) using platform-specific handle
-        VkExtent2D QueryCurrentWindowExtent() const noexcept;
-
-
     private:
         VkSurfaceKHR m_nativeHandle = VK_NULL_HANDLE;
         Arc<NriInstance> m_instance; /// instance that was used to create this surface

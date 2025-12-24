@@ -198,7 +198,7 @@ namespace Warp
             requires(std::is_base_of_v<T, U>) // if U == T will also evaluate to true
         void CopyInit(const Arc<U>& other) noexcept
         {
-            if (*this == other)
+            if (this->m_allocedMemoryBlock == other.m_allocedMemoryBlock)
             {
                 return;
             }
@@ -226,7 +226,7 @@ namespace Warp
             requires(std::is_base_of_v<T, U>) // if U == T will also evaluate to true
         constexpr void MoveInit(Arc<U>&& other) noexcept
         {
-            if (*this == other)
+            if (this->m_allocedMemoryBlock == other.m_allocedMemoryBlock)
             {
                 return;
             }
