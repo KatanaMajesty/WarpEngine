@@ -41,7 +41,7 @@ namespace Warp::nri
         {
         case EShaderLang::Slang:
         {
-            std::string moduleName = std::format("{}_{}", shaderName.filename().string(), entryPoint);
+            std::string moduleName = std::format("{}_{}", shaderName.stem().string(), entryPoint);
             return CompileSlangFromLibrary(shaderName, moduleName, entryPoint, preprocessorMacros);
         }
         default: WARP_ASSERT(false, "Unknown shader language");
