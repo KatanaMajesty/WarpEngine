@@ -21,7 +21,7 @@ BasedOnStyle: LLVM
 BreakBeforeBraces: Allman
 BreakAfterReturnType: None
 PenaltyReturnTypeOnItsOwnLine: 1000000
-ColumnLimit: 140
+ColumnLimit: 160
 Cpp11BracedListStyle: false
 FixNamespaceComments: false
 IndentCaseLabels: false

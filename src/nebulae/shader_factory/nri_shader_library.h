@@ -41,11 +41,13 @@ namespace Warp::nri
     struct ShaderLibraryConfig
     {
         /// A path containing all Warp shaders. Usually should be left at default value preinitialized by Warp engine
-        std::filesystem::path shaderPath = std::filesystem::path("shaders");
+        std::filesystem::path shaderPath = std::filesystem::path(".");
         /// Specifies target SPIR-V profile for all shaders compiled by this library.
         ETargetProfile targetProfile = ETargetProfile::Spv_1_6;
         /// Specifies target SPIR-V environment for all shaders compiles by this library.
         ETargetEnvironment targetEnv = ETargetEnvironment::Vk_1_4;
+        /// If true every compiled SPIR-V target will be dumped under 'shaderPath' directory
+        bool writeSpirvOutputs = false;
     };
 
     /// Used by shader library to define shader language of a source file
@@ -63,7 +65,6 @@ namespace Warp::nri
             : m_isInitialized(true)
             , m_config(config)
         {
-            m_compiler.Init();
         }
 
     public:
@@ -90,9 +91,15 @@ namespace Warp::nri
 
     private:
         ShaderCompilerOutput CompileSlangFromLibrary(const std::filesystem::path& shaderName,
-                                                     std::string_view moduleName,
                                                      std::string_view entryPoint,
                                                      std::span<const ShaderPreprocessorMacro> preprocessorMacros) noexcept;
+
+                                                     
+        /// Exports resulting SPIR-V output to this shader library. Location of dumped SPIR-V file is defined by ShaderLibraryConfig.
+        /// More specifically, dumped SPIR-V binary will be saved at 'ShaderLibraryConfig::shaderPath / "spirv" / shaderName.spv
+        void WriteSpirvOutputToLibrary(const std::filesystem::path& shaderName,
+                                       std::string_view entryPoint,
+                                       const ShaderCompilerOutput& output);
 
         static inline std::unique_ptr<ShaderLibrary> s_instance = nullptr;
 

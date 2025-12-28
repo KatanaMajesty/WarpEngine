@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/memory/arc.h"
+#include "common/enum_flag_set.h"
 
 #include <cstdint>
 #include <string_view>
@@ -38,6 +39,14 @@ namespace Warp
         /// On Win32 reflects SW_SHOWDEFAULT. Sets the show state based on the SW_ value specified in the STARTUPINFO 
         /// structure passed to the CreateProcess function by the program that started the application.
         Show,
+    };
+
+    enum class EWindowActionFlag
+    {
+        /// No actions to be handled this frame
+        None,
+        /// signals that this window object was resized during this frame and should be handled accordingly
+        ResizedThisFrame,
     };
 
     struct WindowExtent
@@ -84,8 +93,11 @@ namespace Warp
 
         inline constexpr EWindowImpl GetType() const noexcept { return m_impl; }
 
+        inline constexpr FlagSet<EWindowActionFlag> GetActionFlags() const noexcept { return m_windowActionFlags; }
+
     protected: 
         EWindowImpl m_impl = EWindowImpl::None;
+        FlagSet<EWindowActionFlag> m_windowActionFlags = EWindowActionFlag::None;
     };
 
     Arc<IPlatformWindow> AllocatePlatformWindow(EWindowImpl impl) noexcept;

@@ -6,8 +6,10 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <span>
 #include <cstdint>
 #include <type_traits>
+#include <ranges>
 
 namespace Warp::fsio
 {
@@ -21,12 +23,12 @@ namespace Warp::fsio
 
     static constexpr uint64_t kInvalidFileSize = UINT64_MAX;
 
-    /// @brief Queries size of a file path provided. 
-    /// 
+    /// @brief Queries size of a file path provided.
+    ///
     /// If filepath does not represent a file then kInvalidFileSize is returned.
     /// If filepath does not exist then kInvalidFileSize is returned as well.
     /// @returns Otherwise returns a size of file in bytes.
-    WARP_A_NODISCARD("Query on a file handle") 
+    WARP_A_NODISCARD("Query on a file handle")
     uint64_t FileSizeInBytes(const std::filesystem::path& filepath) noexcept;
 
     std::string ReadFile(const std::filesystem::path& filepath) noexcept;
@@ -41,13 +43,27 @@ namespace Warp::fsio
     {
         WARP_A_MAYBE_UNUSUED std::uintmax_t fs = FileSizeInBytes(filepath);
         WARP_ASSERT(fs != kInvalidFileSize, "Failed to query filesize for {}", filepath.string());
-        WARP_ASSERT(fs % sizeof(T) == 0, 
-            "Filesize of {} is not properly aligned to type T. Filesize is {}, alignment of T is {}", 
-            filepath.string(), fs, sizeof(T));
+        WARP_ASSERT(fs % sizeof(T) == 0,
+                    "Filesize of {} is not properly aligned to type T. Filesize is {}, alignment of T is {}",
+                    filepath.string(),
+                    fs,
+                    sizeof(T));
 
         std::ifstream f(filepath, std::ios::binary);
         WARP_ASSERT(!f.fail(), "Failed to open file at path: {}", filepath.string());
         return std::vector<T>(std::istreambuf_iterator<T>(), {});
+    }
+
+    void WriteBinaryFile(const std::filesystem::path& filepath, std::span<const std::byte> bytes) noexcept;
+
+    template<typename ArrayType>
+        requires(std::ranges::contiguous_range<ArrayType> &&                // so that we can safely use std::ranges::data
+                 std::ranges::sized_range<ArrayType> &&                     // so that we can safely use std::ranges::size
+                 std::is_integral_v<std::ranges::range_value_t<ArrayType>>) // require range value type to be integral
+    void WriteBinaryFile(const std::filesystem::path& filepath, ArrayType&& array) noexcept
+    {
+        std::span s = { std::ranges::data(array), std::ranges::size(array) };
+        WriteBinaryFile(filepath, std::as_bytes(s));
     }
 
 } // Warp::fsio namespace

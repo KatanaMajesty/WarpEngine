@@ -35,12 +35,11 @@ namespace Warp
         virtual void* GetNativeHandle() const noexcept { return m_nativeHandle; }
 
         virtual WindowExtent GetCurrentExtent() const noexcept { return m_extent; }
-        
+
         /// This function should only be accessed by WindowProc
-        void SetCurrentExtent(UINT width, UINT height) noexcept
-        {
-            m_extent = { width, height };
-        }
+        void SetCurrentExtent(UINT width, UINT height) noexcept { m_extent = { width, height }; }
+
+        FlagSet<EWindowActionFlag>& GetActionFlagsRef() noexcept { return m_windowActionFlags; }
 
     private:
         inline constexpr bool IsInitialized() const noexcept { return m_nativeHandle != NULL; }

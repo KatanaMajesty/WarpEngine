@@ -7,7 +7,7 @@
 
 namespace Warp::nri::vk
 {
-    
+
     NriDevice::NriDevice(const NriDeviceInfo& deviceInfo)
         : m_instance(deviceInfo.instance)
     {
@@ -19,7 +19,7 @@ namespace Warp::nri::vk
         if (deviceInfo.bSwapchainRequired)
         {
             // if swapchain is required we need to enable swapchain extension
-            requiredDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);            
+            requiredDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
         }
 
         requiredDeviceExtensions.push_back(VK_EXT_MESH_SHADER_EXTENSION_NAME);
@@ -28,15 +28,12 @@ namespace Warp::nri::vk
         requiredDeviceExtensions.push_back(VK_KHR_RAY_QUERY_EXTENSION_NAME);
         requiredDeviceExtensions.push_back(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME);
 
-        std::vector<NriSuitablePhysicalDeviceInfo> suitableDevices = QueryAllSuitableDevices(SuitableDeviceQueryInfo{
-            .surface = deviceInfo.surface,
-            .requiredDeviceExtensions = requiredDeviceExtensions 
-        });
+        std::vector<NriSuitablePhysicalDeviceInfo> suitableDevices =
+            QueryAllSuitableDevices(SuitableDeviceQueryInfo{ .surface = deviceInfo.surface, .requiredDeviceExtensions = requiredDeviceExtensions });
         NriSuitablePhysicalDeviceInfo selectedPhysicalDeviceInfo = SelectBestSuitableDevice(suitableDevices);
 
         Arc<NriPhysicalDevice> selectedPhysicalDevice = selectedPhysicalDeviceInfo.physicalDevice;
-        WARP_LOG_INFO(ELoggerType::NriLogger,
-            "Physical device '{}' selected for NRI device creation", selectedPhysicalDevice->GetInformation().deviceName);
+        WARP_LOG_INFO(ELoggerType::NriLogger, "Physical device '{}' selected for NRI device creation", selectedPhysicalDevice->GetInformation().deviceName);
 
         // explicitly store the physical device used to create this logical device
         m_physicalDevice = selectedPhysicalDevice;
@@ -60,7 +57,7 @@ namespace Warp::nri::vk
         auto meshShaderFeatures = NRI_VK_STRUCT(VkPhysicalDeviceMeshShaderFeaturesEXT);
         meshShaderFeatures.meshShader = VK_TRUE;
         meshShaderFeatures.taskShader = VK_TRUE;
-        
+
         // VK_KHR_acceleration_structure -> Specify features required for acceleration structures
         // Set pNext to meshShaderFeatures to chain the structures together
         WARP_ASSERT(m_physicalDevice->IsExtensionSupported(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME));
@@ -71,7 +68,7 @@ namespace Warp::nri::vk
         // VK_KHR_ray_query -> Specify features required for ray queries
         auto rayQueryFeatures = NRI_VK_STRUCT(VkPhysicalDeviceRayQueryFeaturesKHR, &accelerationStructureFeatures);
         rayQueryFeatures.rayQuery = VK_TRUE;
-        
+
         // VK_KHR_ray_tracing_pipeline -> Specify features required for ray tracing pipeline
         WARP_ASSERT(m_physicalDevice->IsExtensionSupported(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME));
         auto rayTracingPipelineFeatures = NRI_VK_STRUCT(VkPhysicalDeviceRayTracingPipelineFeaturesKHR, &rayQueryFeatures);
@@ -95,20 +92,38 @@ namespace Warp::nri::vk
         // Instead provide VkPhysicalDeviceFeatures2 into pNext chain of VkDeviceCreateInfo if specific features are required.
         deviceCreateInfo.pEnabledFeatures = nullptr;
         NRI_VK_CHECK_RESULT(vkCreateDevice(selectedPhysicalDevice->GetNativeHandle(), &deviceCreateInfo, nullptr, &m_nativeHandle),
-            "Failed to create Vulkan logical device");
+                            "Failed to create Vulkan logical device");
 
         // Obtain Vulkan queue handles for each queue we've just requested
-        WARP_ASSERT(m_deviceQueues.size() == selectedPhysicalDeviceInfo.queueFamilyInfos.size(), 
-            "Queue information array size mismatch? are they up-to-date?");
+        WARP_ASSERT(m_deviceQueues.size() == selectedPhysicalDeviceInfo.queueFamilyInfos.size(), "Queue information array size mismatch? are they up-to-date?");
         for (uint32_t queueTypeIndex = 0; queueTypeIndex < m_deviceQueues.size(); ++queueTypeIndex)
         {
             const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo = selectedPhysicalDeviceInfo.queueFamilyInfos.at(queueTypeIndex);
             vkGetDeviceQueue(GetNativeHandle(), queueFamilyInfo.queueFamilyIndex, 0, &m_deviceQueues[queueTypeIndex]);
         }
+        // Create command pools for every queue family this device is suitable for
+        for (uint32_t commandPoolIndex = 0; commandPoolIndex < m_commandPools.size(); ++commandPoolIndex)
+        {
+            const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo = selectedPhysicalDeviceInfo.queueFamilyInfos.at(commandPoolIndex);
+
+            auto commandPoolInfo = NRI_VK_STRUCT(VkCommandPoolCreateInfo);
+            // Allow command buffers to be rerecorded individually, without this flag they all have to be reset together
+            commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+            commandPoolInfo.queueFamilyIndex = queueFamilyInfo.queueFamilyIndex;
+            // TODO: Check if multiple command pools are fine for the same queue family index.
+            // In Warp NRI if physical device doesn't have transfer/compute queues supported universal queue index will be assigned.
+            // Because of that this code snippet potentially could invoke vkCreateCommandPool multiple times for the same queue family index
+            NRI_VK_CHECK_RESULT(vkCreateCommandPool(GetNativeHandle(), &commandPoolInfo, nullptr, &m_commandPools.at(commandPoolIndex)),
+                                "Failed to create command pool");
+        }
     }
 
     NriDevice::~NriDevice()
     {
+        for (uint32_t commandPoolIndex = 0; commandPoolIndex < m_commandPools.size(); ++commandPoolIndex)
+        {
+            vkDestroyCommandPool(GetNativeHandle(), m_commandPools.at(commandPoolIndex), nullptr);
+        }
         vkDestroyDevice(GetNativeHandle(), nullptr);
     }
 
@@ -125,8 +140,9 @@ namespace Warp::nri::vk
                 if (!physicalDevice->IsExtensionSupported(requiredExtension))
                 {
                     WARP_LOG_WARN(ELoggerType::NriLogger,
-                        "Physical device '{}' does not support required extension '{}'. Skipping...",
-                        physicalDevice->GetInformation().deviceName, requiredExtension);
+                                  "Physical device '{}' does not support required extension '{}'. Skipping...",
+                                  physicalDevice->GetInformation().deviceName,
+                                  requiredExtension);
                     continue;
                 }
             }
@@ -146,8 +162,8 @@ namespace Warp::nri::vk
                 if (!bSurfaceImageCountValid || !bSurfaceFormatsValid || !bSurfacePresentModesValid)
                 {
                     WARP_LOG_WARN(ELoggerType::NriLogger,
-                        "Physical device '{}' does not contain minimum support capabilities for surface provided during device creation. Skipping...",
-                        physicalDevice->GetInformation().deviceName);
+                                  "Physical device '{}' does not contain minimum support capabilities for surface provided during device creation. Skipping...",
+                                  physicalDevice->GetInformation().deviceName);
                     continue;
                 }
             }
@@ -171,29 +187,23 @@ namespace Warp::nri::vk
             potentialDeviceInfo.queueFamilyInfos.fill(NriPhysicalDeviceQueueFamilyInformation()); // initialize all queue family infos as invalid
 
             using DeviceQueueFamilyCriteria = std::function<bool(const NriPhysicalDeviceQueueFamilyInformation&)>;
-            std::array<DeviceQueueFamilyCriteria, EnumValue(EDeviceQueueType::NumTypes)> isPerfectQueueFamily =
-            {
+            std::array<DeviceQueueFamilyCriteria, EnumValue(EDeviceQueueType::NumTypes)> isPerfectQueueFamily = {
                 // Universal queue criteria. Checks whether a provided queue family info supports graphics, compute and transfer capabilities
                 [physicalDevice, nativeSurface = queryInfo.surface->GetNativeHandle()](const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo) -> bool
                 {
                     return queueFamilyInfo.capabilities.AllOf(EQueueCapability::Graphics | EQueueCapability::Compute | EQueueCapability::Transfer) &&
-                           physicalDevice->IsSurfaceSupportedByQueueFamily(nativeSurface, queueFamilyInfo); // also make sure to check if this queue supports surface
+                           physicalDevice->IsSurfaceSupportedByQueueFamily(nativeSurface,
+                                                                           queueFamilyInfo); // also make sure to check if this queue supports surface
                 },
                 // Transfer queue criteria. Checks whether a provided queue family info supports transfer capability but not compute
                 [](const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo) -> bool
-                {
-                    return queueFamilyInfo.capabilities.AllOf(EQueueCapability::Transfer) &&
-                           queueFamilyInfo.capabilities.NoneOf(EQueueCapability::Compute);
-                },
+                { return queueFamilyInfo.capabilities.AllOf(EQueueCapability::Transfer) && queueFamilyInfo.capabilities.NoneOf(EQueueCapability::Compute); },
                 // Compute queue criteria. Checks whether a provided queue family info supports compute capability but not graphics
                 [](const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo) -> bool
-                {
-                    return queueFamilyInfo.capabilities.AllOf(EQueueCapability::Compute) &&
-                           queueFamilyInfo.capabilities.NoneOf(EQueueCapability::Graphics);
-                },
+                { return queueFamilyInfo.capabilities.AllOf(EQueueCapability::Compute) && queueFamilyInfo.capabilities.NoneOf(EQueueCapability::Graphics); },
             };
             WARP_ASSERT(isPerfectQueueFamily.size() == potentialDeviceInfo.queueFamilyInfos.size(),
-                "Device queue family criteria array size does not match device queue types count");
+                        "Device queue family criteria array size does not match device queue types count");
 
             for (const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo : physicalDevice->GetQueueFamilyInfoArray())
             {
@@ -214,11 +224,13 @@ namespace Warp::nri::vk
 
             // Finally after selecting all possible queue families for each device queue type,
             // we also need to check if universal queue is present and patch transfer/compute queues if those were not found iteratively
-            const NriPhysicalDeviceQueueFamilyInformation& universalQueueFamilyInfo = potentialDeviceInfo.queueFamilyInfos.at(EnumValue(EDeviceQueueType::Universal));
+            const NriPhysicalDeviceQueueFamilyInformation& universalQueueFamilyInfo =
+                potentialDeviceInfo.queueFamilyInfos.at(EnumValue(EDeviceQueueType::Universal));
             if (universalQueueFamilyInfo.IsInvalid())
             {
                 WARP_LOG_WARN(ELoggerType::NriLogger,
-                    "Physical device '{}' did not provide queue families suitable for universal queues. Skipping...", physicalDevice->GetInformation().deviceName);
+                              "Physical device '{}' did not provide queue families suitable for universal queues. Skipping...",
+                              physicalDevice->GetInformation().deviceName);
                 continue;
             }
 
@@ -229,7 +241,7 @@ namespace Warp::nri::vk
             NriPhysicalDeviceQueueFamilyInformation& computeQueueFamilyInfo = potentialDeviceInfo.queueFamilyInfos.at(EnumValue(EDeviceQueueType::Compute));
             if (computeQueueFamilyInfo.IsInvalid())
                 computeQueueFamilyInfo = universalQueueFamilyInfo;
-            
+
             // After all checks and queue family queries are done we can consider this physical device as suitable
             suitablePhysicalDeviceInfoArray.push_back(std::move(potentialDeviceInfo));
         }
@@ -247,7 +259,7 @@ namespace Warp::nri::vk
             uint32_t suitablePhysicalDeviceIndex = uint32_t(-1);
             float priority = 0.0f;
         };
-        
+
         // Calculate the priority of physical device based on its memory size and device type
         static constexpr auto GetDeviceTypePriority = [](VkPhysicalDeviceType type) -> float
         {
@@ -258,8 +270,7 @@ namespace Warp::nri::vk
             case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return 2;
             case VK_PHYSICAL_DEVICE_TYPE_CPU: return 1;
             case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-            default:
-                return 0;
+            default: return 0;
             }
         };
 
@@ -276,19 +287,18 @@ namespace Warp::nri::vk
             const NriSuitablePhysicalDeviceInfo& suitablePhysicalDeviceInfo = allSuitablePhysicalDeviceInfos[i];
 
             Arc<NriPhysicalDevice> physicalDevice = suitablePhysicalDeviceInfo.physicalDevice;
-            WARP_ASSERT(physicalDevice != nullptr && physicalDevice->GetNativeHandle() != VK_NULL_HANDLE,
-                "NRI physical device was not initialized correctly");
+            WARP_ASSERT(physicalDevice != nullptr && physicalDevice->GetNativeHandle() != VK_NULL_HANDLE, "NRI physical device was not initialized correctly");
 
             // Higher priority classifies better device
             const NriPhysicalDeviceInformation& deviceInfo = physicalDevice->GetInformation();
             const NriPhysicalDeviceMemoryInformation& memoryInfo = physicalDevice->GetMemoryInformation();
 
-            physicalDevicePriorityQueue.push(PhysicalDevicePriority{
-                .suitablePhysicalDeviceIndex = i,
-                .priority = GetDeviceTypePriority(deviceInfo.type) * 10.0f + // device type has higher weight
-                            GetDeviceMemoryPriority(memoryInfo.totalSizeInBytes) });
+            physicalDevicePriorityQueue.push(
+                PhysicalDevicePriority{ .suitablePhysicalDeviceIndex = i,
+                                        .priority = GetDeviceTypePriority(deviceInfo.type) * 10.0f + // device type has higher weight
+                                                    GetDeviceMemoryPriority(memoryInfo.totalSizeInBytes) });
         }
-        
+
         // check whether we found at least one suitable physical device
         // and return the best one from priority queue
         WARP_ASSERT(!physicalDevicePriorityQueue.empty(), "No suitable physical device found to create NRI logical device");

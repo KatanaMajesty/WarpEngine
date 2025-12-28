@@ -29,7 +29,7 @@ namespace Warp
         WARP_INIT_LOGGER(ELoggerType::DefaultLogger, ELogLevel::Trace);
         WARP_INIT_LOGGER(ELoggerType::NriLogger,     ELogLevel::Trace, "Nri");
 
-        nri::ShaderLibraryConfig shaderLibraryConfig{};
+        nri::ShaderLibraryConfig shaderLibraryConfig{ .writeSpirvOutputs = true };
         nri::ShaderLibrary::Init(shaderLibraryConfig);
 
         Arc<IPlatformWindow> window = AllocatePlatformWindow(EWindowImpl::Win32);
@@ -46,11 +46,23 @@ namespace Warp
         }
 
         auto renderer = Arc<nri::Renderer>::Make();
-        renderer->Init(nri::RendererInfo{ .window = window });
+        renderer->Init(nri::RendererInfo{ .window = window, .numFramesInFlight = 3 });
 
-        while (window->IsOpen())
+        while (true)
         {
             window->PollEvents();
+            if (!window->IsOpen())
+            {
+                // if window is closed break before rendering a frame
+                break;
+            }
+
+            if (window->GetActionFlags() & EWindowActionFlag::ResizedThisFrame)
+            {
+                // handle resize if window got resized this frame
+                renderer->Resize();
+            }
+            renderer->RenderFrame();
         }
 
         nri::ShaderLibrary::Deinit();

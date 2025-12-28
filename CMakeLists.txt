@@ -1,8 +1,8 @@
 # CMake 3.28 is required as some features from Vulkan SDK require CMake 3.28+
 cmake_minimum_required(VERSION 3.28)
-project(WarpEngine LANGUAGES CXX)
+project(warp_engine LANGUAGES CXX)
 
-add_executable(WarpEngine
+add_executable(warp_engine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/arc.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/assert.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/attr_defs.h"
@@ -47,16 +47,16 @@ add_executable(WarpEngine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/warp_win32_entry_point.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/win_main.cpp"
 )
-target_include_directories(WarpEngine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(warp_engine PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-set_property(TARGET WarpEngine PROPERTY CXX_STANDARD 26)
+set_property(TARGET warp_engine PROPERTY CXX_STANDARD 26)
 # With MSVC __cplusplus stays 199711L unless you enable it
 if (MSVC)
-  target_compile_options(WarpEngine PUBLIC /Zc:__cplusplus)
+  target_compile_options(warp_engine PUBLIC /Zc:__cplusplus)
 endif()
-target_compile_definitions(WarpEngine PRIVATE $<$<CONFIG:Debug>:WARP_ENGINE_DEBUG>)
+target_compile_definitions(warp_engine PRIVATE $<$<CONFIG:Debug>:WARP_ENGINE_DEBUG>)
 
-# WarpEngine's development cycle heavily relies on latest Vulkan SDK
+# warp_engine's development cycle heavily relies on latest Vulkan SDK
 # Below is a setup of all such libraries and packages
 
 # include Vulkan and add necessary components
@@ -68,36 +68,35 @@ target_compile_definitions(WarpEngine PRIVATE $<$<CONFIG:Debug>:WARP_ENGINE_DEBU
 # but some libraries are still not available here, such as Slang, which Warp relies on, so these exceptions are handled manually
 find_package(Vulkan REQUIRED COMPONENTS SPIRV-Tools)
 
-# Find and include Slang as a main WarpEngine's shading language
+# Find and include Slang as a main warp_engine's shading language
 # Slang is currently not a part of FindVulkan so see a link below on how to resolve
 # https://docs.vulkan.org/tutorial/latest/02_Development_environment.html#_cmake 
 find_package(Slang CONFIG HINTS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/slang/cmake")
 get_target_property(Slang_INCLUDE_DIRS slang::slang INTERFACE_INCLUDE_DIRECTORIES)
 
-target_include_directories(WarpEngine PRIVATE 
+target_include_directories(warp_engine PRIVATE 
     ${Vulkan_INCLUDE_DIRS}
     ${Slang_INCLUDE_DIRS}) # we also need to manually add Slang include dirs as it is not a part of FindVulkan
-target_link_libraries(WarpEngine 
+target_link_libraries(warp_engine 
     PRIVATE
         Vulkan::Vulkan
         Vulkan::SPIRV-Tools
         slang::slang
 )
-target_compile_definitions(WarpEngine PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+target_compile_definitions(warp_engine PUBLIC VK_USE_PLATFORM_WIN32_KHR)
 
 # copy Slang DLL
-add_custom_command(TARGET WarpEngine POST_BUILD
+add_custom_command(TARGET warp_engine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:slang::slang> 
-        $<TARGET_FILE_DIR:WarpEngine>
+        $<TARGET_FILE_DIR:warp_engine>
 )
 
-# Copy shaders into output dir
-add_custom_command(TARGET WarpEngine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae" 
-        $<TARGET_FILE_DIR:WarpEngine>
-)
+# Always copy on every build (even if warp_engine didn’t rebuild)
+add_custom_target(warp_engine_nebulae_shaders ALL 
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_library" $<TARGET_FILE_DIR:warp_engine>
+    COMMENT "Copying nebulae shaders to output dir...")
+add_dependencies(warp_engine warp_engine_nebulae_shaders)
 
 # 3. Execute Python scripts
 find_package(Python REQUIRED COMPONENTS Interpreter)
@@ -132,7 +131,7 @@ add_custom_command(
 
 add_custom_target(generate_vk_stype_helper ALL DEPENDS "${GENERATE_OUTPUT_HEADER_VK_STYPE_HELPER}")
 add_custom_target(generate_pci_vendor_list ALL DEPENDS "${GENERATE_OUTPUT_HEADER_NRI_PCI_VENDOR_LIST}")
-add_dependencies(WarpEngine 
+add_dependencies(warp_engine 
     generate_vk_stype_helper
     generate_pci_vendor_list
 )

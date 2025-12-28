@@ -7,6 +7,7 @@
 #include <string_view>
 #include <vector>
 #include <filesystem>
+#include <memory>
 
 namespace Warp::nri
 {
@@ -49,8 +50,12 @@ namespace Warp::nri
     {
         /// @brief A source code of Slang shader (read by the client)
         std::string_view moduleCode;
-        /// @brief An arbitrary client-specified module name for this Slang compilation
-        std::string_view moduleName;
+        // /// @brief An arbitrary client-specified module name for this Slang compilation
+        // std::string_view moduleName; Removed for now in favour of Warp-based caching
+        /// @brief An arbitrary shader path to resolve cache conflicts based of module name.
+        /// Sometimes if moduleName stays the same but shader file was changed Slang won't be able to tell the difference without shader
+        /// path specified
+        std::string_view shaderPath;
         /// @brief An entrypoint to use when compiling
         std::string_view entryPoint;
         /// @brief Target profile for SPIR-V output
@@ -79,6 +84,37 @@ namespace Warp::nri
         std::vector<uint32_t> spirvWords;
     };
 
+    /// Due to how Slang global sessions work its global session must be kept throughout the application runtime.
+    /// Because of this we need an additional "sanity-check" handle that MUST be initialized/deinitialized properly only once
+    class ShaderCompilerGlobalSession
+    {
+    private:
+        ShaderCompilerGlobalSession();
+
+    public:
+        ShaderCompilerGlobalSession(const ShaderCompilerGlobalSession&) = delete;
+        ShaderCompilerGlobalSession& operator=(const ShaderCompilerGlobalSession&) = delete;
+
+        ~ShaderCompilerGlobalSession();
+
+        /// ShaderCompilerGlobalSession::Init() must be called at early stages of app execution, 
+        /// way before any other NRI module is initialized. This call also initializes Slang context and global session.
+        static void Init() noexcept;
+
+        /// Properly destroying shader compiler global session is very important 
+        /// to avoid globbing shader caches across multiple runtimes
+        static void Destroy() noexcept;
+
+        /// Only for internal use by ShaderCompiler to obtain Slang global context
+        Slang::ComPtr<slang::IGlobalSession> GetSlangGlobalSession() const noexcept { return m_slangGlobalSession; }
+
+    private:
+        friend class ShaderCompiler; // only allow shader compiler to access session instance
+        static inline std::unique_ptr<ShaderCompilerGlobalSession> s_sessionInstance;
+        
+        Slang::ComPtr<slang::IGlobalSession> m_slangGlobalSession = nullptr;
+    };
+
     /// @brief This is a SPIR-V compiler.
     /// TODO: this tool might need to become a standalone project for offline-packaging
     class ShaderCompiler
@@ -89,21 +125,11 @@ namespace Warp::nri
         ShaderCompiler(const ShaderCompiler&) = delete;
         ShaderCompiler& operator=(const ShaderCompiler&) = delete;
 
-        /// @brief Initializes Slang context and global session.
-        bool Init() noexcept;
-
         /// @brief Compiles Slang to SPIR-V module
         ShaderCompilerOutput CompileSlang(const ShaderCompilerSlangInfo& shaderInfo, const ShaderCompilerValidationInfo& validationInfo = ShaderCompilerValidationInfo()) noexcept;
 
-    private:
-        /// A Slang global session uses the interface slang::IGlobalSession and it represents a connection from an application 
-        /// to a particular implementation of the Slang API.
-        void CreateSlangGlobalSession() noexcept;
-
         /// Validates shader compiler output. Internally SPIRV-Tools are used to validate whether output SPIR-V words are valid
         bool ValidateCompilerSpirvOutput(const ShaderCompilerOutput& output, ETargetProfile profile, ETargetEnvironment env) const noexcept;
-
-        Slang::ComPtr<slang::IGlobalSession> m_globalSession;
     };
 
 } // Warp::nri namespace

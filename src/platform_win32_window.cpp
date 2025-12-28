@@ -69,6 +69,9 @@ namespace Warp
             UINT width = LOWORD(lParam);
             UINT height = HIWORD(lParam);
             window->SetCurrentExtent(width, height);
+            // TODO: add checks whether extent actually changed and only then set action flag
+            // set window resize action flag for this frame
+            window->GetActionFlagsRef() |= EWindowActionFlag::ResizedThisFrame;
             return 0;
         }
             //    case WM_KILLFOCUS:
@@ -113,8 +116,7 @@ namespace Warp
         // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-adjustwindowrect
         if (AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE) == 0)
         {
-            WARP_LOG_ERROR(
-                ELoggerType::DefaultLogger, "AdjustWindowRect -> Failed to adjust window to client extent: {}", GetLastErrorAsString());
+            WARP_LOG_ERROR(ELoggerType::DefaultLogger, "AdjustWindowRect -> Failed to adjust window to client extent: {}", GetLastErrorAsString());
             return false;
         }
 
@@ -142,9 +144,7 @@ namespace Warp
         SetLastError(0);
         if (SetWindowLongPtrA(m_nativeHandle, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this)) == 0 && GetLastError() != 0)
         {
-            WARP_LOG_ERROR(ELoggerType::DefaultLogger,
-                           "SetWindowLongPtrA -> Failed to setup GWLP_USERDATA for Win32Window handle: {}",
-                           GetLastErrorAsString());
+            WARP_LOG_ERROR(ELoggerType::DefaultLogger, "SetWindowLongPtrA -> Failed to setup GWLP_USERDATA for Win32Window handle: {}", GetLastErrorAsString());
             return false;
         }
 
@@ -174,6 +174,9 @@ namespace Warp
 
     void Win32Window::PollEvents() noexcept
     {
+        // before polling new events clear up all previously set window action flags
+        m_windowActionFlags = EWindowActionFlag::None;
+
         while (PeekMessageW(&m_lastMsg, nullptr, 0, 0, PM_REMOVE))
         {
             TranslateMessage(&m_lastMsg);

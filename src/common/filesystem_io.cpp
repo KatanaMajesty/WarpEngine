@@ -50,8 +50,19 @@ namespace Warp::fsio
     {
         std::ifstream f(filepath, std::ios::binary);
         WARP_ASSERT(!f.fail(), "Failed to open file at path: {}", filepath.string());
-        
+
         return std::vector<std::byte>(std::istreambuf_iterator<std::byte>(), {});
+    }
+
+    void WriteBinaryFile(const std::filesystem::path& filepath, std::span<const std::byte> bytes) noexcept
+    {
+        std::filesystem::create_directories(filepath.parent_path());
+
+        std::ofstream f(filepath, std::ios::binary);
+        WARP_ASSERT(!f.fail(), "Failed to open file at path for binary write: {}", filepath.string());
+
+        f.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        f.close();
     }
 
 } // Warp::fsio namespace

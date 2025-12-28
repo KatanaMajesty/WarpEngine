@@ -13,27 +13,49 @@
 namespace Warp::nri
 {
 
-    bool ShaderCompiler::Init() noexcept
+    ShaderCompilerGlobalSession::ShaderCompilerGlobalSession()
     {
-        this->CreateSlangGlobalSession();
-        return true;
+        // A Slang global session uses the interface slang::IGlobalSession and it represents a connection from an application
+        // to a particular implementation of the Slang API.
+        SlangGlobalSessionDesc globalSessionDesc = {};
+        NRI_SLANG_CHECK_RESULT(slang::createGlobalSession(&globalSessionDesc, m_slangGlobalSession.writeRef()),
+                               "Failed to create Slang global session");
+    }
+
+    ShaderCompilerGlobalSession::~ShaderCompilerGlobalSession()
+    {
+        m_slangGlobalSession.setNull();
+        slang::shutdown();
+    }
+
+    void ShaderCompilerGlobalSession::Init() noexcept
+    {
+        WARP_ASSERT(!s_sessionInstance, "Shader compiler global session instance was already previously initialized!");
+        s_sessionInstance = std::unique_ptr<ShaderCompilerGlobalSession>(new ShaderCompilerGlobalSession());
+    }
+
+    void ShaderCompilerGlobalSession::Destroy() noexcept
+    {
+        WARP_ASSERT(s_sessionInstance, "Shader compiler global session instance was not previously initialized!");
+        s_sessionInstance.reset();
     }
 
     ShaderCompilerOutput ShaderCompiler::CompileSlang(const ShaderCompilerSlangInfo& shaderInfo,
                                                       const ShaderCompilerValidationInfo& validationInfo) noexcept
     {
+        Slang::ComPtr<slang::IGlobalSession> globalSession = ShaderCompilerGlobalSession::s_sessionInstance->GetSlangGlobalSession();
         // For further reference on SPIR-V compilation see https://docs.shader-slang.org/en/latest/compilation-api.html
-        WARP_ASSERT(m_globalSession != nullptr, "Global session was not properly initialized");
+        WARP_ASSERT(globalSession != nullptr, "Global session was not properly initialized");
 
         // Firstly session creation:
         // Creating a session sets the configuration for what you are going to do with the API.
         // see ref: https://docs.shader-slang.org/en/latest/compilation-api.html#create-session
-        auto ConvertTargetProfile = [this](ETargetProfile profile) -> SlangProfileID
+        auto ConvertTargetProfile = [globalSession](ETargetProfile profile) -> SlangProfileID
         {
             switch (profile)
             {
-            case ETargetProfile::Spv_1_5: return m_globalSession->findProfile("spirv_1_5");
-            case ETargetProfile::Spv_1_6: return m_globalSession->findProfile("spirv_1_6");
+            case ETargetProfile::Spv_1_5: return globalSession->findProfile("spirv_1_5");
+            case ETargetProfile::Spv_1_6: return globalSession->findProfile("spirv_1_6");
             case ETargetProfile::Unknown: WARP_A_FALLTHROUGH;
             default: WARP_ASSERT(false, "Failed to find proper target profile?"); return SLANG_PROFILE_UNKNOWN;
             }
@@ -68,8 +90,18 @@ namespace Warp::nri
         sessionDesc.preprocessorMacros = macros.data();
         sessionDesc.preprocessorMacroCount = static_cast<SlangInt>(macros.size());
 
+        // See all compiler option entries below
+        // https://docs.shader-slang.org/en/latest/external/slang/docs/user-guide/08-compiling.html#compiler-options
+        // emit SPIR-V directly from Slang IR
+        slang::CompilerOptionEntry emitSpirvDirectly = { .name = slang::CompilerOptionName::EmitSpirvDirectly,
+                                                         .value = slang::CompilerOptionValue{ .intValue0 = 1 } };
+        // collect all compiler options
+        std::array compilerOptions = { emitSpirvDirectly };
+        sessionDesc.compilerOptionEntryCount = static_cast<uint32_t>(compilerOptions.size());
+        sessionDesc.compilerOptionEntries = compilerOptions.data();
+
         Slang::ComPtr<slang::ISession> session;
-        NRI_SLANG_CHECK_RESULT(m_globalSession->createSession(sessionDesc, session.writeRef()), "Failed to create Slang session");
+        NRI_SLANG_CHECK_RESULT(globalSession->createSession(sessionDesc, session.writeRef()), "Failed to create Slang session");
 
         // Module processing step:
         // Modules are the granularity of shader source code that can be compiled in Slang.
@@ -84,8 +116,12 @@ namespace Warp::nri
             // (e.g. import "../mymodule.slang";)
             //
             // Specifying nullptr as path effectively causes Slang to cache based only on moduleName.
-            const char* modulePath = nullptr;
-            const char* moduleName = shaderInfo.moduleName.data();
+            // We don't want this as file changes MUST affect compilation
+            //
+            // TODO: for now keep both path and module name at nullptr, as Slang intrusive caching is a bit hard to work with
+            // This must be changed later on when proper shader session become a requirement
+            const char* moduleName = nullptr;
+            const char* modulePath = shaderInfo.shaderPath.data();
             const char* moduleCode = shaderInfo.moduleCode.data();
             slangModule = session->loadModuleFromSourceString(moduleName, modulePath, moduleCode, diagnosticsBlob.writeRef());
             WARP_ASSERT(slangModule != nullptr, "Failed to load Slang module: {}", (const char*)diagnosticsBlob->getBufferPointer());
@@ -100,9 +136,10 @@ namespace Warp::nri
         Slang::ComPtr<slang::IEntryPoint> entryPoint;
         {
             const char* entryPointName = shaderInfo.entryPoint.data();
-            NRI_SLANG_CHECK_RESULT(slangModule->findEntryPointByName(entryPointName, entryPoint.writeRef()),
-                                   "Failed to obtain Slang entry-point {}",
-                                   entryPointName);
+            NRI_SLANG_RETURN_IF_FAILED(ShaderCompilerOutput(),
+                                       slangModule->findEntryPointByName(entryPointName, entryPoint.writeRef()),
+                                       "Failed to obtain Slang entry-point {}",
+                                       entryPointName);
         }
 
         // Compose Modules and Entry Points:
@@ -113,12 +150,13 @@ namespace Warp::nri
         Slang::ComPtr<slang::IComponentType> composedProgram;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            NRI_SLANG_CHECK_RESULT(session->createCompositeComponentType(componentTypes.data(),
-                                                                         static_cast<SlangInt>(componentTypes.size()),
-                                                                         composedProgram.writeRef(),
-                                                                         diagnosticsBlob.writeRef()),
-                                   "Failed to create composition of module & entry-point: {}",
-                                   diagnosticsBlob ? (const char*)diagnosticsBlob->getBufferPointer() : "");
+            NRI_SLANG_RETURN_IF_FAILED(ShaderCompilerOutput(),
+                                       session->createCompositeComponentType(componentTypes.data(),
+                                                                             static_cast<SlangInt>(componentTypes.size()),
+                                                                             composedProgram.writeRef(),
+                                                                             diagnosticsBlob.writeRef()),
+                                       "Failed to create composition of module & entry-point: {}",
+                                       diagnosticsBlob ? (const char*)diagnosticsBlob->getBufferPointer() : "");
         }
 
         // Program linking:
@@ -126,9 +164,10 @@ namespace Warp::nri
         Slang::ComPtr<slang::IComponentType> linkedProgram;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            NRI_SLANG_CHECK_RESULT(composedProgram->link(linkedProgram.writeRef(), diagnosticsBlob.writeRef()),
-                                   "Failed to link Slang program: {}",
-                                   diagnosticsBlob ? (const char*)diagnosticsBlob->getBufferPointer() : "");
+            NRI_SLANG_RETURN_IF_FAILED(ShaderCompilerOutput(),
+                                       composedProgram->link(linkedProgram.writeRef(), diagnosticsBlob.writeRef()),
+                                       "Failed to link Slang program: {}",
+                                       diagnosticsBlob ? (const char*)diagnosticsBlob->getBufferPointer() : "");
         }
 
         // Final step - compiling Slang module & entry-point composition into a target kernel
@@ -136,12 +175,13 @@ namespace Warp::nri
         Slang::ComPtr<slang::IBlob> spirvBlob;
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
-            NRI_SLANG_CHECK_RESULT(linkedProgram->getEntryPointCode(0,
-                                                                    /*entryPointIndex*/ 0, /*targetIndex*/
-                                                                    spirvBlob.writeRef(),
-                                                                    diagnosticsBlob.writeRef()),
-                                   "Failed to get entry point SPIR-V binary: {}",
-                                   diagnosticsBlob ? (const char*)diagnosticsBlob->getBufferPointer() : "");
+            NRI_SLANG_RETURN_IF_FAILED(ShaderCompilerOutput(),
+                                       linkedProgram->getEntryPointCode(0, // entryPointIndex
+                                                                        0, // targetIndex
+                                                                        spirvBlob.writeRef(),
+                                                                        diagnosticsBlob.writeRef()),
+                                       "Failed to get entry point SPIR-V binary: {}",
+                                       diagnosticsBlob ? (const char*)diagnosticsBlob->getBufferPointer() : "");
         }
 
         std::span<const std::byte> spirvBytes = std::span((const std::byte*)spirvBlob->getBufferPointer(), spirvBlob->getBufferSize());
@@ -157,18 +197,11 @@ namespace Warp::nri
             bool validSpirv = ValidateCompilerSpirvOutput(output, shaderInfo.targetProfile, validationInfo.validationEnvironment);
             if (!validSpirv)
             {
-                WARP_LOG_ERROR(ELoggerType::NriLogger, "SPIR-V validation failed for Slang module {}", shaderInfo.moduleName);
+                WARP_LOG_ERROR(ELoggerType::NriLogger, "SPIR-V validation failed for Slang module!");
                 return ShaderCompilerOutput();
             }
         }
         return output;
-    }
-
-    void ShaderCompiler::CreateSlangGlobalSession() noexcept
-    {
-        SlangGlobalSessionDesc globalSessionDesc = SlangGlobalSessionDesc();
-        NRI_SLANG_CHECK_RESULT(slang::createGlobalSession(&globalSessionDesc, m_globalSession.writeRef()),
-                               "Failed to create Slang global session");
     }
 
     bool ShaderCompiler::ValidateCompilerSpirvOutput(const ShaderCompilerOutput& output,

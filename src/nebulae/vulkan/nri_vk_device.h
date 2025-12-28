@@ -36,7 +36,7 @@ namespace Warp::nri::vk
     {
         Arc<NriInstance> instance;
 
-        /// Optionally, by providing surface during device creation, 
+        /// Optionally, by providing surface during device creation,
         /// only physical devices that support presentation to this surface will be considered suitable for device creation.
         NRI_MARK_OPTIONAL(Arc<NriSurface>) surface;
 
@@ -55,9 +55,13 @@ namespace Warp::nri::vk
         ~NriDevice();
 
         inline constexpr VkDevice GetNativeHandle() const noexcept { return m_nativeHandle; }
-        inline constexpr VkQueue GetQueue(EDeviceQueueType deviceQueueType) const noexcept { return m_deviceQueues.at(EnumValue(deviceQueueType)); }
-
         inline Arc<NriPhysicalDevice> GetPhysicalDevice() const noexcept { return m_physicalDevice; }
+
+        inline constexpr VkQueue GetQueue(EDeviceQueueType deviceQueueType) const noexcept { return m_deviceQueues.at(EnumValue(deviceQueueType)); }
+        inline constexpr VkCommandPool GetCommandPool(EDeviceQueueType deviceQueueType) const noexcept { return m_commandPools.at(EnumValue(deviceQueueType)); }
+
+        /// @brief Waits on host for all outstanding device work to finish
+        inline void WaitIdle() noexcept { NRI_VK_CHECK_RESULT(vkDeviceWaitIdle(GetNativeHandle()), "Failed to wait for device to finish work"); }
 
     private:
         struct SuitableDeviceQueryInfo
@@ -78,6 +82,7 @@ namespace Warp::nri::vk
         Arc<NriPhysicalDevice> m_physicalDevice; /// The physical device used to create this logical device
 
         std::array<VkQueue, EnumValue(EDeviceQueueType::NumTypes)> m_deviceQueues;
+        std::array<VkCommandPool, EnumValue(EDeviceQueueType::NumTypes)> m_commandPools;
     };
 
 } // Warp::nri::vk namespace
