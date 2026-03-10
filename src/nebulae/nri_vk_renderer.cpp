@@ -13,7 +13,14 @@ namespace Warp::nri
     {
         // before destroying anything wait on device to finish outstanding jobs
         m_device->WaitIdle();
-        
+
+        const uint32_t numVertexAttributes = EnumValue(EVertexAttributeIndex::Last);
+        for (uint32_t i = 0; i < numVertexAttributes; ++i)
+        {
+            vkDestroyBuffer(m_device->GetNativeHandle(), m_vertexAttributeBuffers.at(i), nullptr);
+            vkFreeMemory(m_device->GetNativeHandle(), m_vertexAttributeMemories.at(i), nullptr);
+        }
+
         // destroy sync primitives
         const uint32_t numFramesInFlight = m_info.numFramesInFlight;
         for (uint32_t inflightFrameIndex = 0; inflightFrameIndex < numFramesInFlight; ++inflightFrameIndex)
@@ -61,6 +68,9 @@ namespace Warp::nri
         InitFramebuffers();
         InitTriangleCommandBuffers();
         InitSyncPrimitives();
+
+        // vertex buffer initialization
+        InitTriangleVertexBuffers();
     }
 
     void Renderer::Resize()
@@ -161,6 +171,13 @@ namespace Warp::nri
             vkCmdBeginRenderPass(commandBuffer, &beginRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_trianglePipe);
 
+            // Bind vertex buffer information to the pipe
+            {
+                const uint32_t numVertexAttributes = EnumValue(EVertexAttributeIndex::Last);
+                std::array dummyOffsets1 = { VkDeviceSize{}, VkDeviceSize{} };
+                vkCmdBindVertexBuffers(commandBuffer, 0, numVertexAttributes, m_vertexAttributeBuffers.data(), dummyOffsets1.data());
+            }
+
             // TODO: remove this and instead use VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT && VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT
             VkViewport viewport = { .x = 0,
                                     .y = 0,
@@ -240,8 +257,8 @@ namespace Warp::nri
         };
 
         ShaderLibrary* shaderLibrary = ShaderLibrary::Get();
-        ShaderCompilerOutput vsHelloTriangleSpirv = shaderLibrary->CompileFromLibrary(EShaderLang::Slang, "hello_triangle.slang", "vertexMain", {});
-        ShaderCompilerOutput fsHelloTriangleSpirv = shaderLibrary->CompileFromLibrary(EShaderLang::Slang, "hello_triangle.slang", "fragmentMain", {});
+        ShaderCompilerOutput vsHelloTriangleSpirv = shaderLibrary->CompileFromLibrary(EShaderLang::Slang, "hello_triangle_vb.slang", "vertexMain", {});
+        ShaderCompilerOutput fsHelloTriangleSpirv = shaderLibrary->CompileFromLibrary(EShaderLang::Slang, "hello_triangle_vb.slang", "fragmentMain", {});
 
         m_vsModule = CreateShaderModule(vsHelloTriangleSpirv.spirvWords);
         m_fsModule = CreateShaderModule(fsHelloTriangleSpirv.spirvWords);
@@ -332,13 +349,23 @@ namespace Warp::nri
 
         std::array shaderStageInfos = { vsShaderStageInfo, fsShaderStageInfo };
 
+        std::array vertexBindingDescriptions = {
+            m_triangleVertexCollection.GetBindingDescription(EVertexAttributeIndex::Position, true),
+            m_triangleVertexCollection.GetBindingDescription(EVertexAttributeIndex::Color, true)
+        };
+
+        std::array vertexAttributeDescriptions = {
+            m_triangleVertexCollection.GetAttributeDescription(EVertexAttributeIndex::Position, 0 /*location*/),
+            m_triangleVertexCollection.GetAttributeDescription(EVertexAttributeIndex::Color, 1 /*location*/),
+        };
+
         auto pipeVertexInputInfo = NRI_VK_STRUCT(VkPipelineVertexInputStateCreateInfo);
         // TODO: proper vertex state
         pipeVertexInputInfo.flags = 0;
-        pipeVertexInputInfo.vertexBindingDescriptionCount = 0;
-        pipeVertexInputInfo.pVertexBindingDescriptions = nullptr;
-        pipeVertexInputInfo.vertexAttributeDescriptionCount = 0;
-        pipeVertexInputInfo.pVertexAttributeDescriptions = nullptr;
+        pipeVertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDescriptions.size());
+        pipeVertexInputInfo.pVertexBindingDescriptions = vertexBindingDescriptions.data();
+        pipeVertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size());
+        pipeVertexInputInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
 
         auto pipeInputAssemblyInfo = NRI_VK_STRUCT(VkPipelineInputAssemblyStateCreateInfo);
         pipeInputAssemblyInfo.flags = 0;
@@ -504,6 +531,93 @@ namespace Warp::nri
             NRI_VK_CHECK_RESULT(vkCreateFence(m_device->GetNativeHandle(), &inflightFenceInfo, nullptr, &m_inflightFences.at(inflightFrameIndex)),
                                 "Failed to create in-flight fence");
         }
+    }
+
+    void Renderer::InitTriangleVertexBuffers()
+    {
+        WARP_ASSERT(m_device && m_device->GetPhysicalDevice(), "Physical device is not reachable!");
+
+        const uint32_t numAttributes = EnumValue(EVertexAttributeIndex::Last);
+        /* destroy previously allocated buffers, if any */
+        for (uint32_t i = 0; i < numAttributes; ++i)
+        {
+            if (m_vertexAttributeBuffers.at(i) != VK_NULL_HANDLE)
+            {
+                vkDestroyBuffer(m_device->GetNativeHandle(), m_vertexAttributeBuffers.at(i), nullptr);
+            }
+            if (m_vertexAttributeMemories.at(i) != VK_NULL_HANDLE)
+            {
+                vkFreeMemory(m_device->GetNativeHandle(), m_vertexAttributeMemories.at(i), nullptr);
+            }
+        }
+        /* allocate new buffers for each attribute */
+        for (uint32_t i = 0; i < numAttributes; ++i)
+        {
+            EVertexAttributeIndex attributeIndex = static_cast<EVertexAttributeIndex>(i);
+            auto attributeBufferCreateInfo = NRI_VK_STRUCT(VkBufferCreateInfo);
+            attributeBufferCreateInfo.size = m_triangleVertexCollection.GetAttributes(attributeIndex).GetBytes().size();
+            attributeBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+            attributeBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+            NRI_VK_CHECK_RESULT(vkCreateBuffer(m_device->GetNativeHandle(), &attributeBufferCreateInfo, nullptr, &m_vertexAttributeBuffers.at(i)),
+                                "Failed to create vertex attribute buffer for index {}",
+                                i);
+
+            /* query amount of memory required for this buffer to be allocated */
+            VkMemoryRequirements attribBufferMemReqs;
+            vkGetBufferMemoryRequirements(m_device->GetNativeHandle(), m_vertexAttributeBuffers.at(i), &attribBufferMemReqs);
+
+            static auto GetRequiredMemoryTypeIndex = 
+                [](const VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t typeFilter, VkMemoryPropertyFlags properties) -> uint32_t {
+                    for (uint32_t memoryTypeIdx = 0; memoryTypeIdx < memoryProperties.memoryTypeCount; ++memoryTypeIdx)
+                    {
+                        if ((typeFilter & (1 << memoryTypeIdx)) && 
+                            (memoryProperties.memoryTypes[memoryTypeIdx].propertyFlags & properties) == properties)
+                        {
+                            return memoryTypeIdx;
+                        }
+                    }
+                    return UINT32_MAX;
+                };
+            const uint32_t memoryTypeIndex = GetRequiredMemoryTypeIndex(m_device->GetPhysicalDevice()->GetMemoryProperties(),
+                                                                        attribBufferMemReqs.memoryTypeBits,
+                                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            WARP_ASSERT(memoryTypeIndex != UINT32_MAX, "Failed to find suitable memory type index");
+
+            auto attributeMemoryAllocateInfo = NRI_VK_STRUCT(VkMemoryAllocateInfo);
+            attributeMemoryAllocateInfo.allocationSize = attribBufferMemReqs.size;
+            attributeMemoryAllocateInfo.memoryTypeIndex = memoryTypeIndex;
+            NRI_VK_CHECK_RESULT(vkAllocateMemory(m_device->GetNativeHandle(), &attributeMemoryAllocateInfo, nullptr, &m_vertexAttributeMemories.at(i)),
+                                "Failed to allocate device memory for vertex attribute buffer");
+
+            auto bindInfo = NRI_VK_STRUCT(VkBindBufferMemoryInfo);
+            bindInfo.buffer = m_vertexAttributeBuffers.at(i);
+            bindInfo.memory = m_vertexAttributeMemories.at(i);
+            bindInfo.memoryOffset = 0;
+            NRI_VK_CHECK_RESULT(vkBindBufferMemory2(m_device->GetNativeHandle(), 1, &bindInfo), "Failed to bind vertex attribute buffer memory");
+
+            // Populate vertex buffer with data from vertex collection
+            void* pMappedData{};
+            auto memoryMapInfo = NRI_VK_STRUCT(VkMemoryMapInfo);
+            memoryMapInfo.flags = 0; // see VkMemoryMapFlagBits for more info
+            memoryMapInfo.memory = m_vertexAttributeMemories.at(i);
+            memoryMapInfo.offset = 0;
+            memoryMapInfo.size = VK_WHOLE_SIZE;
+            NRI_VK_CHECK_RESULT(vkMapMemory2(m_device->GetNativeHandle(), &memoryMapInfo, &pMappedData), "Failed to map vertex attribute buffer memory");
+            {
+                std::span attributeData = m_triangleVertexCollection.GetAttributes(attributeIndex).GetBytes();
+                std::memcpy(pMappedData, attributeData.data(), attributeData.size());
+            }
+            auto memoryUnmapInfo = NRI_VK_STRUCT(VkMemoryUnmapInfo);
+            memoryUnmapInfo.flags = 0;
+            memoryUnmapInfo.memory = m_vertexAttributeMemories.at(i);
+            NRI_VK_CHECK_RESULT(vkUnmapMemory2(m_device->GetNativeHandle(), &memoryUnmapInfo), "Failed to unmap vertex attribute buffer memory");
+
+            // we don't need to flush memory from host to device after unmapping because we specified VK_MEMORY_PROPERTY_HOST_COHERENT_BIT memory.
+            // alternatively vkFlushMappedMemoryRanges/vkInvalidateMappedMemoryRanges could be called
+        }
+
+        
     }
 
 } // Warp::nri namespace

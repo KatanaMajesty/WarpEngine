@@ -14,16 +14,6 @@
 namespace Warp::nri::vk
 {
 
-    /// @brief enum values from this enumeration represents vendors that are recognized by NRI interface of Warp.
-    /// If any other device vendor, that is not recognized, needs to be used, WARP_PCI_VENDOR_ID_* macros can be used instead
-    enum class EPhysicalDeviceVendor : uint16_t
-    {
-        Unknown = 0,
-        Nvidia = WARP_PCI_VENDOR_ID_NVIDIA_CORPORATION,
-        AMD = WARP_PCI_VENDOR_ID_ADVANCED_MICRO_DEVICES_INC_AMD,
-        Intel = WARP_PCI_VENDOR_ID_INTEL_CORPORATION,
-    };
-
     struct NriPhysicalDeviceInformation
     {
         /// Device's reported name (from VkPhysicalDeviceProperties::deviceName)
@@ -38,7 +28,7 @@ namespace Warp::nri::vk
         /// Marks the vendor of this physical device. If the vendor is not recognized, EPhysicalDeviceVendor::Unknown is set.
         /// Device vendor is uint16_t defined by PCI-SIG organization, for more information see https://pcisig.com/membership/vendor-id
         /// Device vendors are defined in "nri_pci_vendor_ids.h" auto-generated file
-        EPhysicalDeviceVendor vendor = EPhysicalDeviceVendor::Unknown;
+        int32_t vendor = WARP_PCI_VENDOR_ID_ILLEGAL_VENDOR_ID;
 
         /// Device type as defined in VkPhysicalDeviceProperties::deviceType.
         /// This would usually be used to determine what physical device to choose when multiple devices are available
@@ -71,19 +61,6 @@ namespace Warp::nri::vk
 
         /// Memory properties flag set defines some capabilities of this memory heap, such as device locality or host visibility
         FlagSet<EMemoryProperty> memoryProperties;
-    };
-
-    struct NriPhysicalDeviceMemoryInformation
-    {
-        /// Physical device's total size in bytes is a sum of all heap's sizes available for this physical device
-        ///
-        /// REMARK: Total size in bytes of a physical device would probably only make sense when choosing physical device to create a virtual Vk device,
-        ///         otherwise it should not be relied upon when querying available memory for resource/handle creation or any other memory-related behaviour
-        uint64_t totalSizeInBytes = 0;
-
-        /// An array of all defined memory heaps for this specific physical device.
-        /// For a properly defined physical device this array would not be empty.
-        std::vector<NriPhysicalDeviceMemoryHeap> memoryHeaps;
     };
 
     enum class EQueueCapability : uint16_t
@@ -165,7 +142,7 @@ namespace Warp::nri::vk
         inline bool IsExtensionSupported(std::string_view extensionName) const noexcept { return m_supportedDeviceExtensionLUT.contains(extensionName); }
 
         inline constexpr const NriPhysicalDeviceInformation& GetInformation() const noexcept { return m_info; }
-        inline constexpr const NriPhysicalDeviceMemoryInformation& GetMemoryInformation() const noexcept { return m_memoryInfo; }
+        inline constexpr const VkPhysicalDeviceMemoryProperties& GetMemoryProperties() const noexcept { return m_memoryProperties; }
         inline constexpr std::span<const NriPhysicalDeviceQueueFamilyInformation> GetQueueFamilyInfoArray() const noexcept { return m_queueFamilyInfos; }
 
         /// @brief A shortcut to obtain Vulkan API version supported by this physical device from NriPhysicalDeviceInformation
@@ -211,7 +188,7 @@ namespace Warp::nri::vk
         std::unordered_set<std::string_view> m_supportedDeviceExtensionLUT;
 
         NriPhysicalDeviceInformation m_info = NriPhysicalDeviceInformation();
-        NriPhysicalDeviceMemoryInformation m_memoryInfo = NriPhysicalDeviceMemoryInformation();
+        VkPhysicalDeviceMemoryProperties m_memoryProperties = {};
         std::vector<NriPhysicalDeviceQueueFamilyInformation> m_queueFamilyInfos;
     };
 

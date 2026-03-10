@@ -7,8 +7,6 @@
 #include <string_view>
 #include <stdexcept>
 
-
-
 int32_t main(int32_t argc, char* argv[])
 {
     // provides the executable's module handle, which is the same as the hInstance

@@ -13,6 +13,8 @@
 namespace Warp::nri
 {
 
+    std::unique_ptr<ShaderCompilerGlobalSession> ShaderCompilerGlobalSession::s_sessionInstance = nullptr;
+
     ShaderCompilerGlobalSession::ShaderCompilerGlobalSession()
     {
         // A Slang global session uses the interface slang::IGlobalSession and it represents a connection from an application

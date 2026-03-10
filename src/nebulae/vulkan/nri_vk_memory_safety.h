@@ -30,8 +30,6 @@ namespace Warp::nri::vk
         /// If pMemory is non-NULL, it must be a pointer previously allocated by pfnAllocation or pfnReallocation. 
         /// The application should free this memory.
         void Free(void* pUserData, void* pMemory);
-
-        
     };
 
 } // Warp::nri::vk namespace

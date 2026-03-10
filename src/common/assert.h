@@ -47,8 +47,7 @@ namespace Warp::common
                 ##__VA_ARGS__);                                      \
             WARP_DEBUG_BREAK();                                      \
         }                                                            \
-        WARP_A_ASSUME(expr);                                         \
     } while (false)
 #else // !defined(WARP_ENGINE_DEBUG)
-#define WARP_ASSERT(expr, ...) WARP_A_ASSUME(expr);
+#define WARP_ASSERT(expr, ...) 
 #endif // defined(WARP_ENGINE_DEBUG)

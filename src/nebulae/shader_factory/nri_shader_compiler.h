@@ -110,7 +110,7 @@ namespace Warp::nri
 
     private:
         friend class ShaderCompiler; // only allow shader compiler to access session instance
-        static inline std::unique_ptr<ShaderCompilerGlobalSession> s_sessionInstance;
+        static std::unique_ptr<ShaderCompilerGlobalSession> s_sessionInstance;
         
         Slang::ComPtr<slang::IGlobalSession> m_slangGlobalSession = nullptr;
     };

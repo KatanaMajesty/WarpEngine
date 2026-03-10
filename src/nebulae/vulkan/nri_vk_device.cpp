@@ -291,12 +291,19 @@ namespace Warp::nri::vk
 
             // Higher priority classifies better device
             const NriPhysicalDeviceInformation& deviceInfo = physicalDevice->GetInformation();
-            const NriPhysicalDeviceMemoryInformation& memoryInfo = physicalDevice->GetMemoryInformation();
+            const VkPhysicalDeviceMemoryProperties& memoryProperties = physicalDevice->GetMemoryProperties();
+
+            // Calculate total memory size in bytes
+            VkDeviceSize totalSizeInBytes = {};
+            for (uint32_t heapIdx = 0; heapIdx < memoryProperties.memoryHeapCount; ++heapIdx)
+            {
+                totalSizeInBytes += memoryProperties.memoryHeaps[heapIdx].size;
+            }
 
             physicalDevicePriorityQueue.push(
                 PhysicalDevicePriority{ .suitablePhysicalDeviceIndex = i,
                                         .priority = GetDeviceTypePriority(deviceInfo.type) * 10.0f + // device type has higher weight
-                                                    GetDeviceMemoryPriority(memoryInfo.totalSizeInBytes) });
+                                                    GetDeviceMemoryPriority(totalSizeInBytes) });
         }
 
         // check whether we found at least one suitable physical device

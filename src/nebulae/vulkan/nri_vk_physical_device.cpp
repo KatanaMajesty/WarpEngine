@@ -109,11 +109,14 @@ namespace Warp::nri::vk
         auto physicalDeviceProperties = NRI_VK_STRUCT(VkPhysicalDeviceProperties2, &physicalDeviceDriverProperties);
         vkGetPhysicalDeviceProperties2(GetNativeHandle(), &physicalDeviceProperties);
 
+        const int32_t vendorId = physicalDeviceProperties.properties.vendorID & 0xffff;
+        WARP_ASSERT(vendorId != WARP_PCI_VENDOR_ID_ILLEGAL_VENDOR_ID, "Illegal PCI vendor ID");
+        
         m_info = NriPhysicalDeviceInformation();
         m_info.deviceName = physicalDeviceProperties.properties.deviceName;
         m_info.driverName = physicalDeviceDriverProperties.driverName;
         m_info.driverInfo = physicalDeviceDriverProperties.driverInfo;
-        m_info.vendor = static_cast<EPhysicalDeviceVendor>(physicalDeviceProperties.properties.vendorID & 0xffff);
+        m_info.vendor = physicalDeviceProperties.properties.vendorID & 0xffff;
         m_info.type = physicalDeviceProperties.properties.deviceType;
         m_info.supportedApiVersion = static_cast<EApiVersion>(physicalDeviceProperties.properties.apiVersion);
     }
@@ -123,34 +126,7 @@ namespace Warp::nri::vk
         auto physicalDeviceMemoryProperties = NRI_VK_STRUCT(VkPhysicalDeviceMemoryProperties2);
         vkGetPhysicalDeviceMemoryProperties2(GetNativeHandle(), &physicalDeviceMemoryProperties);
 
-        VkPhysicalDeviceMemoryProperties& baseMemProperties = physicalDeviceMemoryProperties.memoryProperties;
-
-        m_memoryInfo = NriPhysicalDeviceMemoryInformation();
-        m_memoryInfo.totalSizeInBytes = 0;
-        m_memoryInfo.memoryHeaps.resize(baseMemProperties.memoryHeapCount);
-
-        // to determine total size of memory (in bytes) available to this physical device
-        // we iterate over each available heap and sum it up essentially
-        for (uint32_t heapIndex = 0; heapIndex < baseMemProperties.memoryHeapCount; ++heapIndex)
-        {
-            const VkMemoryHeap& srcHeap = baseMemProperties.memoryHeaps[heapIndex];
-
-            m_memoryInfo.memoryHeaps.at(heapIndex).heapTotalSizeInBytes = srcHeap.size;
-            m_memoryInfo.totalSizeInBytes += srcHeap.size;
-        }
-
-        // a separate loop here in order to determine memory properties of each heap
-        for (uint32_t memoryTypeIndex = 0; memoryTypeIndex < baseMemProperties.memoryTypeCount; ++memoryTypeIndex)
-        {
-            const VkMemoryType& srcMemoryType = baseMemProperties.memoryTypes[memoryTypeIndex];
-
-            NriPhysicalDeviceMemoryHeap& memoryHeap = m_memoryInfo.memoryHeaps[srcMemoryType.heapIndex];
-            memoryHeap.memoryProperties.Set(EMemoryProperty::DeviceLocal, srcMemoryType.propertyFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            memoryHeap.memoryProperties.Set(EMemoryProperty::HostVisible, srcMemoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
-            memoryHeap.memoryProperties.Set(EMemoryProperty::HostCoherent, srcMemoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            memoryHeap.memoryProperties.Set(EMemoryProperty::HostCached, srcMemoryType.propertyFlags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-            memoryHeap.memoryProperties.Set(EMemoryProperty::LazilyAllocated, srcMemoryType.propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT);
-        }
+        m_memoryProperties = physicalDeviceMemoryProperties.memoryProperties;
     }
 
     void NriPhysicalDevice::QueryQueueFamilyProperties()

@@ -19,6 +19,7 @@ namespace Warp::nri::vk
         Compute,
         /// Supports fast DMA/transfers
         Transfer,
+        /// Should always be the last one!
         NumTypes,
     };
 

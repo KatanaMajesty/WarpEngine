@@ -101,7 +101,7 @@ namespace Warp::nri
                                        std::string_view entryPoint,
                                        const ShaderCompilerOutput& output);
 
-        static inline std::unique_ptr<ShaderLibrary> s_instance = nullptr;
+        static std::unique_ptr<ShaderLibrary> s_instance;
 
         /// Sanity-check variable to make sure that shader library was properly destroyed!
         bool m_isInitialized = false;

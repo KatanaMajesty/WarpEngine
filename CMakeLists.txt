@@ -29,8 +29,6 @@ add_executable(warp_engine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_memory_safety.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_physical_device.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_physical_device.h"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_shader_module.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_shader_module.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.cpp"

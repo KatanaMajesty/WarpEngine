@@ -4,6 +4,7 @@
 #include "common/attr_defs.h"
 
 #include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 #include <span>

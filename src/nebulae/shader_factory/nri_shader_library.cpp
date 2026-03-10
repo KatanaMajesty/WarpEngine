@@ -5,6 +5,8 @@
 
 namespace Warp::nri
 {
+    std::unique_ptr<ShaderLibrary> ShaderLibrary::s_instance = nullptr;
+
     ShaderLibrary::~ShaderLibrary()
     {
         WARP_ASSERT(!m_isInitialized, "Shader library was not properly deinitialized prior to its destructor!");
