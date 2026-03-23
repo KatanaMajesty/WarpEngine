@@ -30,13 +30,18 @@ namespace Warp::nri::vk
 
         std::vector<NriSuitablePhysicalDeviceInfo> suitableDevices =
             QueryAllSuitableDevices(SuitableDeviceQueryInfo{ .surface = deviceInfo.surface, .requiredDeviceExtensions = requiredDeviceExtensions });
-        NriSuitablePhysicalDeviceInfo selectedPhysicalDeviceInfo = SelectBestSuitableDevice(suitableDevices);
+        // Select the best suitable device
+        {
+            NriSuitablePhysicalDeviceInfo selectedPhysicalDeviceInfo = SelectBestSuitableDevice(suitableDevices);
+            // explicitly store the physical device used to create this logical device
+            m_physicalDevice = selectedPhysicalDeviceInfo.physicalDevice;
+            // also store queue family index information for every queue type, as it might be required at runtime for command buffer recording, synchronization, etc.
+            // one instance of such, is VK_SHARING_MODE_CONCURRENT during buffer and image creation, 
+            // where we need to provide queue family indices of all queues that will be sharing a particular resource
+            m_deviceQueueFamilyInfos = selectedPhysicalDeviceInfo.queueFamilyInfos;
 
-        Arc<NriPhysicalDevice> selectedPhysicalDevice = selectedPhysicalDeviceInfo.physicalDevice;
-        WARP_LOG_INFO(ELoggerType::NriLogger, "Physical device '{}' selected for NRI device creation", selectedPhysicalDevice->GetInformation().deviceName);
-
-        // explicitly store the physical device used to create this logical device
-        m_physicalDevice = selectedPhysicalDevice;
+            WARP_LOG_INFO(ELoggerType::NriLogger, "Physical device '{}' selected for NRI device creation", m_physicalDevice->GetInformation().deviceName);
+        }
 
         std::array<VkDeviceQueueCreateInfo, EnumValue(EDeviceQueueType::NumTypes)> queueCreateInfoArray;
         for (uint32_t deviceQueueIndex = 0; deviceQueueIndex < queueCreateInfoArray.size(); ++deviceQueueIndex)
@@ -47,7 +52,7 @@ namespace Warp::nri::vk
             // We set device-local priority to 1.0f as we instead prefer to use global-scope priorities provided by VkDeviceQueueGlobalPriorityCreateInfo
             float queuePriority = 1.0f;
             queueCreateInfo = NRI_VK_STRUCT(VkDeviceQueueCreateInfo);
-            queueCreateInfo.queueFamilyIndex = selectedPhysicalDeviceInfo.queueFamilyInfos.at(deviceQueueIndex).queueFamilyIndex;
+            queueCreateInfo.queueFamilyIndex = m_deviceQueueFamilyInfos.at(deviceQueueIndex).queueFamilyIndex;
             queueCreateInfo.queueCount = 1;
             queueCreateInfo.pQueuePriorities = &queuePriority;
         }
@@ -91,20 +96,19 @@ namespace Warp::nri::vk
         // This field is legacy. See https://registry.khronos.org/vulkansc/specs/1.0-extensions/html/vkspec.html#legacy-gpdp2.
         // Instead provide VkPhysicalDeviceFeatures2 into pNext chain of VkDeviceCreateInfo if specific features are required.
         deviceCreateInfo.pEnabledFeatures = nullptr;
-        NRI_VK_CHECK_RESULT(vkCreateDevice(selectedPhysicalDevice->GetNativeHandle(), &deviceCreateInfo, nullptr, &m_nativeHandle),
+        NRI_VK_CHECK_RESULT(vkCreateDevice(m_physicalDevice->GetNativeHandle(), &deviceCreateInfo, nullptr, &m_nativeHandle),
                             "Failed to create Vulkan logical device");
 
         // Obtain Vulkan queue handles for each queue we've just requested
-        WARP_ASSERT(m_deviceQueues.size() == selectedPhysicalDeviceInfo.queueFamilyInfos.size(), "Queue information array size mismatch? are they up-to-date?");
         for (uint32_t queueTypeIndex = 0; queueTypeIndex < m_deviceQueues.size(); ++queueTypeIndex)
         {
-            const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo = selectedPhysicalDeviceInfo.queueFamilyInfos.at(queueTypeIndex);
+            const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo = m_deviceQueueFamilyInfos.at(queueTypeIndex);
             vkGetDeviceQueue(GetNativeHandle(), queueFamilyInfo.queueFamilyIndex, 0, &m_deviceQueues[queueTypeIndex]);
         }
         // Create command pools for every queue family this device is suitable for
         for (uint32_t commandPoolIndex = 0; commandPoolIndex < m_commandPools.size(); ++commandPoolIndex)
         {
-            const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo = selectedPhysicalDeviceInfo.queueFamilyInfos.at(commandPoolIndex);
+            const NriPhysicalDeviceQueueFamilyInformation& queueFamilyInfo = m_deviceQueueFamilyInfos.at(commandPoolIndex);
 
             auto commandPoolInfo = NRI_VK_STRUCT(VkCommandPoolCreateInfo);
             // Allow command buffers to be rerecorded individually, without this flag they all have to be reset together
@@ -116,15 +120,56 @@ namespace Warp::nri::vk
             NRI_VK_CHECK_RESULT(vkCreateCommandPool(GetNativeHandle(), &commandPoolInfo, nullptr, &m_commandPools.at(commandPoolIndex)),
                                 "Failed to create command pool");
         }
+        // Create Vulkan Memory Allocator for this device (VMA)
+        VmaAllocatorCreateInfo allocatorCreateInfo = {};
+        allocatorCreateInfo.physicalDevice = m_physicalDevice->GetNativeHandle();
+        allocatorCreateInfo.device = GetNativeHandle();
+        allocatorCreateInfo.preferredLargeHeapBlockSize = 256ull * 1024ull * 1024ull; // 256 MiB, default value recommended by VMA documentation for large heaps (>1 GiB)
+        allocatorCreateInfo.pHeapSizeLimit = nullptr; // optional, we don't want to set custom heap size limits, so set to nullptr to use defaults (which is no limit)
+        allocatorCreateInfo.instance = m_instance->GetNativeHandle();
+        allocatorCreateInfo.vulkanApiVersion = EnumValue(m_instance->GetApiVersion());
+#if defined(VMA_EXTERNAL_MEMORY) && VMA_EXTERNAL_MEMORY == 1
+        allocatorCreateInfo.pTypeExternalMemoryHandleTypes = nullptr;
+#endif // defined(VMA_EXTERNAL_MEMORY) && VMA_EXTERNAL_MEMORY == 1
+        NRI_VK_CHECK_RESULT(vmaCreateAllocator(&allocatorCreateInfo, &m_memoryAllocator), "Failed to create Vulkan Memory Allocator");
     }
 
     NriDevice::~NriDevice()
     {
+        vmaDestroyAllocator(m_memoryAllocator);
         for (uint32_t commandPoolIndex = 0; commandPoolIndex < m_commandPools.size(); ++commandPoolIndex)
         {
             vkDestroyCommandPool(GetNativeHandle(), m_commandPools.at(commandPoolIndex), nullptr);
         }
         vkDestroyDevice(GetNativeHandle(), nullptr);
+    }
+
+    void NriDevice::BeginDebugLabel(VkCommandBuffer commandBuffer, std::string_view labelName, glm::vec4 labelColor) const noexcept 
+    {
+        auto labelInfo = NRI_VK_STRUCT(VkDebugUtilsLabelEXT);
+        labelInfo.pLabelName = labelName.data();
+        labelInfo.color[0] = labelColor.r;
+        labelInfo.color[1] = labelColor.g;
+        labelInfo.color[2] = labelColor.b;
+        labelInfo.color[3] = labelColor.a;
+        static PFN_vkCmdBeginDebugUtilsLabelEXT cmdBeginDebugUtilsLabelEXT = nullptr;
+        if (!cmdBeginDebugUtilsLabelEXT)
+        {
+            cmdBeginDebugUtilsLabelEXT = NRI_VK_INSTANCE_PROC_ADDR(vkCmdBeginDebugUtilsLabelEXT, m_instance->GetNativeHandle());
+            WARP_ASSERT(cmdBeginDebugUtilsLabelEXT, "Failed to load vkCmdBeginDebugUtilsLabelEXT function pointer");
+        }
+        cmdBeginDebugUtilsLabelEXT(commandBuffer, &labelInfo);
+    }
+
+    void NriDevice::EndDebugLabel(VkCommandBuffer commandBuffer) const noexcept 
+    {
+        static PFN_vkCmdEndDebugUtilsLabelEXT cmdEndDebugUtilsLabelEXT = nullptr;
+        if (!cmdEndDebugUtilsLabelEXT)
+        {
+            cmdEndDebugUtilsLabelEXT = NRI_VK_INSTANCE_PROC_ADDR(vkCmdEndDebugUtilsLabelEXT, m_instance->GetNativeHandle());
+            WARP_ASSERT(cmdEndDebugUtilsLabelEXT, "Failed to load vkCmdEndDebugUtilsLabelEXT function pointer");
+        }
+        cmdEndDebugUtilsLabelEXT(commandBuffer);
     }
 
     std::vector<NriSuitablePhysicalDeviceInfo> NriDevice::QueryAllSuitableDevices(const SuitableDeviceQueryInfo& queryInfo)

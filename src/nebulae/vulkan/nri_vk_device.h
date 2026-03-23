@@ -1,5 +1,6 @@
 #pragma once
 
+#include "nri_vk_common.h"
 #include "nri_vk_instance.h"
 #include "nri_vk_surface.h"
 
@@ -58,11 +59,19 @@ namespace Warp::nri::vk
         inline constexpr VkDevice GetNativeHandle() const noexcept { return m_nativeHandle; }
         inline Arc<NriPhysicalDevice> GetPhysicalDevice() const noexcept { return m_physicalDevice; }
 
+        inline constexpr const NriPhysicalDeviceQueueFamilyInformation& GetQueueFamilyInfo(EDeviceQueueType deviceQueueType) const noexcept
+        {
+            return m_deviceQueueFamilyInfos.at(EnumValue(deviceQueueType));
+        }
         inline constexpr VkQueue GetQueue(EDeviceQueueType deviceQueueType) const noexcept { return m_deviceQueues.at(EnumValue(deviceQueueType)); }
         inline constexpr VkCommandPool GetCommandPool(EDeviceQueueType deviceQueueType) const noexcept { return m_commandPools.at(EnumValue(deviceQueueType)); }
+        inline constexpr VmaAllocator GetMemoryAllocator() const noexcept { return m_memoryAllocator; }
 
         /// @brief Waits on host for all outstanding device work to finish
         inline void WaitIdle() noexcept { NRI_VK_CHECK_RESULT(vkDeviceWaitIdle(GetNativeHandle()), "Failed to wait for device to finish work"); }
+
+        void BeginDebugLabel(VkCommandBuffer commandBuffer, std::string_view labelName, glm::vec4 labelColor = glm::vec4(1.0f)) const noexcept;
+        void EndDebugLabel(VkCommandBuffer commandBuffer) const noexcept;
 
     private:
         struct SuitableDeviceQueryInfo
@@ -82,8 +91,14 @@ namespace Warp::nri::vk
         Arc<NriInstance> m_instance;
         Arc<NriPhysicalDevice> m_physicalDevice; /// The physical device used to create this logical device
 
-        std::array<VkQueue, EnumValue(EDeviceQueueType::NumTypes)> m_deviceQueues;
-        std::array<VkCommandPool, EnumValue(EDeviceQueueType::NumTypes)> m_commandPools;
+        // clang-format off
+        static constexpr uint32_t NumQueueTypes = EnumValue(EDeviceQueueType::NumTypes);
+        std::array<NriPhysicalDeviceQueueFamilyInformation, NumQueueTypes> m_deviceQueueFamilyInfos;
+        std::array<VkQueue,                                 NumQueueTypes> m_deviceQueues;
+        std::array<VkCommandPool,                           NumQueueTypes> m_commandPools;
+        // clang-format on
+
+        VmaAllocator m_memoryAllocator = VK_NULL_HANDLE; /// VMA allocator for this device, initialized on device creation and destroyed on device destruction
     };
 
 } // Warp::nri::vk namespace

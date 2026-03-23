@@ -5,6 +5,7 @@
 #include "shader_factory/nri_shader_library.h"
 
 #include <span>
+#include <ranges>
 
 namespace Warp::nri
 {
@@ -13,13 +14,6 @@ namespace Warp::nri
     {
         // before destroying anything wait on device to finish outstanding jobs
         m_device->WaitIdle();
-
-        const uint32_t numVertexAttributes = EnumValue(EVertexAttributeIndex::Last);
-        for (uint32_t i = 0; i < numVertexAttributes; ++i)
-        {
-            vkDestroyBuffer(m_device->GetNativeHandle(), m_vertexAttributeBuffers.at(i), nullptr);
-            vkFreeMemory(m_device->GetNativeHandle(), m_vertexAttributeMemories.at(i), nullptr);
-        }
 
         // destroy sync primitives
         const uint32_t numFramesInFlight = m_info.numFramesInFlight;
@@ -70,7 +64,8 @@ namespace Warp::nri
         InitSyncPrimitives();
 
         // vertex buffer initialization
-        InitTriangleVertexBuffers();
+        InitQuadVertexBuffers();
+        InitQuadIndexBuffer();
     }
 
     void Renderer::Resize()
@@ -103,7 +98,7 @@ namespace Warp::nri
         VkCommandBuffer commandBuffer = m_commandBuffers.at(frameIndex);
 
         NRI_VK_CHECK_RESULT(vkWaitForFences(m_device->GetNativeHandle(), 1, &inflightFence, VK_TRUE, UINT64_MAX), "Failed to wait for inflight fence");
-        
+
         if (!m_swapchain->AcquireNextImage(imageAvailableSemaphore))
         {
             // If AcquireNext image returns false this means swapchain is incompatible
@@ -154,6 +149,7 @@ namespace Warp::nri
         commandBufferBeginInfo.pInheritanceInfo = nullptr; // not used
         NRI_VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &commandBufferBeginInfo), "Failed to begin command buffer");
         {
+            m_device->BeginDebugLabel(commandBuffer, "Quad render pass", glm::vec4(0.0f, 1.0f, 0.0f, 1.0f));
             VkClearValue clearValue;
             clearValue.color = { 0.0f, 0.0f, 0.0f, 1.0f };
             clearValue.depthStencil.depth = 0.0f;
@@ -171,18 +167,28 @@ namespace Warp::nri
             vkCmdBeginRenderPass(commandBuffer, &beginRenderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_trianglePipe);
 
-            // Bind vertex buffer information to the pipe
+            // Bind vertex & index buffer information to the pipe
             {
-                const uint32_t numVertexAttributes = EnumValue(EVertexAttributeIndex::Last);
-                std::array dummyOffsets1 = { VkDeviceSize{}, VkDeviceSize{} };
-                vkCmdBindVertexBuffers(commandBuffer, 0, numVertexAttributes, m_vertexAttributeBuffers.data(), dummyOffsets1.data());
+                // replace the dummy offsets array below with std::ranges somehow
+                static constexpr uint32_t NumVertexAttributes = EnumValue(EVertexAttributeIndex::Last);
+
+                std::array<VkDeviceSize, NumVertexAttributes> dummyOffsets;
+                std::ranges::fill(dummyOffsets, VkDeviceSize{});
+
+                std::array<VkBuffer, NumVertexAttributes> nativeVertexBuffers;
+                std::ranges::transform(
+                    m_vertexAttributeBuffers, nativeVertexBuffers.begin(), [](const Arc<vk::NriBuffer>& buffer) { return buffer->GetNativeHandle(); });
+                vkCmdBindVertexBuffers(commandBuffer, 0, NumVertexAttributes, nativeVertexBuffers.data(), dummyOffsets.data());
+
+                VkIndexType indexType = m_quadVertexCollection.indexAttribute.GetFormat() == VK_FORMAT_R16_UINT ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32;
+                vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->GetNativeHandle(), 0, VK_INDEX_TYPE_UINT16);
             }
 
             // TODO: remove this and instead use VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT && VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT
             VkViewport viewport = { .x = 0,
                                     .y = 0,
                                     .width = static_cast<float>(m_swapchain->GetWidth()),
-                                    .height = static_cast<float>(m_swapchain->GetHeight()),
+                                    .height = static_cast<float>(m_swapchain->GetHeight()), // perform y-inversion (ratified as of vulkan 1.1)
                                     .minDepth = 0.0f,
                                     .maxDepth = 1.0f };
             vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -191,8 +197,9 @@ namespace Warp::nri
             vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
 
             // submit drawcall
-            vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, m_quadVertexCollection.indexAttribute.GetNumElements(), 1, 0, 0, 0);
             vkCmdEndRenderPass(commandBuffer);
+            m_device->EndDebugLabel(commandBuffer);
         }
         NRI_VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer), "Failed to end command buffer");
     }
@@ -349,14 +356,12 @@ namespace Warp::nri
 
         std::array shaderStageInfos = { vsShaderStageInfo, fsShaderStageInfo };
 
-        std::array vertexBindingDescriptions = {
-            m_triangleVertexCollection.GetBindingDescription(EVertexAttributeIndex::Position, true),
-            m_triangleVertexCollection.GetBindingDescription(EVertexAttributeIndex::Color, true)
-        };
+        std::array vertexBindingDescriptions = { m_quadVertexCollection.GetBindingDescription(EVertexAttributeIndex::Position, true),
+                                                 m_quadVertexCollection.GetBindingDescription(EVertexAttributeIndex::Color, true) };
 
         std::array vertexAttributeDescriptions = {
-            m_triangleVertexCollection.GetAttributeDescription(EVertexAttributeIndex::Position, 0 /*location*/),
-            m_triangleVertexCollection.GetAttributeDescription(EVertexAttributeIndex::Color, 1 /*location*/),
+            m_quadVertexCollection.GetAttributeDescription(EVertexAttributeIndex::Position, 0 /*location*/),
+            m_quadVertexCollection.GetAttributeDescription(EVertexAttributeIndex::Color, 1 /*location*/),
         };
 
         auto pipeVertexInputInfo = NRI_VK_STRUCT(VkPipelineVertexInputStateCreateInfo);
@@ -376,7 +381,7 @@ namespace Warp::nri
         VkViewport pipeViewport = { .x = 0,
                                     .y = 0,
                                     .width = static_cast<float>(m_swapchain->GetWidth()),
-                                    .height = static_cast<float>(m_swapchain->GetHeight()),
+                                    .height = static_cast<float>(m_swapchain->GetHeight()), // perform y-inversion (ratified as of vulkan 1.1)
                                     .minDepth = 0.0f,
                                     .maxDepth = 1.0f };
         VkRect2D pipeScissorRect = { .offset = VkOffset2D{ 0, 0 }, .extent = m_swapchain->GetCurrentExtent() };
@@ -533,91 +538,149 @@ namespace Warp::nri
         }
     }
 
-    void Renderer::InitTriangleVertexBuffers()
+    void Renderer::InitQuadVertexBuffers()
     {
-        WARP_ASSERT(m_device && m_device->GetPhysicalDevice(), "Physical device is not reachable!");
+        WARP_ASSERT(m_device, "Device is not reachable!");
 
-        const uint32_t numAttributes = EnumValue(EVertexAttributeIndex::Last);
-        /* destroy previously allocated buffers, if any */
-        for (uint32_t i = 0; i < numAttributes; ++i)
-        {
-            if (m_vertexAttributeBuffers.at(i) != VK_NULL_HANDLE)
-            {
-                vkDestroyBuffer(m_device->GetNativeHandle(), m_vertexAttributeBuffers.at(i), nullptr);
-            }
-            if (m_vertexAttributeMemories.at(i) != VK_NULL_HANDLE)
-            {
-                vkFreeMemory(m_device->GetNativeHandle(), m_vertexAttributeMemories.at(i), nullptr);
-            }
-        }
-        /* allocate new buffers for each attribute */
-        for (uint32_t i = 0; i < numAttributes; ++i)
+        static constexpr uint32_t NumAttributes = EnumValue(EVertexAttributeIndex::Last);
+        static constexpr vk::EDeviceQueueType CopyQueueType = vk::EDeviceQueueType::Transfer;
+
+        std::array<Arc<vk::NriBuffer>, NumAttributes> stagingBuffers;
+        // allocate staging buffers for each vertex attribute and copy host data to them
+        for (uint32_t i = 0; i < NumAttributes; ++i)
         {
             EVertexAttributeIndex attributeIndex = static_cast<EVertexAttributeIndex>(i);
-            auto attributeBufferCreateInfo = NRI_VK_STRUCT(VkBufferCreateInfo);
-            attributeBufferCreateInfo.size = m_triangleVertexCollection.GetAttributes(attributeIndex).GetBytes().size();
-            attributeBufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-            attributeBufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            Arc<vk::NriBuffer> stagingBuffer = Arc<vk::NriBuffer>::Make(vk::NriBufferInfo{
+                .device = m_device,
+                .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                .sizeInBytes = m_quadVertexCollection.GetAttributes(attributeIndex).GetBytes().size(),
+                .memoryAllocationFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+                .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+            });
 
-            NRI_VK_CHECK_RESULT(vkCreateBuffer(m_device->GetNativeHandle(), &attributeBufferCreateInfo, nullptr, &m_vertexAttributeBuffers.at(i)),
-                                "Failed to create vertex attribute buffer for index {}",
-                                i);
-
-            /* query amount of memory required for this buffer to be allocated */
-            VkMemoryRequirements attribBufferMemReqs;
-            vkGetBufferMemoryRequirements(m_device->GetNativeHandle(), m_vertexAttributeBuffers.at(i), &attribBufferMemReqs);
-
-            static auto GetRequiredMemoryTypeIndex = 
-                [](const VkPhysicalDeviceMemoryProperties& memoryProperties, uint32_t typeFilter, VkMemoryPropertyFlags properties) -> uint32_t {
-                    for (uint32_t memoryTypeIdx = 0; memoryTypeIdx < memoryProperties.memoryTypeCount; ++memoryTypeIdx)
-                    {
-                        if ((typeFilter & (1 << memoryTypeIdx)) && 
-                            (memoryProperties.memoryTypes[memoryTypeIdx].propertyFlags & properties) == properties)
-                        {
-                            return memoryTypeIdx;
-                        }
-                    }
-                    return UINT32_MAX;
-                };
-            const uint32_t memoryTypeIndex = GetRequiredMemoryTypeIndex(m_device->GetPhysicalDevice()->GetMemoryProperties(),
-                                                                        attribBufferMemReqs.memoryTypeBits,
-                                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-            WARP_ASSERT(memoryTypeIndex != UINT32_MAX, "Failed to find suitable memory type index");
-
-            auto attributeMemoryAllocateInfo = NRI_VK_STRUCT(VkMemoryAllocateInfo);
-            attributeMemoryAllocateInfo.allocationSize = attribBufferMemReqs.size;
-            attributeMemoryAllocateInfo.memoryTypeIndex = memoryTypeIndex;
-            NRI_VK_CHECK_RESULT(vkAllocateMemory(m_device->GetNativeHandle(), &attributeMemoryAllocateInfo, nullptr, &m_vertexAttributeMemories.at(i)),
-                                "Failed to allocate device memory for vertex attribute buffer");
-
-            auto bindInfo = NRI_VK_STRUCT(VkBindBufferMemoryInfo);
-            bindInfo.buffer = m_vertexAttributeBuffers.at(i);
-            bindInfo.memory = m_vertexAttributeMemories.at(i);
-            bindInfo.memoryOffset = 0;
-            NRI_VK_CHECK_RESULT(vkBindBufferMemory2(m_device->GetNativeHandle(), 1, &bindInfo), "Failed to bind vertex attribute buffer memory");
-
-            // Populate vertex buffer with data from vertex collection
-            void* pMappedData{};
-            auto memoryMapInfo = NRI_VK_STRUCT(VkMemoryMapInfo);
-            memoryMapInfo.flags = 0; // see VkMemoryMapFlagBits for more info
-            memoryMapInfo.memory = m_vertexAttributeMemories.at(i);
-            memoryMapInfo.offset = 0;
-            memoryMapInfo.size = VK_WHOLE_SIZE;
-            NRI_VK_CHECK_RESULT(vkMapMemory2(m_device->GetNativeHandle(), &memoryMapInfo, &pMappedData), "Failed to map vertex attribute buffer memory");
-            {
-                std::span attributeData = m_triangleVertexCollection.GetAttributes(attributeIndex).GetBytes();
-                std::memcpy(pMappedData, attributeData.data(), attributeData.size());
-            }
-            auto memoryUnmapInfo = NRI_VK_STRUCT(VkMemoryUnmapInfo);
-            memoryUnmapInfo.flags = 0;
-            memoryUnmapInfo.memory = m_vertexAttributeMemories.at(i);
-            NRI_VK_CHECK_RESULT(vkUnmapMemory2(m_device->GetNativeHandle(), &memoryUnmapInfo), "Failed to unmap vertex attribute buffer memory");
-
-            // we don't need to flush memory from host to device after unmapping because we specified VK_MEMORY_PROPERTY_HOST_COHERENT_BIT memory.
-            // alternatively vkFlushMappedMemoryRanges/vkInvalidateMappedMemoryRanges could be called
+            std::byte* mappedBytes = stagingBuffer->MapMemoryToHost();
+            std::span attributeData = m_quadVertexCollection.GetAttributes(attributeIndex).GetBytes();
+            std::memcpy(mappedBytes, attributeData.data(), attributeData.size());
+            stagingBuffer->UnmapMemoryFromHost();
+            stagingBuffers.at(i) = stagingBuffer;
         }
 
-        
+        // allocate command buffer for copy operations from staging buffers to GPU local buffers
+        auto commandBufferAllocInfo = NRI_VK_STRUCT(VkCommandBufferAllocateInfo);
+        commandBufferAllocInfo.commandPool = m_device->GetCommandPool(CopyQueueType);
+        commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer bufferCopyCommandBuffer;
+        NRI_VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device->GetNativeHandle(), &commandBufferAllocInfo, &bufferCopyCommandBuffer),
+                            "Failed to create command buffer for buffer copy operations");
+
+        auto beginInfo = NRI_VK_STRUCT(VkCommandBufferBeginInfo);
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        NRI_VK_CHECK_RESULT(vkBeginCommandBuffer(bufferCopyCommandBuffer, &beginInfo), "Failed to begin command buffer for buffer copy operations");
+        m_device->BeginDebugLabel(bufferCopyCommandBuffer, "Copy vertex attribute buffers", glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+
+        // allocate GPU local buffers for each vertex attribute and copy data from staging buffers to them
+        for (uint32_t i = 0; i < NumAttributes; ++i)
+        {
+            EVertexAttributeIndex attributeIndex = static_cast<EVertexAttributeIndex>(i);
+            Arc<vk::NriBuffer> attributeBuffer = Arc<vk::NriBuffer>::Make(vk::NriBufferInfo{
+                .device = m_device,
+                .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                .sizeInBytes = stagingBuffers.at(i)->GetSizeInBytes(),
+                .memoryAllocationFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+                .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+                .concurrentSharingQueues = vk::EDeviceQueueType::Universal | vk::EDeviceQueueType::Transfer
+            });
+
+            auto bufferCopyRegion = NRI_VK_STRUCT(VkBufferCopy2);
+            bufferCopyRegion.srcOffset = 0;
+            bufferCopyRegion.dstOffset = 0;
+            bufferCopyRegion.size = stagingBuffers.at(i)->GetSizeInBytes();
+
+            auto copyBufferInfo = NRI_VK_STRUCT(VkCopyBufferInfo2);
+            copyBufferInfo.srcBuffer = stagingBuffers.at(i)->GetNativeHandle();
+            copyBufferInfo.dstBuffer = attributeBuffer->GetNativeHandle();
+            copyBufferInfo.regionCount = 1;
+            copyBufferInfo.pRegions = &bufferCopyRegion;
+            vkCmdCopyBuffer2(bufferCopyCommandBuffer, &copyBufferInfo);
+
+            m_vertexAttributeBuffers.at(i) = attributeBuffer;
+        }
+        m_device->EndDebugLabel(bufferCopyCommandBuffer);
+        NRI_VK_CHECK_RESULT(vkEndCommandBuffer(bufferCopyCommandBuffer), "Failed to end command buffer for buffer copy operations");
+
+        auto submitInfo = NRI_VK_STRUCT(VkSubmitInfo);
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &bufferCopyCommandBuffer;
+        NRI_VK_CHECK_RESULT(vkQueueSubmit(m_device->GetQueue(CopyQueueType), 1, &submitInfo, VK_NULL_HANDLE), "Failed to submit queue commands");
+        m_device->WaitIdle();
+    }
+
+    void Renderer::InitQuadIndexBuffer()
+    {
+        WARP_ASSERT(m_device, "Device is not reachable!");
+
+        static constexpr vk::EDeviceQueueType CopyQueueType = vk::EDeviceQueueType::Transfer;
+
+        Arc<vk::NriBuffer> stagingBuffer = Arc<vk::NriBuffer>::Make(vk::NriBufferInfo{
+            .device = m_device,
+            .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            .sizeInBytes = m_quadVertexCollection.indexAttribute.GetBytes().size(),
+            .memoryAllocationFlags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
+            .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST,
+        });
+
+        std::byte* mappedBytes = stagingBuffer->MapMemoryToHost();
+        std::span attributeData = m_quadVertexCollection.indexAttribute.GetBytes();
+        std::memcpy(mappedBytes, attributeData.data(), attributeData.size());
+        stagingBuffer->UnmapMemoryFromHost();
+
+        // allocate GPU local buffers for each vertex attribute and copy data from staging buffers to them
+        m_indexBuffer = Arc<vk::NriBuffer>::Make(vk::NriBufferInfo{
+            .device = m_device,
+            .usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            .sizeInBytes = stagingBuffer->GetSizeInBytes(),
+            .memoryAllocationFlags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+            .memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+            .concurrentSharingQueues = vk::EDeviceQueueType::Universal | vk::EDeviceQueueType::Transfer
+        });
+
+        // allocate command buffer for copy operations from staging buffers to GPU local buffers
+        auto commandBufferAllocInfo = NRI_VK_STRUCT(VkCommandBufferAllocateInfo);
+        commandBufferAllocInfo.commandPool = m_device->GetCommandPool(CopyQueueType);
+        commandBufferAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        commandBufferAllocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer bufferCopyCommandBuffer;
+        NRI_VK_CHECK_RESULT(vkAllocateCommandBuffers(m_device->GetNativeHandle(), &commandBufferAllocInfo, &bufferCopyCommandBuffer),
+                            "Failed to create command buffer for buffer copy operations");
+
+        auto beginInfo = NRI_VK_STRUCT(VkCommandBufferBeginInfo);
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        NRI_VK_CHECK_RESULT(vkBeginCommandBuffer(bufferCopyCommandBuffer, &beginInfo), "Failed to begin command buffer for buffer copy operations");
+        m_device->BeginDebugLabel(bufferCopyCommandBuffer, "Copy index buffer", glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
+
+        auto bufferCopyRegion = NRI_VK_STRUCT(VkBufferCopy2);
+        bufferCopyRegion.srcOffset = 0;
+        bufferCopyRegion.dstOffset = 0;
+        bufferCopyRegion.size = stagingBuffer->GetSizeInBytes();
+
+        auto copyBufferInfo = NRI_VK_STRUCT(VkCopyBufferInfo2);
+        copyBufferInfo.srcBuffer = stagingBuffer->GetNativeHandle();
+        copyBufferInfo.dstBuffer = m_indexBuffer->GetNativeHandle();
+        copyBufferInfo.regionCount = 1;
+        copyBufferInfo.pRegions = &bufferCopyRegion;
+        vkCmdCopyBuffer2(bufferCopyCommandBuffer, &copyBufferInfo);
+
+        m_device->EndDebugLabel(bufferCopyCommandBuffer);
+        NRI_VK_CHECK_RESULT(vkEndCommandBuffer(bufferCopyCommandBuffer), "Failed to end command buffer for buffer copy operations");
+
+        auto submitInfo = NRI_VK_STRUCT(VkSubmitInfo);
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &bufferCopyCommandBuffer;
+        NRI_VK_CHECK_RESULT(vkQueueSubmit(m_device->GetQueue(CopyQueueType), 1, &submitInfo, VK_NULL_HANDLE), "Failed to submit queue commands");
+        m_device->WaitIdle();
     }
 
 } // Warp::nri namespace

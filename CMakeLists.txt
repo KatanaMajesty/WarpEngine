@@ -22,6 +22,9 @@ add_executable(warp_engine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_shader_library.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_factory/nri_slang_util.h"
 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_buffer.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_buffer.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_common.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_device.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_device.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_instance.cpp"
@@ -33,6 +36,7 @@ add_executable(warp_engine
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_surface.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_swapchain.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/vulkan/nri_vk_vma_impl.cpp"
 
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/nri_vk_renderer.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/nri_vk_renderer.h"
@@ -82,6 +86,10 @@ target_link_libraries(warp_engine
         slang::slang
 )
 target_compile_definitions(warp_engine PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+# precompile headers that are used by multiple modules, so we don't have to recompile them every time
+target_precompile_headers(warp_engine PUBLIC 
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/cgltf/cgltf.h"
+)
 
 # copy Slang DLL
 add_custom_command(TARGET warp_engine POST_BUILD
@@ -90,7 +98,7 @@ add_custom_command(TARGET warp_engine POST_BUILD
         $<TARGET_FILE_DIR:warp_engine>
 )
 
-# Always copy on every build (even if warp_engine didn’t rebuild)
+# Always copy on every build (even if warp_engine didnï¿½t rebuild)
 add_custom_target(warp_engine_nebulae_shaders ALL 
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/src/nebulae/shader_library" $<TARGET_FILE_DIR:warp_engine>
     COMMENT "Copying nebulae shaders to output dir...")

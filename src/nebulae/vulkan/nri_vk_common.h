@@ -13,6 +13,8 @@
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vk_enum_string_helper.h>
+#include <vma/vk_mem_alloc.h>
+#include <glm/glm.hpp>
 
 #include <string_view>
 
@@ -96,7 +98,6 @@ namespace Warp::nri::vk
         return reinterpret_cast<Function>(vkGetInstanceProcAddr(instance, name.data()));
     }
 
-
 } // Warp::nri::vk namespace
 
 #define NRI_VK_STRUCT(type, ...) Warp::nri::vk::InitVulkanChainableStruct<type>(__VA_ARGS__)
@@ -105,3 +106,28 @@ namespace Warp::nri::vk
 #define NRI_VK_INSTANCE_PROC_ADDR(function, instance) Warp::nri::vk::GetInstanceProcAddr<PFN_##function>(instance, #function);
 
 #define NRI_MARK_OPTIONAL(x) x
+
+// namespace Warp::nri::vk 
+// {
+
+//     inline void BeginCommandBufferDebugLabel(VkCommandBuffer cmdBuffer, std::string_view labelName, const glm::vec4& color)
+//     {
+//         auto labelInfo = NRI_VK_STRUCT(VkDebugUtilsLabelEXT);
+//         labelInfo.pLabelName = labelName.data();
+//         labelInfo.color[0] = color.r;
+//         labelInfo.color[1] = color.g;
+//         labelInfo.color[2] = color.b;
+//         labelInfo.color[3] = color.a;
+//         vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &labelInfo);
+//     }
+
+//     inline void EndCommandBufferDebugLabel(VkCommandBuffer cmdBuffer)
+//     {
+
+//         vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
+//     }
+
+// }; // Warp::nri::vk namespace
+
+// #define NRI_VK_BEGIN_CMD_DEBUG_LABEL(cmdBuffer, labelName, color) Warp::nri::vk::BeginCommandBufferDebugLabel(cmdBuffer, labelName, color)
+// #define NRI_VK_END_CMD_DEBUG_LABEL(cmdBuffer) Warp::nri::vk::EndCommandBufferDebugLabel(cmdBuffer)

@@ -5,6 +5,7 @@
 
 #include "platform_window.h"
 
+#include "vulkan/nri_vk_buffer.h"
 #include "vulkan/nri_vk_common.h"
 #include "vulkan/nri_vk_device.h"
 #include "vulkan/nri_vk_instance.h"
@@ -70,22 +71,34 @@ namespace Warp::nri
         Last, 
     }; // EVertexAttribute enum class 
 
+    // SoA for vertex attributes
     struct VertexCollection
     {
         VertexCollection()
         {
             // TODO: Remove this hard-code when full models are supported. This is here just to render a triangle
-            GetAttributes(EVertexAttributeIndex::Position) = VertexAttributeArray(3, sizeof(glm::vec2), VK_FORMAT_R32G32_SFLOAT);
+            GetAttributes(EVertexAttributeIndex::Position) = VertexAttributeArray(4, sizeof(glm::vec2), VK_FORMAT_R32G32_SFLOAT);
             std::span positions = GetAttributes(EVertexAttributeIndex::Position).GetValues<glm::vec2>();
-            positions[0] = glm::vec2(0.0f, -0.5f);
-            positions[1] = glm::vec2(-0.5f, 0.5f);
-            positions[2] = glm::vec2(0.5f, 0.5f);
+            positions[0] = glm::vec2(-0.5f, 0.5f);
+            positions[1] = glm::vec2(-0.5f, -0.5f);
+            positions[2] = glm::vec2(0.5f, -0.5f);
+            positions[3] = glm::vec2(0.5f, 0.5f);
 
-            GetAttributes(EVertexAttributeIndex::Color) = VertexAttributeArray(3, sizeof(glm::vec3), VK_FORMAT_R32G32B32_SFLOAT);
+            GetAttributes(EVertexAttributeIndex::Color) = VertexAttributeArray(4, sizeof(glm::vec3), VK_FORMAT_R32G32B32_SFLOAT);
             std::span colors = GetAttributes(EVertexAttributeIndex::Color).GetValues<glm::vec3>();
-            colors[0] = glm::vec3(1.0f, 1.0f, 0.0f);
-            colors[1] = glm::vec3(1.0f, 1.0f, 0.0f);
-            colors[2] = glm::vec3(1.0f, 1.0f, 1.0f);
+            colors[0] = glm::vec3(1.0f, 0.0f, 0.0f);
+            colors[1] = glm::vec3(0.0f, 1.0f, 0.0f);
+            colors[2] = glm::vec3(0.0f, 0.0f, 1.0f);
+            colors[3] = glm::vec3(1.0f, 0.0f, 1.0f);
+
+            indexAttribute = VertexAttributeArray(6, sizeof(uint16_t), VK_FORMAT_R16_UINT);
+            std::span indices = indexAttribute.GetValues<uint16_t>();
+            indices[0] = 1;
+            indices[1] = 0;
+            indices[2] = 3;
+            indices[3] = 3;
+            indices[4] = 2;
+            indices[5] = 1;
         }
 
         inline VkVertexInputBindingDescription GetBindingDescription(EVertexAttributeIndex attributeIndex, bool isPerVertex) const noexcept 
@@ -116,6 +129,10 @@ namespace Warp::nri
         VertexAttributeArray& GetAttributes(EVertexAttributeIndex attributeIndex) noexcept { return this->vertexAttributes.at(EnumValue(attributeIndex)); } 
 
         std::array<VertexAttributeArray, EnumValue(EVertexAttributeIndex::Last)> vertexAttributes;
+
+        // TODO: Rename vertex attribute array to something more generic when more attributes are supported, like instance data for example. 
+        // This is just a placeholder for now to render a triangle
+        VertexAttributeArray indexAttribute;
     }; // VertexCollection struct
 
     struct RendererInfo
@@ -184,11 +201,12 @@ namespace Warp::nri
         std::vector<VkFence> m_inflightFences;
 
         // does not require any additional initialization
-        VertexCollection m_triangleVertexCollection;
+        VertexCollection m_quadVertexCollection;
 
-        void InitTriangleVertexBuffers();
-        std::array<VkBuffer, EnumValue(EVertexAttributeIndex::Last)> m_vertexAttributeBuffers;
-        std::array<VkDeviceMemory, EnumValue(EVertexAttributeIndex::Last)> m_vertexAttributeMemories;
+        void InitQuadVertexBuffers();
+        std::array<Arc<vk::NriBuffer>, EnumValue(EVertexAttributeIndex::Last)> m_vertexAttributeBuffers;
+        void InitQuadIndexBuffer();
+        Arc<vk::NriBuffer> m_indexBuffer;
     };
 
 } // Warp::nri namespace

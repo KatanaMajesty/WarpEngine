@@ -49,8 +49,12 @@ namespace Warp::nri::vk
         std::vector<Arc<NriPhysicalDevice>> QueryAvailablePhysicalDevices();
 
     private:
+        VkDebugUtilsMessengerCreateInfoEXT GetValidationLayerMessengerCreateInfo();
+        void InitValidationLayerMessenger();
+
         EApiVersion m_apiVersion = EApiVersion::Vk_1_0;
         VkInstance m_nativeHandle = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT m_validationLayerMessenger = VK_NULL_HANDLE;
     };
 
 } // Warp::nri::vk namespace
