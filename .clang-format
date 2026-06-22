@@ -1,48 +1,27 @@
-AccessModifierOffset: -4
-AlignOperands: AlignAfterOperator
+﻿---
+AccessModifierOffset: '-4'
 AlignAfterOpenBracket: Align
-AllowAllParametersOfDeclarationOnNextLine: true
-AllowShortBlocksOnASingleLine: true
-AllowShortFunctionsOnASingleLine: All
-AllowShortCaseLabelsOnASingleLine: true
-
-# Constructor initializers stuff for Warp Engine
-# TODO: When we switch to CMake we could easily integrate ClangFormat 14+ which would allow us to use PackConstructorInitializers
-# For now we are using deprecated alternative though
-# PackConstructorInitializers: NextLineOnly -> Only for ClangFormat 14
-AllowAllConstructorInitializersOnNextLine: true
-BreakConstructorInitializers: BeforeComma
-
-LambdaBodyIndentation: Signature
-
-BinPackParameters: false # one param per line once it wraps
-BinPackArguments: false
-BasedOnStyle: LLVM
+AlignConsecutiveDeclarations: 'false'
+AlignEscapedNewlines: Left
+AlignOperands: 'true'
+AllowShortCaseLabelsOnASingleLine: 'true'
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLambdasOnASingleLine: Empty
+AlwaysBreakTemplateDeclarations: 'Yes'
+BinPackParameters: 'false'
 BreakBeforeBraces: Allman
-BreakAfterReturnType: None
-PenaltyReturnTypeOnItsOwnLine: 1000000
-ColumnLimit: 160
-Cpp11BracedListStyle: false
-FixNamespaceComments: false
-IndentCaseLabels: false
-IndentPPDirectives: None
-
-# Warp Engine's indentation stuff
-IndentWidth: 4
-ContinuationIndentWidth: 4 
-TabWidth: 4
-UseTab: Never
-
-MaxEmptyLinesToKeep: 10
-NamespaceIndentation: All
+BreakConstructorInitializers: BeforeComma
+BreakStringLiterals: 'true'
+ColumnLimit: '120'
+CompactNamespaces: 'false'
+FixNamespaceComments: 'true'
+IncludeBlocks: Regroup
+IndentCaseLabels: 'true'
+IndentWidth: '4'
+IndentWrappedFunctionNames: 'true'
+Language: Cpp
+NamespaceIndentation: Inner
 PointerAlignment: Left
-SortIncludes: false
-SortUsingDeclarations: false
-SpaceAfterCStyleCast: false
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeParens: ControlStatements
-SpaceInEmptyParentheses: false
-SpacesInCStyleCastParentheses: false
-SpacesInParentheses: false
-SpacesInSquareBrackets: false
-SpaceAfterTemplateKeyword: false # Do not add space after template keyword
+SortIncludes: 'true'
+SortUsingDeclarations: 'true'
+TabWidth: '4'

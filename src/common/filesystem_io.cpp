@@ -6,63 +6,63 @@
 namespace Warp::fsio
 {
 
-    bool IsValidFilepath(const std::filesystem::path& filepath) noexcept
+bool IsValidFilepath(const std::filesystem::path& filepath) noexcept
+{
+    std::error_code ec;
+    bool e = std::filesystem::exists(filepath, ec);
+    WARP_ASSERT(!ec, "Failed to check filepath for validity: {}", ec.message());
+    return e;
+}
+
+bool IsValidFile(const std::filesystem::path& filepath) noexcept
+{
+    if (!IsValidFilepath(filepath))
+        return false;
+
+    std::error_code ec;
+    bool isFile = std::filesystem::is_regular_file(filepath, ec);
+    WARP_ASSERT(!ec, "Failed to check file for validity: {}", ec.message());
+    return isFile;
+}
+
+uint64_t FileSizeInBytes(const std::filesystem::path& filepath) noexcept
+{
+    if (!IsValidFilepath(filepath))
     {
-        std::error_code ec;
-        bool e = std::filesystem::exists(filepath, ec);
-        WARP_ASSERT(!ec, "Failed to check filepath for validity: {}", ec.message());
-        return e;
+        // return invalid file size if filepath is not valid
+        return kInvalidFileSize;
     }
+    std::error_code ec;
+    uint64_t fs = std::filesystem::file_size(filepath, ec);
+    WARP_ASSERT(!ec, "Failed to get filesize of {}: {}", filepath.string(), ec.message());
+    return fs;
+}
 
-    bool IsValidFile(const std::filesystem::path& filepath) noexcept
-    {
-        if (!IsValidFilepath(filepath))
-            return false;
+std::string ReadFile(const std::filesystem::path& filepath) noexcept
+{
+    std::ifstream f(filepath);
+    WARP_ASSERT(!f.fail(), "Failed to open file at path: {}", filepath.string());
 
-        std::error_code ec;
-        bool isFile = std::filesystem::is_regular_file(filepath, ec);
-        WARP_ASSERT(!ec, "Failed to check file for validity: {}", ec.message());
-        return isFile;
-    }
+    return std::string(std::istreambuf_iterator<char>(f), {});
+}
 
-    uint64_t FileSizeInBytes(const std::filesystem::path& filepath) noexcept
-    {
-        if (!IsValidFilepath(filepath))
-        {
-            // return invalid file size if filepath is not valid
-            return kInvalidFileSize;
-        }
-        std::error_code ec;
-        uint64_t fs = std::filesystem::file_size(filepath, ec);
-        WARP_ASSERT(!ec, "Failed to get filesize of {}: {}", filepath.string(), ec.message());
-        return fs;
-    }
+std::vector<std::byte> ReadBinaryFile(const std::filesystem::path& filepath) noexcept
+{
+    std::ifstream f(filepath, std::ios::binary);
+    WARP_ASSERT(!f.fail(), "Failed to open file at path: {}", filepath.string());
 
-    std::string ReadFile(const std::filesystem::path& filepath) noexcept
-    {
-        std::ifstream f(filepath);
-        WARP_ASSERT(!f.fail(), "Failed to open file at path: {}", filepath.string());
+    return std::vector<std::byte>(std::istreambuf_iterator<std::byte>(), {});
+}
 
-        return std::string(std::istreambuf_iterator<char>(f), {});
-    }
+void WriteBinaryFile(const std::filesystem::path& filepath, std::span<const std::byte> bytes) noexcept
+{
+    std::filesystem::create_directories(filepath.parent_path());
 
-    std::vector<std::byte> ReadBinaryFile(const std::filesystem::path& filepath) noexcept
-    {
-        std::ifstream f(filepath, std::ios::binary);
-        WARP_ASSERT(!f.fail(), "Failed to open file at path: {}", filepath.string());
+    std::ofstream f(filepath, std::ios::binary);
+    WARP_ASSERT(!f.fail(), "Failed to open file at path for binary write: {}", filepath.string());
 
-        return std::vector<std::byte>(std::istreambuf_iterator<std::byte>(), {});
-    }
+    f.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    f.close();
+}
 
-    void WriteBinaryFile(const std::filesystem::path& filepath, std::span<const std::byte> bytes) noexcept
-    {
-        std::filesystem::create_directories(filepath.parent_path());
-
-        std::ofstream f(filepath, std::ios::binary);
-        WARP_ASSERT(!f.fail(), "Failed to open file at path for binary write: {}", filepath.string());
-
-        f.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-        f.close();
-    }
-
-} // Warp::fsio namespace
+} // namespace Warp::fsio

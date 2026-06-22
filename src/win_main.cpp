@@ -1,11 +1,10 @@
 #include "warp_win32_entry_point.h"
 
 #include <Windows.h>
-
 #include <cstdint>
-#include <vector>
-#include <string_view>
 #include <stdexcept>
+#include <string_view>
+#include <vector>
 
 int32_t main(int32_t argc, char* argv[])
 {

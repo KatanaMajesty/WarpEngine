@@ -1,43 +1,43 @@
 #pragma once
 
-#include <print>
-#include <format>
-#include <cstdio>
 #include <array>
+#include <cstdio>
+#include <format>
+#include <print>
 
 namespace Warp::common
 {
 
-    namespace detail
+namespace detail
+{
+    enum class EPrintStream
     {
-        enum class EPrintStream
-        {
-            StdInput,
-            StdError,
-        };
+        StdInput,
+        StdError,
+    };
 
-        template<EPrintStream stream, typename... Args>
-        void PrintLn_Impl(std::format_string<Args...> fmt, Args&&... args)
+    template <EPrintStream stream, typename... Args>
+    void PrintLn_Impl(std::format_string<Args...> fmt, Args&&... args)
+    {
+        switch (stream)
         {
-            switch (stream)
-            {
             case EPrintStream::StdInput: std::println(fmt, std::forward<Args>(args)...); break;
             case EPrintStream::StdError: std::println(stderr, fmt, std::forward<Args>(args)...); break;
-            }
         }
-
-    } // detail namespace
-
-    template<typename... Args>
-    void PrintLn(std::format_string<Args...> fmt, Args&&... args)
-    {
-        detail::PrintLn_Impl<detail::EPrintStream::StdInput, Args...>(fmt, std::forward<Args>(args)...);
     }
 
-    template<typename... Args>
-    void PrintLn_Err(std::format_string<Args...> fmt, Args&&... args)
-    {
-        detail::PrintLn_Impl<detail::EPrintStream::StdError, Args...>(fmt, std::forward<Args>(args)...);
-    }
+} // namespace detail
 
-} // Warp::common namespace
+template <typename... Args>
+void PrintLn(std::format_string<Args...> fmt, Args&&... args)
+{
+    detail::PrintLn_Impl<detail::EPrintStream::StdInput, Args...>(fmt, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void PrintLn_Err(std::format_string<Args...> fmt, Args&&... args)
+{
+    detail::PrintLn_Impl<detail::EPrintStream::StdError, Args...>(fmt, std::forward<Args>(args)...);
+}
+
+} // namespace Warp::common

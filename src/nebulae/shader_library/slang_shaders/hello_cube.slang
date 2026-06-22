@@ -6,9 +6,9 @@
 
 struct GlobalUniformBuffer
 {
-	float4x4 projectionMatrix;
 	float4x4 modelMatrix;
 	float4x4 viewMatrix;
+	float4x4 projectionMatrix;
 };
 
 [[vk::binding(0, 0)]] ConstantBuffer<GlobalUniformBuffer> ubo;
@@ -30,7 +30,8 @@ VertexStageOutput vertexMain(VertexStageInput input)
 {
     VertexStageOutput output;
     output.color = input.color;
-    output.svPosition = mul(ubo.projectionMatrix, mul(ubo.viewMatrix, mul(ubo.modelMatrix, float4(input.position, 1.0))));
+    output.svPosition = mul(mul(mul(float4(input.position, 1.0), ubo.modelMatrix), ubo.viewMatrix), ubo.projectionMatrix);
+    // output.svPosition = float4(input.position, 0.0f, 1.0);
     return output;
 }
 

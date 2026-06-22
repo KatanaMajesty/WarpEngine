@@ -21,4 +21,4 @@
 
 namespace Warp::common
 {
-} // Warp::common namespace
+} // namespace Warp::common
